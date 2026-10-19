@@ -4,7 +4,7 @@ import zipfile
 root=Path(__file__).resolve().parent.parent
 archive=root/'dist'/'研序-ResearchStudio-Source.zip'
 with zipfile.ZipFile(archive,'w',zipfile.ZIP_DEFLATED,compresslevel=6) as z:
-    for folder in ['app','web','resources','tests','tools']:
+    for folder in ['app','web','resources','tests','tools','.github']:
         for p in (root/folder).rglob('*'):
             if p.is_file() and '__pycache__' not in p.parts and p.suffix!='.pyc':
                 z.write(p,'academic-workbench/'+p.relative_to(root).as_posix())

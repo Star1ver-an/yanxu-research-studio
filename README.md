@@ -1,14 +1,22 @@
 # 研序 Research Studio
 
-当前版本：0.2.2。
+当前版本：0.2.3。
 
 面向科研工作者的本地 Windows 桌面应用：把两套科研技能组织成可点击的页面，支持课题路径推荐、分阶段开题与写作、材料管理、本机表格质控和成果导出。
 
 **[下载 Windows 版](https://github.com/Star1ver-an/yanxu-research-studio/releases/latest)** · [项目主页](https://github.com/Star1ver-an/yanxu-research-studio)
 
-下载 Release 中的 `YanxuResearchStudio-Windows-v0.2.2.zip`，解压后双击 `YanxuResearchStudio.exe`。GitHub 的“Code → Download ZIP”下载的是源码，需要开发环境才能运行。
+下载 Release 中的 `YanxuResearchStudio-Windows-v0.2.3.zip`，解压后双击 `YanxuResearchStudio.exe`。GitHub 的“Code → Download ZIP”下载的是源码，需要开发环境才能运行。
 
 重复双击程序会唤起已有窗口，恢复最小化或隐藏状态；启动时显式显示桌面窗口。窗口若遗留在断开的显示器上，会回到当前屏幕。退出后可正常重新打开。不会为重复启动创建第二个工作区或改写研究成果。
+
+## 软件更新与自动发布
+
+从 v0.2.3 起，Windows 桌面版启动后及每 6 小时检查本仓库的正式 Release。右上角“软件更新”和连接设置中的更新面板支持手动检查、关闭自动检查、下载更新和确认安装。软件先核对 GitHub 发布资产的 SHA-256，再解压程序；研究任务仍在运行时拒绝安装。安装前请保存报告、连接设置及其他表单，勾选确认后软件退出并自动重启。原程序会备份到本机数据目录的 `updates/`；复制或启动进程失败时恢复旧程序。此保护不代表可以检测新版启动后的所有运行错误。
+
+v0.2.2 及更早版本需要先手动下载一次 v0.2.3 或更新版，之后即可在软件内更新。GitHub 无法连接时可继续使用当前版本，稍后重试或手动下载。更新不运行研究任务、不请求付费模型，也不迁移项目数据。开发模式只提供检查与发布页入口。
+
+维护者发布流程：修改 `app/workflows.py` 中的 `VERSION`，同步说明，提交并推送代码，然后推送匹配的版本标签，例如 `git tag v0.2.4`、`git push origin v0.2.4`。GitHub Actions 自动运行 Python 与前端测试、构建 Windows 包、创建源码包和校验文件，全部上传完成后才公开 Release。也支持在 Actions 页面手动运行现有标签。失败的构建不会发布新版；已经公开的版本不会被覆盖，修复后使用新版本号。无需在仓库保存个人访问令牌，工作流使用 GitHub 提供的临时令牌。
 
 ## Soft UI 新拟态界面
 

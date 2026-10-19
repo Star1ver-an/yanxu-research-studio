@@ -22,6 +22,7 @@ class Service:
         self.store=store or Store()
         self.lock=self.store.lock
         self.jobs={}
+        self.updating=False
 
     def project_list(self):
         return [{k:v for k,v in p.items() if k not in ('runs','outputs','assets','literature','confirmations')} |
@@ -269,6 +270,8 @@ class Service:
         sid=data['stage']
         settings=self.store.get_settings(secret=not STAGES.get(sid,{}).get('local',False))
         with self.lock:
+            if self.updating:
+                raise ValueError('软件正在准备安装更新，请重启完成后再运行研究任务。')
             p=self.store.get(pid)
             self.assert_idle(p)
             steps=FLOWS[p['flow']]['stages']
