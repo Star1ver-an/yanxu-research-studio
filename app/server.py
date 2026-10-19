@@ -84,7 +84,7 @@ class Handler(BaseHTTPRequestHandler):
             return self.reply({'error':'Invalid host'},403)
         names={'/':'index.html','/ars':'index.html','/scientific':'index.html',
                '/app.js':'app.js','/pathways.js':'pathways.js','/appearance.js':'appearance.js','/updates.js':'updates.js',
-               '/style.css':'style.css','/soft-ui.css':'soft-ui.css','/mark.svg':'mark.svg'}
+               '/style.css':'style.css','/soft-ui.css':'soft-ui.css','/mark.svg':'mark.svg','/favicon.svg':'favicon.svg'}
         if path not in names:
             return self.reply({'error':'Not found'},404)
         p=ROOT/'web'/names[path]

@@ -45,7 +45,7 @@ const button = (action,label,kind='primary',ico='',attrs='') => `<button class="
 function shell(content) {
  const current=S.view==='project'?'projects':S.view;
  const nav=[['home','home','工作台'],['pathways','connection','研究路径'],['projects','folder','研究项目'],['library','book','文献与材料'],['tools','layers','工作流模板']];
- return `<aside class="sidebar"><a class="brand" data-action="nav" data-view="home"><img src="/mark.svg" alt=""><span>研序<small>RESEARCH STUDIO</small></span></a>
+ return `<aside class="sidebar"><a class="brand" data-action="nav" data-view="home"><span class="brand-tile" aria-hidden="true"><i class="brand-symbol"></i></span><span>研序<small>RESEARCH STUDIO</small></span></a>
  <div class="space-label"><span class="space-dot">研</span><div>我的研究空间<small>个人工作区 · 本地保存</small></div>${icon('chevron',14)}</div>
  <nav>${nav.map(([v,i,n])=>`<button class="nav-item ${current===v?'active':''}" data-action="nav" data-view="${v}">${icon(i)}<span>${n}</span>${v==='projects'?`<b>${S.projects.length}</b>`:''}</button>`).join('')}</nav>
  <div class="side-heading">最近的项目 <button class="icon-btn" data-action="create" title="新建项目">${icon('plus',16)}</button></div>

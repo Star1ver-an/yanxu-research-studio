@@ -1,12 +1,12 @@
 # 研序 Research Studio
 
-当前版本：0.2.5。
+当前版本：0.2.6。
 
 面向科研工作者的本地 Windows 桌面应用：把两套科研技能组织成可点击的页面，支持课题路径推荐、分阶段开题与写作、材料管理、本机表格质控和成果导出。
 
 **[下载 Windows 版](https://github.com/Star1ver-an/yanxu-research-studio/releases/latest)** · [项目主页](https://github.com/Star1ver-an/yanxu-research-studio)
 
-下载 Release 中的 `YanxuResearchStudio-Windows-v0.2.5.zip`，解压后双击 `YanxuResearchStudio.exe`。GitHub 的“Code → Download ZIP”下载的是源码，需要开发环境才能运行。
+下载 Release 中的 `YanxuResearchStudio-Windows-v0.2.6.zip`，解压后双击 `YanxuResearchStudio.exe`。GitHub 的“Code → Download ZIP”下载的是源码，需要开发环境才能运行。
 
 重复双击程序会唤起已有窗口，恢复最小化或隐藏状态；启动时显式显示桌面窗口。窗口若遗留在断开的显示器上，会回到当前屏幕。退出后可正常重新打开。不会为重复启动创建第二个工作区或改写研究成果。
 
@@ -23,6 +23,12 @@ v0.2.2 及更早版本需要先手动下载一次 v0.2.3 或更新版，之后�
 视觉参考 [raster-ui 仓库中的 Soft UI v0.4](https://github.com/Star1ver-an/raster-ui/tree/430ab2b9202af099877916f90fcf344bb225a7e2/soft-ui)。浅色为雾灰底板与陶土强调，深色为石墨与暖杏；卡片、按钮、输入槽使用统一左上光源。首页双路径、技能库、研究流程、材料、连接设置和弹窗统一适配。右上角月亮/太阳切换主题，偏好仅保存在当前浏览器，切换不重建表单或修改项目。弹窗支持 Tab 焦点循环、Escape 关闭与关闭后焦点返回，系统减少动态效果设置会关闭按压位移。
 
 `web/soft-ui.css` 和 `web/appearance.js` 为本应用独立实现，未引入参考库的演示脚本、第三方字体或远程资源。参考仓库在该提交未提供 LICENSE，发行包不分发其源代码或截图。
+
+## 品牌标识
+
+“研序”采用双页汇合的抽象 Y 标识，以细小切口、几何比例和留白表达研究线索的有序汇合。图形使用界面的陶土色与暖杏色，并随应用浅深主题切换；雾灰或石墨色底板的浅浮雕由界面样式绘制。网页图标与 Windows 程序图标使用同一组矢量几何，保留 16–256 px 多尺寸图层。
+
+可编辑 SVG 和透明 PNG 位于 `resources/brand/`，统一生成工具为 `python tools/brand.py`，加 `--preview` 可在 Windows 中输出浅深色预览。Windows 构建自动调用同一生成器，避免网页标识与程序图标不一致。
 
 ## 两条研究路径
 
