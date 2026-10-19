@@ -7,6 +7,7 @@ import os
 from pathlib import Path
 import sys
 import threading
+import subprocess
 import webbrowser
 
 from app.server import LocalServer
@@ -20,6 +21,8 @@ class DesktopAPI:
         self._ready=False
         self._state_lock=threading.Lock()
         self._runtime_info={'pid':os.getpid(),'state':'starting'}
+        self._updates=None
+        self._restart_args=[]
 
     def save_export(self,pid,fmt,stage=''):
         import webview
@@ -38,10 +41,33 @@ class DesktopAPI:
 
     def report_ready(self):
         with self._state_lock:
+            first=not self._ready
             self._ready=True
             self._runtime_info['state']='ui_ready'
             (self._service.store.root/'runtime.json').write_text(json.dumps(self._runtime_info),encoding='utf-8')
+        if first and self._updates:
+            self._updates.start_auto()
         return True
+
+    def _install_update(self):
+        from app.updater import reset_environment
+        with self._service.lock:
+            if self._service.updating:
+                raise ValueError('已经在准备安装更新。')
+            if any(p['running'] for p in self._service.project_list()):
+                raise ValueError('研究任务仍在运行，请等待完成或先停止，再安装更新。')
+            runner,plan=self._updates.prepare_install(sys.executable,[os.getpid(),os.getppid()],self._restart_args)
+            self._service.updating=True
+            try:
+                subprocess.Popen([str(runner),'--apply-update',str(plan)],cwd=runner.parent,
+                    env=reset_environment(),creationflags=getattr(subprocess,'CREATE_NO_WINDOW',0))
+            except OSError:
+                self._service.updating=False
+                self._updates.phase='ready'
+                raise ValueError('无法启动更新程序，请重新下载或稍后重试。') from None
+        close=threading.Timer(.4,self._window.destroy)
+        close.daemon=True
+        close.start()
 
     def _record_loaded(self):
         with self._state_lock:
@@ -63,11 +89,19 @@ def main():
     parser=argparse.ArgumentParser()
     parser.add_argument('--server',action='store_true')
     parser.add_argument('--port',type=int,default=0)
+    parser.add_argument('--apply-update',default='')
     args=parser.parse_args()
     root=data_directory()
     root.mkdir(parents=True,exist_ok=True)
     logging.basicConfig(filename=str(root/'application.log'),level=logging.ERROR,
                         format='%(asctime)s %(levelname)s %(message)s')
+    if args.apply_update:
+        from app.updater import apply_update
+        try:
+            apply_update(args.apply_update,root)
+        except Exception:
+            logging.exception('Update helper could not apply the installation plan')
+        return
     instance=None
     if not args.server:
         instance=DesktopInstance(root)
@@ -94,6 +128,8 @@ def main():
     try:
         import webview
         api=DesktopAPI(server.service)
+        api._updates=server.updates
+        api._restart_args=['--port',str(args.port)] if args.port else []
         api._runtime_info['url']=url
         server.native=api
         api._window=webview.create_window('研序 · Research Studio',url,js_api=api,

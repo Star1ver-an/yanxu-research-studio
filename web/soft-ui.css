@@ -475,3 +475,12 @@ h3 {font-size:15px;color:var(--ink)}
  .btn,.panel,.project-card,.template-card,.skill-card,.stage-panel,.stage-item,.flow-choice,.route-option,.mode-option,.modal,.appearance-toggle,.connection-pill {border:1px solid ButtonText}
  .selected,.active,.flow-choice.selected,.route-option.selected,.mode-option.selected {outline:2px solid Highlight;outline-offset:2px}
 }
+
+/* The updater shares the workspace's soft surfaces and theme colors. */
+.update-panel{padding:24px;margin-bottom:24px}
+.update-panel h3{display:flex;align-items:center;gap:9px}
+.update-panel p,#update-settings-status,#update-status{line-height:1.7}
+.update-buttons{display:flex;gap:12px;flex-wrap:wrap;margin:20px 0}
+.release-notes{white-space:pre-wrap;overflow-wrap:anywhere;font:inherit;line-height:1.75;max-height:240px;overflow:auto;padding:16px;border-radius:12px;background:var(--bg);border:1px solid var(--line)}
+.has-update{font-weight:700;color:var(--accent)}
+.update-error{color:var(--danger)}

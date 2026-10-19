@@ -7,6 +7,8 @@ from urllib.parse import urlparse,parse_qs,unquote
 from .service import Service
 from .workflows import ROOT,catalog
 from .providers import ProviderError,api_complete
+from .updater import UpdateManager
+from .workflows import VERSION
 import threading
 
 class LocalServer(ThreadingHTTPServer):
@@ -15,7 +17,16 @@ class LocalServer(ThreadingHTTPServer):
         self.service=service or Service()
         self.token=secrets.token_urlsafe(32)
         self.native=None
+        self.updates=UpdateManager(self.service.store.root,VERSION)
         super().__init__(('127.0.0.1',port),Handler)
+
+    def server_close(self):
+        self.updates.close()
+        super().server_close()
+
+    def update_status(self):
+        import sys,os
+        return self.updates.status(bool(self.native and getattr(sys,'frozen',False) and os.name=='nt'))
 
 class Handler(BaseHTTPRequestHandler):
     protocol_version='HTTP/1.1'
@@ -56,6 +67,8 @@ class Handler(BaseHTTPRequestHandler):
                 return self.reply({'error':'本地连接校验失败，请重新打开软件。'},403)
             try:
                 service=self.server.service
+                if path=='/api/updates/status':
+                    return self.reply(self.server.update_status())
                 if path=='/api/bootstrap':
                     return self.reply({'catalog':catalog(),'settings':service.store.get_settings(),
                          'projects':service.project_list(),'data_path':str(service.store.root),
@@ -70,7 +83,7 @@ class Handler(BaseHTTPRequestHandler):
         if self.headers.get('Host')!=f'127.0.0.1:{self.server.server_port}':
             return self.reply({'error':'Invalid host'},403)
         names={'/':'index.html','/ars':'index.html','/scientific':'index.html',
-               '/app.js':'app.js','/pathways.js':'pathways.js','/appearance.js':'appearance.js',
+               '/app.js':'app.js','/pathways.js':'pathways.js','/appearance.js':'appearance.js','/updates.js':'updates.js',
                '/style.css':'style.css','/soft-ui.css':'soft-ui.css','/mark.svg':'mark.svg'}
         if path not in names:
             return self.reply({'error':'Not found'},404)
@@ -94,6 +107,23 @@ class Handler(BaseHTTPRequestHandler):
                 raise ValueError('请求格式无效。')
             service=self.server.service
             path=urlparse(self.path).path
+            if path.startswith('/api/updates/'):
+                action=path.rsplit('/',1)[-1]
+                if action=='check':
+                    self.server.updates.check()
+                elif action=='auto':
+                    self.server.updates.set_auto(data.get('enabled'))
+                elif action=='download':
+                    if not self.server.update_status()['installable']:
+                        raise ValueError('请在 Windows 桌面版中下载更新，开发模式可通过仓库更新源码。')
+                    self.server.updates.download()
+                elif action=='install':
+                    if data.get('acknowledge') is not True or not self.server.update_status()['installable']:
+                        raise ValueError('请保存工作，并在 Windows 桌面版确认安装。')
+                    self.server.native._install_update()
+                else:
+                    return self.reply({'error':'未找到此更新操作。'},404)
+                return self.reply(self.server.update_status())
             if path=='/api/project':
                 return self.reply(service.store.create(data))
             if path=='/api/recommend':
