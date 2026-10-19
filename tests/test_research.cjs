@@ -1,0 +1,27 @@
+const fs=require('node:fs'),vm=require('node:vm'),assert=require('node:assert/strict'),path=require('node:path');
+const store=new Map(),els={'meta[name="research-token"]':{content:'test'}};
+const ctx=vm.createContext({document:{querySelector:s=>els[s],querySelectorAll:()=>[],addEventListener:()=>{}},window:{addEventListener:()=>{}},localStorage:{getItem:k=>store.get(k)||null,setItem:(k,v)=>store.set(k,v),removeItem:k=>store.delete(k)},setTimeout:()=>1,clearTimeout:()=>{},queueMicrotask:()=>{},URL,Date,Intl,FormData:class{},navigator:{clipboard:{writeText:async()=>{}}}});
+for(const file of ['pathways.js','research.js','app.js'])vm.runInContext(fs.readFileSync(path.join(__dirname,'../web',file),'utf8').replace(/\binit\(\);\s*$/,''),ctx);
+const run=code=>vm.runInContext(code,ctx);
+(async()=>{
+ run(`S.catalog={flows:{full:{stages:['research','outline']}},stages:{research:{title:'探索'},outline:{title:'提纲'}}};S.project={id:'p',flow:'full',cursor:0,assets:[],outputs:{research:{text:'Existing'}},research:{references:[{id:'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa',title:'<script>Title</script>',authors:'Ada',year:'2026'}]}};S.activeStage='research';`);
+ assert.equal(run(`citationText(S.project,'Missing [@bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb]')`),'Missing [引用缺失]');
+ run(`S.project.outputs.research.text='Claim [@aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa]'`);
+ assert.equal(run(`citationText(S.project,S.project.outputs.research.text)`),'Claim [1]');
+ assert.ok(!run(`rtCards(S.project,'references')`).includes('<script>Title'));
+ assert.ok(run(`rtCards(S.project,'references')`).includes('&lt;script&gt;'));
+ assert.ok(run(`rtField('evidence','quote',{quote:'</textarea><img src=x>'})`).includes('&lt;/textarea&gt;'));
+ els['#rt-record-form']={dataset:{draftKey:'draft-test'},elements:[{name:'title',value:'Recovered AI plan'},{name:'dataset',value:'Awaiting public dataset'}]};
+ run('cacheResearchDraft()');assert.equal(JSON.parse(store.get('draft-test')).title,'Recovered AI plan');
+ els['#rt-record-form'].dataset.saved='1';els['#rt-record-form'].elements[0].value='Should not overwrite';run('cacheResearchDraft()');
+ assert.equal(JSON.parse(store.get('draft-test')).title,'Recovered AI plan');delete els['#rt-record-form'];
+ run(`render=()=>{};toast=()=>{};letFirst=null;api=async(path,data)=>new Promise(resolve=>{let project={...S.project,outputs:{research:{text:data.text}}};letFirst=()=>resolve(project)});S.draft='First edit';`);
+ const first=run('saveOutput(true)');await new Promise(resolve=>setImmediate(resolve));
+ run(`S.draft='Second edit';letFirst()`);await first;
+ assert.equal(run('S.draft'),'Second edit','an older response must not erase new typing');
+ const second=run('saveOutput(true)');await new Promise(resolve=>setImmediate(resolve));run('letFirst()');await second;
+ assert.equal(run('S.draft'),null);assert.equal(run('S.project.outputs.research.text'),'Second edit');
+ run(`modal=html=>{lastModal=html};api=async(path,data)=>{lastPath=path;return {materials:['test.csv'],literature:0,research_enabled:false,context_chars:400,calls:1,affected:[],sha256:'digest'}};`);
+ await run('showRunPreview()');assert.ok(run(`lastPath.endsWith('/run-preview')`));assert.ok(run(`lastModal.includes('确认运行')`));
+ console.log('Research UI checks passed: citation resolution, escaped records, autosave race preservation and model-free run preview.');
+})().catch(error=>{console.error(error);process.exitCode=1});
