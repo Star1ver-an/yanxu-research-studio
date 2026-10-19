@@ -25,7 +25,7 @@ function paintUpdate(){
  const details=$('#update-details');
  // Only replace release notes when their content changes; preserve focus and scroll.
  const html=s.release?`<h3>正式版本 v${e(s.release.version)}</h3><pre class="release-notes">${e(s.release.notes||'发布说明见 GitHub。')}</pre>${button('external','查看发布页','text','external',`data-url="${e(s.release.page)}"`)}`:'';
- if(details.innerHTML!==html)details.innerHTML=html;
+ if(details.dataset.rendered!==html){details.innerHTML=html;details.dataset.rendered=html}
  const busy=['checking','downloading','installing'].includes(s.phase);
  const auto=$('#update-auto');auto.checked=s.auto_check;auto.disabled=s.phase==='installing';
  $('#update-ack-label').hidden=s.phase!=='ready'||!s.installable;
@@ -33,7 +33,8 @@ function paintUpdate(){
  (s.can_update&&s.installable&&s.phase!=='ready'?button('update-download','下载更新','primary','download',busy?'disabled':''):'')+
  (s.phase==='ready'&&s.installable?button('update-install','安装并重启','primary','check',busy?'disabled':''):'')+
  (!s.installable&&s.can_update?'<p class="field-help">开发模式请从发布页下载 Windows 桌面版。</p>':'');
- if($('#update-actions').innerHTML!==actions)$('#update-actions').innerHTML=actions;
+ const actionRoot=$('#update-actions');
+ if(actionRoot.dataset.rendered!==actions){actionRoot.innerHTML=actions;actionRoot.dataset.rendered=actions}
 }
 async function refreshUpdates(){
  clearTimeout(updateTimer);

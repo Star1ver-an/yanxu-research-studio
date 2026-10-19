@@ -1,4 +1,4 @@
-研序 Research Studio 0.2.3
+研序 Research Studio 0.2.4
 Unofficial, noncommercial graphical adaptation of Academic Research Skills.
 
 Academic Research Skills

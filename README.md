@@ -1,12 +1,12 @@
 # 研序 Research Studio
 
-当前版本：0.2.3。
+当前版本：0.2.4。
 
 面向科研工作者的本地 Windows 桌面应用：把两套科研技能组织成可点击的页面，支持课题路径推荐、分阶段开题与写作、材料管理、本机表格质控和成果导出。
 
 **[下载 Windows 版](https://github.com/Star1ver-an/yanxu-research-studio/releases/latest)** · [项目主页](https://github.com/Star1ver-an/yanxu-research-studio)
 
-下载 Release 中的 `YanxuResearchStudio-Windows-v0.2.3.zip`，解压后双击 `YanxuResearchStudio.exe`。GitHub 的“Code → Download ZIP”下载的是源码，需要开发环境才能运行。
+下载 Release 中的 `YanxuResearchStudio-Windows-v0.2.4.zip`，解压后双击 `YanxuResearchStudio.exe`。GitHub 的“Code → Download ZIP”下载的是源码，需要开发环境才能运行。
 
 重复双击程序会唤起已有窗口，恢复最小化或隐藏状态；启动时显式显示桌面窗口。窗口若遗留在断开的显示器上，会回到当前屏幕。退出后可正常重新打开。不会为重复启动创建第二个工作区或改写研究成果。
 
