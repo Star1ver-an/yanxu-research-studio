@@ -82,6 +82,8 @@ function inactiveProjectBanner(p){const state=projectState(p);return state==='ac
 function protectInactiveProject(){
  if(S.view!=='project'||!S.project||projectState(S.project)==='active')return;
  document.querySelectorAll('.stage-content textarea,.stage-content input,.stage-content select,.materials-layout input,.materials-layout select,.materials-layout button,#file-input,[data-action="run"],[data-action="confirm"],[data-action="project-info"],[data-action="save-output"],[data-action="upload"],[data-action="disable-literature"],[data-action="output-tab"][data-tab="edit"]').forEach(el=>el.disabled=true);
+ const readOnly=new Set(['rt-tab','rt-export','rt-load-page','rt-read','rt-pdf','rt-save-pdf','rt-claim-view','rt-version','rt-cite-token','rt-goto-work','rt-goto-materials']);
+ document.querySelectorAll('[data-action^="rt-"]').forEach(el=>{if(!readOnly.has(el.dataset.action))el.disabled=true});
 }
 document.addEventListener('change',event=>{
  const el=event.target;

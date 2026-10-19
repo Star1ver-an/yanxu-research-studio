@@ -1,11 +1,11 @@
 const Guide={state:{status:'not_started',step:0},active:false,busy:false};
 const guideSteps=[
- {title:'先选适合当前任务的路径',view:'home',target:'.route-cards',icon:'connection',body:'开题与写作适合形成开题报告、论文或审阅意见；科研工具与分析适合数据库证据、机制设计和表格质控。新建项目时，也可以输入目标和材料，请应用给出推荐。'},
+ {title:'先选适合当前任务的路径',view:'home',target:'.route-cards',icon:'connection',body:'开题与写作适合形成开题报告、论文或审阅意见；科研工具与分析适合文献证据、实验方案和表格质控。新建项目时，也可以输入目标和材料，请应用给出推荐。'},
  {title:'连接你准备使用的模型',view:'settings',target:'.mode-options',icon:'settings',body:'在这里选择本机 Codex 或自定义 API，保存后再测试连接。两条研究路径共用这份设置；本机 Codex 需先登录，API 由对应服务商单独计费。引导本身不会检测连接或调用模型。',cta:'现在配置连接',action:'settings'},
  {title:'建立项目，写清楚研究目标',view:'projects',target:'#guide-create',icon:'plus',body:'每个课题建立一个项目。填写课题、当前目标和材料情况，再选择工作流；不确定时可查看路径推荐。尚无实验数据时，请明确写“先做开题或研究方案”。',cta:'现在创建项目',action:'create'},
- {title:'先整理真实材料，再开始研究',view:'project',target:'.project-tabs',icon:'upload',body:'打开项目的“文献与材料”，导入有权使用的论文、笔记或数据。检索结果需要你勾选后才用于分析。扫描 PDF 需先 OCR；没有材料时，报告会指出缺口。',cta:'打开材料页',action:'materials'},
- {title:'运行、阅读、确认，再推进下一步',view:'project',target:'.stage-panel',icon:'check',body:'点击“开始这一步”后等待报告保存，阅读并核实，再确认进入下一阶段。可以编辑或重跑；修改材料或前序内容会让后续成果需要重核。右上角可导出报告或 ZIP 备份。操作确认不等于实验真实性认证。',cta:'前往研究流程',action:'work'},
- {title:'把项目管理得清楚、有序',view:'projects',target:'#project-batch-bar',icon:'folder',body:'勾选项目即可批量改名、置顶、归档或创建独立副本。删除先进入回收站，可以恢复；永久删除另需输入确认。运行中的项目暂不能管理。以后可在“使用指南”或侧栏重新查看这份引导。'}
+ {title:'先整理真实材料，再开始研究',view:'project',target:'.project-tabs',icon:'upload',body:'打开项目的“文献与材料”，导入有权使用的论文、笔记或数据。检索结果需要你勾选后才用于分析。扫描 PDF 需先 OCR。项目内“研究助手”可阅读材料、建立证据卡片和引用库。',cta:'打开材料页',action:'materials'},
+ {title:'运行、阅读、确认，再推进下一步',view:'project',target:'.stage-panel',icon:'check',body:'点击“开始这一步”后等待报告保存，阅读并核实，再确认进入下一阶段。编辑后自动保存，历史内容可在研究助手中比较和恢复；修改材料或前序内容会让后续成果需要重核。右上角可导出报告或 ZIP 备份。操作确认不等于实验真实性认证。',cta:'前往研究流程',action:'work'},
+ {title:'把项目管理得清楚、有序',view:'projects',target:'#project-batch-bar',icon:'folder',body:'勾选项目即可批量改名、置顶、归档或创建独立副本。删除先进入回收站，可以恢复；永久删除另需输入确认。侧栏“备份与恢复”可保存整库并预览恢复副本。运行中的项目暂不能管理。以后可在“使用指南”或侧栏重新查看这份引导。'}
 ];
 async function saveGuide(status,step=Guide.state.step){Guide.state=await api('preferences/onboarding',{status,step});paintGuideResume()}
 function paintGuideResume(){

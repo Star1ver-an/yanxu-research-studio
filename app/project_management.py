@@ -55,11 +55,13 @@ class ProjectManagement:
             destination.mkdir(parents=True)
             created_folders.append(destination)
         original_folder=self._owned_folder('materials',original['id'])
+        asset_mapping={}
         for asset in result['assets']:
             source=(self.store.root/asset['file']).resolve(strict=True)
             if not source.is_relative_to(original_folder) or not source.is_file():
                 raise ValueError('材料路径不属于原项目，未创建副本。')
             identity=uuid.uuid4().hex
+            asset_mapping[asset['id']]=identity
             target=destination/(identity+source.suffix)
             shutil.copy2(source,target)
             with target.open('rb') as stream:digest=hashlib.file_digest(stream,'sha256').hexdigest()
@@ -67,6 +69,15 @@ class ProjectManagement:
                 raise ValueError('原始材料校验失败，未创建副本。')
             asset.update(id=identity,file=str(target.relative_to(self.store.root.resolve())),sha256=digest)
         for entry in result['literature']:entry['id']=uuid.uuid4().hex
+        result.pop('versions',None)
+        if 'research' in result:
+            for key,value in result['research'].items():
+                if isinstance(value,list):
+                    for record in value:
+                        if record.get('asset_id') in asset_mapping:record['asset_id']=asset_mapping[record['asset_id']]
+                        if key=='claims':record['assessment']='unknown'
+                        if key=='figures':record['status']='draft'
+                        if key=='checklist':record['status']='todo'
         return result
 
     def _purge_projects(self,projects):

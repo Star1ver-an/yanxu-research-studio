@@ -17,21 +17,27 @@ from .workflows import STAGES,FLOWS,BASE_INSTRUCTION,SCIENTIFIC_INSTRUCTION,role
 from .providers import CodexClient,ProviderError,Cancelled,api_complete
 from .literature import required_terms,identifier_terms,filter_entries
 from .project_management import ProjectManagement,lifecycle,project_title
+from .research import ResearchTools, snapshot, bibliography
+from .backups import Backups
 
-class Service(ProjectManagement):
+class Service(ProjectManagement,ResearchTools):
     def __init__(self,store=None):
         self.store=store or Store()
         self.lock=self.store.lock
         self.jobs={}
         self.updating=False
+        self.backups=Backups(self)
 
     def project_list(self):
-        return [{k:v for k,v in p.items() if k not in ('runs','outputs','assets','literature','confirmations')} |
+        return [{k:v for k,v in p.items() if k not in ('runs','outputs','assets','literature','confirmations','research','versions')} |
                 {'asset_count':len(p['assets']),'output_count':len(p['outputs']),
+                 'research_status':self.research_status(p),
                  'running':any(r['status']=='running' for r in p['runs'])} for p in self.store.list()]
 
     def public_project(self,pid):
         p=self.store.get(pid)
+        p['research_status']=self.research_status(p)
+        p['versions']=[{k:v for k,v in item.items() if k!='text'} for item in p.get('versions',[])]
         for a in p['assets']:
             a.pop('text',None)
             a.pop('file',None)
@@ -43,6 +49,8 @@ class Service(ProjectManagement):
         return p
 
     def assert_idle(self,p,allow_inactive=False):
+        if self.updating:
+            raise ValueError('软件正在安装更新，请稍后修改。')
         if any(r['status']=='running' for r in p['runs']):
             raise ValueError('此项目正在运行，请等待完成或先停止。')
         if not allow_inactive and lifecycle(p)!='active':
@@ -50,6 +58,7 @@ class Service(ProjectManagement):
 
     def invalidate_inputs(self,p):
         if p['outputs']:
+            for sid in p['outputs']:snapshot(p,sid,'输入材料或研究目标变更前')
             p['cursor']=0
             for output in p['outputs'].values():
                 output.update(stale=True,approved=False)
@@ -127,6 +136,7 @@ class Service(ProjectManagement):
             text=str(data.get('text',''))
             if text==previous.get('text'):
                 return self.public_project(pid)
+            snapshot(p,sid,'编辑保存前')
             p['outputs'][sid]={**previous,'text':text,'approved':False,'edited':now(),'stale':False}
             self.invalidate(p,stages.index(sid))
             self.store.put(p)
@@ -249,6 +259,8 @@ class Service(ProjectManagement):
                       selected_skill=p.get('selected_skill',''))
         chunks=['作者声明与任务配置：\n'+json.dumps(config,ensure_ascii=False,indent=2)]
         chunks += ['\n作者本次要求：\n'+note]
+        if p.get('research',{}).get('enabled'):
+            chunks.append('\n研究助手记录（由作者整理，完成状态不是真实性认证；实验计划不得写成已执行结果）。如引用库中文献，请使用 [@完整文献ID] 标记，不得虚构ID；未核实的支持关系应保留待核实。书目核对不等于全文支持：\n'+json.dumps(p['research'],ensure_ascii=False))
         selected=[l for l in p['literature'] if l.get('enabled',True)]
         if selected:
             chunks.append('\n勾选的检索结果（仅元数据或摘要，未核验全文支持关系）：\n'+json.dumps(selected,ensure_ascii=False))
@@ -285,6 +297,8 @@ class Service(ProjectManagement):
                 if not any(a.get('enabled',True) for a in p['assets']) and not p['outputs']:
                     raise ValueError('请先导入需要审阅的稿件或待筛选文献。')
             context=self.context(p,sid,str(data.get('note',''))[:20000])
+            if data.get('context_sha256') and data['context_sha256']!=hashlib.sha256(context.encode()).hexdigest():
+                raise ValueError('输入在预览后发生变化，请重新查看运行前确认。')
             rid=uuid.uuid4().hex
             route=FLOWS[p['flow']]['route']
             from .scientific import manifest
@@ -359,6 +373,7 @@ class Service(ProjectManagement):
                 raise Cancelled('任务已停止。')
             with self.lock:
                 p=self.store.get(pid)
+                snapshot(p,sid,'重新生成报告前')
                 self.invalidate(p,FLOWS[p['flow']]['stages'].index(sid))
                 p['outputs'][sid]=dict(text=text,approved=False,stale=False,run=rid,created=now(),
                                       verification='human_review_required')
@@ -419,6 +434,7 @@ class Service(ProjectManagement):
         if len(parts)==2:
             parts.append('\n尚无阶段报告。\n\n研究目标：'+p['topic'])
         md='\n\n'.join(parts)
+        md=bibliography(p,md)
         if fmt=='md':
             return name+'.md',md.encode('utf-8-sig'),'text/markdown'
         if fmt=='docx':
@@ -430,6 +446,7 @@ class Service(ProjectManagement):
             with zipfile.ZipFile(output,'w',zipfile.ZIP_DEFLATED) as z:
                 z.writestr('项目备份.json',json.dumps({'format':'yanxu-project-v1','project':p},ensure_ascii=False,indent=2))
                 z.writestr('阶段报告.md',md)
+                z.writestr('研究助手记录.md',self.research_export(pid,'research')[1])
                 for a in p['assets']:
                     path=self.store.root/a['file']
                     if path.is_file():
