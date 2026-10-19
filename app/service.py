@@ -16,8 +16,9 @@ from .storage import Store, now, extract_file
 from .workflows import STAGES,FLOWS,BASE_INSTRUCTION,SCIENTIFIC_INSTRUCTION,role_context,VERSION,SOURCE_COMMIT
 from .providers import CodexClient,ProviderError,Cancelled,api_complete
 from .literature import required_terms,identifier_terms,filter_entries
+from .project_management import ProjectManagement,lifecycle,project_title
 
-class Service:
+class Service(ProjectManagement):
     def __init__(self,store=None):
         self.store=store or Store()
         self.lock=self.store.lock
@@ -41,9 +42,11 @@ class Service:
                 r['partial']=j.get('partial','')
         return p
 
-    def assert_idle(self,p):
+    def assert_idle(self,p,allow_inactive=False):
         if any(r['status']=='running' for r in p['runs']):
             raise ValueError('此项目正在运行，请等待完成或先停止。')
+        if not allow_inactive and lifecycle(p)!='active':
+            raise ValueError('此项目已归档或在回收站，请恢复后再修改或运行。')
 
     def invalidate_inputs(self,p):
         if p['outputs']:
@@ -171,19 +174,20 @@ class Service:
             old_info={k:p[k] for k in ('title','topic','discipline','requirements','citation','experiments')}
             for k in ('title','topic','discipline','requirements','citation'):
                 if k in data:
-                    p[k]=str(data[k])[:20000]
+                    p[k]=project_title(data[k]) if k=='title' else str(data[k])[:20000]
             if 'experiments' in data:
                 if data['experiments'] not in ('none','declared','undecided'):
                     raise ValueError('无效的实验来源声明。')
                 p['experiments']=data['experiments']
             if not p['title'].strip():
                 raise ValueError('项目名称不能为空。')
-            if any(p[k]!=v for k,v in old_info.items()):
+            if any(p[k]!=v for k,v in old_info.items() if k!='title'):
                 self.invalidate_inputs(p)
             self.store.put(p)
         return self.public_project(pid)
 
     def search(self,pid,query,terms=None,journal_only=True,source='crossref'):
+        with self.lock:self.assert_idle(self.store.get(pid))
         query=query.strip()
         if not query or len(query)>300:
             raise ValueError('请输入 1–300 字的检索词；英文检索词通常更全面。')

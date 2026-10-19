@@ -53,6 +53,7 @@ class Store:
         with self.connect() as c:
             c.execute('CREATE TABLE IF NOT EXISTS projects(id TEXT PRIMARY KEY, body TEXT NOT NULL)')
             c.execute('CREATE TABLE IF NOT EXISTS settings(id INTEGER PRIMARY KEY, body TEXT NOT NULL)')
+            c.execute('CREATE TABLE IF NOT EXISTS preferences(key TEXT PRIMARY KEY, body TEXT NOT NULL)')
         self.recover()
 
     @contextmanager
@@ -97,6 +98,20 @@ class Store:
         with self.connect() as c:
             values=[json.loads(r[0]) for r in c.execute('SELECT body FROM projects')]
         return sorted(values,key=lambda p:p['updated'],reverse=True)
+
+    def onboarding(self):
+        with self.connect() as c:
+            row=c.execute('SELECT body FROM preferences WHERE key=?',('onboarding_v1',)).fetchone()
+        return json.loads(row[0]) if row else {'status':'not_started','step':0}
+
+    def save_onboarding(self,data):
+        status=data.get('status');step=data.get('step')
+        if status not in ('in_progress','completed','dismissed') or type(step)!=int or not 0<=step<6:
+            raise ValueError('入门引导进度无效。')
+        state={'status':status,'step':step}
+        with self.lock,self.connect() as c:
+            c.execute('INSERT OR REPLACE INTO preferences VALUES(?,?)',('onboarding_v1',json.dumps(state)))
+        return state
 
     def get(self,pid):
         with self.connect() as c:

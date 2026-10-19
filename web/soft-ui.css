@@ -487,3 +487,58 @@ h3 {font-size:15px;color:var(--ink)}
 .release-notes{white-space:pre-wrap;overflow-wrap:anywhere;font:inherit;line-height:1.75;max-height:240px;overflow:auto;padding:16px;border-radius:12px;background:var(--bg);border:1px solid var(--line)}
 .has-update{font-weight:700;color:var(--accent)}
 .update-error{color:var(--danger)}
+/* Project organization keeps the same raised surfaces and restrained controls. */
+.management-tabs{display:flex;gap:10px;margin:0 0 22px;flex-wrap:wrap}
+.management-tabs>button{display:flex;align-items:center;gap:9px;min-height:42px;border:0;border-radius:14px;padding:10px 18px;background:var(--surface);color:var(--muted)}
+.management-tabs>button.selected{box-shadow:var(--sink-sm);color:var(--accent);font-weight:650}
+.management-tabs span{font-size:11px;opacity:.8}
+.manager-filters{display:flex;gap:12px;align-items:center;flex-wrap:wrap;margin-bottom:18px}
+.manager-filters .search-field{flex:1;min-width:220px}
+.manager-filters select{min-height:42px;border:0;border-radius:12px;background:var(--surface);box-shadow:var(--sink-sm);padding:9px 12px;font-size:12px;max-width:200px}
+.project-batch-bar{display:flex;align-items:center;gap:15px;flex-wrap:wrap;background:var(--surface);border-radius:17px;box-shadow:var(--sink-sm);padding:15px 18px;margin-bottom:25px;min-height:75px}
+.batch-check{display:flex;align-items:center;gap:8px;font-size:12px;white-space:nowrap}
+.selection-count{font-size:12px;color:var(--muted)}
+.batch-actions{display:flex;gap:9px;flex-wrap:wrap;margin-left:auto}
+.batch-actions .btn{min-height:35px;padding:7px 12px;font-size:11px}
+.btn.danger{background:var(--surface);color:var(--danger);box-shadow:var(--rise-sm)}
+.btn.danger:hover{color:var(--danger);box-shadow:var(--sink-sm)}
+.managed-card{position:relative;overflow:visible!important;display:flex;flex-direction:column;text-align:left}
+.managed-card.is-selected{outline:2px solid var(--accent);outline-offset:3px}
+.managed-card:has(.project-menu[open]){z-index:25}
+.managed-card .card-top{gap:9px;align-items:center}
+.managed-card .type-label{min-width:0;flex:1;line-height:1.55}
+.project-select{display:flex;flex-shrink:0;align-items:center;padding:3px 0}
+.project-select input{margin:0}
+.project-card-open{display:block;width:100%;padding:0;border:0;border-radius:12px;background:none;text-align:left;color:inherit;box-shadow:none!important;transform:none!important}
+.project-card-open h3{margin-top:16px;line-height:1.6;font-size:17px;overflow-wrap:anywhere}
+.project-card-open .card-topic{-webkit-line-clamp:2;min-height:42px}
+.project-card-open:focus-visible{outline:2px solid var(--accent);outline-offset:7px}
+.pinned-mark{color:var(--accent);display:inline-flex}
+.project-menu{position:relative;flex-shrink:0}
+.project-menu summary{list-style:none;cursor:pointer}
+.project-menu summary::-webkit-details-marker{display:none}
+.project-menu-items{position:absolute;right:-4px;top:36px;min-width:160px;padding:9px;border-radius:16px;background:var(--surface);box-shadow:var(--rise-lg);border:1px solid var(--line);z-index:30}
+.project-menu-items .btn{display:flex;width:100%;justify-content:flex-start;min-height:37px;border-radius:9px;padding:8px 10px;font-size:12px}
+.project-menu-items [data-action="pm-trash"],.project-menu-items [data-action="pm-purge"]{color:var(--danger)}
+.manager-note{color:var(--muted);font-size:12px;margin-top:25px;line-height:1.8}
+.manager-empty{grid-column:1/-1;padding:45px 20px;text-align:center;color:var(--muted);border:1px dashed var(--line);border-radius:20px}
+.manager-empty>span{color:var(--accent)}.manager-empty h3{margin:16px 0 8px}.manager-empty .btn{margin-top:20px}
+.managed-names{margin:20px 0;padding:12px 18px 12px 35px;max-height:170px;overflow:auto;background:var(--surface);box-shadow:var(--sink-sm);border-radius:12px;font-size:12px;line-height:2;overflow-wrap:anywhere}
+.copy-choice{display:flex;gap:12px;margin:15px 0;padding:18px;border-radius:15px;box-shadow:var(--sink-sm);align-items:flex-start;font-size:13px;cursor:pointer}
+.copy-choice input{margin-top:3px;flex-shrink:0;accent-color:var(--accent)}
+.copy-choice small{display:block;color:var(--muted);line-height:1.8;margin-top:7px;font-size:11px}
+.inactive-project{display:flex;align-items:center;justify-content:space-between;gap:15px;padding:18px 22px;margin-bottom:24px;border-radius:18px;box-shadow:var(--sink-sm);color:var(--accent)}
+.inactive-project>div{display:flex;gap:12px;align-items:center}.inactive-project small{display:block;color:var(--muted);font-size:12px;margin-top:4px}
+.guide-entry{display:flex;align-items:center;justify-content:space-between;gap:25px;margin-bottom:26px}.guide-entry p{font-size:12px;color:var(--muted);margin-top:8px}
+.guide-counter{font-size:12px;letter-spacing:.4px;color:var(--muted);margin:0 28px 16px 0}
+.guide-dots{display:flex;gap:7px;margin-bottom:24px}.guide-dots i{height:4px;flex:1;border-radius:4px;background:var(--line)}.guide-dots .current{background:var(--accent)}.guide-dots .done{background:var(--success)}
+.guide-body{color:var(--muted);font-size:13px;line-height:1.95;margin:15px 0 20px}
+.guide-controls{display:flex;align-items:center;justify-content:flex-end;gap:10px;margin-top:22px;flex-wrap:wrap}.guide-controls>.btn:first-child{margin-right:auto}
+.guide-resume{min-height:36px;font-size:11px;padding:8px 12px;white-space:nowrap}
+.guide-mode .modal-overlay{background:transparent;backdrop-filter:none}
+.guide-mode .modal{z-index:2;max-height:calc(100vh - 40px);box-shadow:var(--rise-lg);border:1px solid var(--line)}
+.guide-mode .modal>h2{font-size:21px;line-height:1.5}
+.guide-spotlight{position:fixed;pointer-events:none;border:2px solid var(--accent);border-radius:20px;box-shadow:0 0 0 9999px #10182070;z-index:1}
+@media(max-width:1000px){.batch-actions{margin-left:0}.manager-filters .search-field{flex-basis:100%}.manager-filters select{flex:1;min-width:140px;max-width:none}.guide-entry{align-items:flex-start;flex-direction:column}.project-batch-bar{gap:12px}}
+@media(prefers-reduced-motion:reduce){.guide-mode *{scroll-behavior:auto!important}}
+.guide-mode .modal-overlay.guide-centered{background:#10182070}
