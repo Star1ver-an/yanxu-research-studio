@@ -72,6 +72,7 @@ class Handler(BaseHTTPRequestHandler):
                 if path=='/api/bootstrap':
                     return self.reply({'catalog':catalog(),'settings':service.store.get_settings(),
                          'projects':service.project_list(),'data_path':str(service.store.root),
+                         'onboarding':service.store.onboarding(),
                          'desktop_ready':bool(getattr(self.server.native,'_ready',False))})
                 if path=='/api/projects':
                     return self.reply(service.project_list())
@@ -84,6 +85,7 @@ class Handler(BaseHTTPRequestHandler):
             return self.reply({'error':'Invalid host'},403)
         names={'/':'index.html','/ars':'index.html','/scientific':'index.html',
                '/app.js':'app.js','/pathways.js':'pathways.js','/appearance.js':'appearance.js','/updates.js':'updates.js',
+               '/projects.js':'projects.js','/onboarding.js':'onboarding.js',
                '/style.css':'style.css','/soft-ui.css':'soft-ui.css','/mark.svg':'mark.svg','/favicon.svg':'favicon.svg'}
         if path not in names:
             return self.reply({'error':'Not found'},404)
@@ -126,6 +128,10 @@ class Handler(BaseHTTPRequestHandler):
                 return self.reply(self.server.update_status())
             if path=='/api/project':
                 return self.reply(service.store.create(data))
+            if path=='/api/projects/manage':
+                return self.reply(service.manage_projects(data))
+            if path=='/api/preferences/onboarding':
+                return self.reply(service.store.save_onboarding(data))
             if path=='/api/recommend':
                 from .routing import recommend
                 return self.reply(recommend(data))

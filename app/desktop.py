@@ -101,7 +101,7 @@ class DesktopInstance:
     def _show(self, window):
         try:
             from System import Action
-            from System.Drawing import Point, Rectangle
+            from System.Drawing import Point, Rectangle, Size
             from System.Windows.Forms import FormWindowState, Screen
             form=window.native
             def show():
@@ -122,6 +122,14 @@ class DesktopInstance:
                     area=Screen.PrimaryScreen.WorkingArea
                     form.Location=Point(area.Left+max(0,(area.Width-form.Width)//2),
                                         area.Top+max(0,(area.Height-form.Height)//2))
+                if form.WindowState==FormWindowState.Normal:
+                    # Keep first-use guide controls inside the usable display, including high DPI screens.
+                    area=Screen.FromRectangle(form.Bounds).WorkingArea
+                    width=min(form.Width,area.Width);height=min(form.Height,area.Height)
+                    form.MinimumSize=Size(min(form.MinimumSize.Width,width),min(form.MinimumSize.Height,height))
+                    form.Size=Size(width,height)
+                    form.Location=Point(max(area.Left,min(form.Left,area.Right-width)),
+                                        max(area.Top,min(form.Top,area.Bottom-height)))
                 form.BringToFront()
                 form.Activate()
                 user=ctypes.WinDLL('user32',use_last_error=True)

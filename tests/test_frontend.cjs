@@ -8,6 +8,8 @@ vm.runInContext(fs.readFileSync(require('node:path').join(__dirname,'../web/path
 vm.runInContext(source,ctx);
 const run=code=>vm.runInContext(code,ctx);
 (async()=>{
+ assert.match(run("button('recommend-route','推荐')"),/type="button"/);
+ assert.match(run("button('noop','创建','primary','','type=\"submit\"')"),/type="submit"/);
  assert.equal(run("inline('*斜体* **加粗** `*literal*` <img src=x>')"),'<em>斜体</em> <strong>加粗</strong> <code>*literal*</code> &lt;img src=x&gt;');
  assert.ok(!run("inline('[x](javascript:alert(1))')").includes('<a'));
  run("S.project={id:'p',flow:'full',cursor:0};S.catalog={flows:{full:{stages:['research']}}};toast=(t,b)=>{lastToast={text:t,bad:b}};render=()=>{};calls=[];api=async(path,data)=>{calls.push(path);if(data?.name==='broken.docx')throw Error('解析失败');return path==='projects'?[]:{id:'p',flow:'full',cursor:0}};");
