@@ -215,6 +215,11 @@ class ResearchTests(unittest.TestCase):
         self.service.backups.create(automatic=True)
         self.assertEqual(len(self.service.backups.status()['items']),3)
 
+    def test_auto_backup_worker_finishes_before_workspace_cleanup(self):
+        self.service.backups.start();self.service.backups.close()
+        self.assertFalse(self.service.backups.worker.is_alive())
+        self.assertTrue(self.service.backups.stop.is_set())
+
     def test_api_authorization_and_preview_import(self):
         self.service.backups.configure({'enabled':False,'retain':3})
         server=LocalServer(self.service);self.addCleanup(server.server_close);self.addCleanup(server.shutdown)

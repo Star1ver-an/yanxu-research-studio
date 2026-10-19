@@ -27,6 +27,7 @@ class Backups:
         self.root.mkdir(exist_ok=True)
         self.stop = threading.Event()
         self.timer = None
+        self.worker = None
         self.error = ''
 
     def settings(self):
@@ -93,8 +94,10 @@ class Backups:
                         raise ValueError('整库记录过大，请分别导出项目备份。')
                     archive.writestr('manifest.json',manifest)
                     for p in projects:
+                        if automatic and self.stop.is_set():raise ValueError('自动备份已停止。')
                         folder = service._owned_folder('materials', p['id'])
                         for asset in p['assets']:
+                            if automatic and self.stop.is_set():raise ValueError('自动备份已停止。')
                             path = (service.store.root / asset['file']).resolve(strict=True)
                             if not path.is_relative_to(folder) or not path.is_file():
                                 raise ValueError('材料路径无效，未生成不完整备份。')
@@ -121,6 +124,7 @@ class Backups:
 
     def start(self):
         def tick():
+            self.worker=threading.current_thread()
             if self.stop.is_set():
                 return
             try:
@@ -132,12 +136,15 @@ class Backups:
                 self.timer = threading.Timer(30 * 60, tick)
                 self.timer.daemon = True
                 self.timer.start()
-        threading.Thread(target=tick, daemon=True).start()
+        self.worker=threading.Thread(target=tick, daemon=True)
+        self.worker.start()
 
     def close(self):
         self.stop.set()
         if self.timer:
             self.timer.cancel()
+        if self.worker and self.worker is not threading.current_thread() and self.worker.is_alive():
+            self.worker.join(timeout=5)
 
     def parse(self, raw):
         if len(raw) > MAX_BACKUP:
