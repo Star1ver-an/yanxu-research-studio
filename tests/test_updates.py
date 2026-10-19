@@ -146,6 +146,7 @@ class UpdateTests(unittest.TestCase):
     def test_local_api_requires_auth_and_development_install_is_blocked(self):
         import urllib.request,urllib.error
         server=LocalServer(Service(Store(self.root/'api')));server.updates.opener=self.manager.opener
+        server.updates.current='0.0.1'  # Keep this future-release test independent of VERSION.
         worker=threading.Thread(target=server.serve_forever,daemon=True);worker.start()
         self.addCleanup(server.server_close);self.addCleanup(server.shutdown)
         base=f'http://127.0.0.1:{server.server_port}/api/updates/'
