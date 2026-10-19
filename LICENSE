@@ -1,0 +1,23 @@
+Yanxu Research Studio / 研序科研工作台
+
+This repository is a noncommercial graphical adaptation of Academic Research
+Skills. The application materials are shared under the Creative Commons
+Attribution-NonCommercial 4.0 International license (CC BY-NC 4.0), subject to
+the separate third-party licenses described below.
+
+License URL: https://creativecommons.org/licenses/by-nc/4.0/
+Full CC BY-NC 4.0 text: resources/ars/LICENSE
+
+Academic Research Skills:
+Copyright (c) 2026 Cheng-I Wu.
+https://github.com/Imbad0202/academic-research-skills
+Original attribution and full license are retained in resources/ars/.
+
+Scientific Agent Skills is included under its own MIT root license and
+individual skill licenses. These components retain their original licenses;
+this file does not replace, restrict or relicense those third-party materials.
+See resources/scientific/LICENSE.md and the corresponding skill sources.
+
+Runtime dependencies remain subject to their respective licenses.
+See THIRD_PARTY_NOTICES.txt for provenance, changes and further attribution.
+No endorsement by the upstream authors is implied.

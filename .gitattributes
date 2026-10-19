@@ -1,0 +1,14 @@
+* text=auto eol=lf
+*.py text eol=lf
+*.js text eol=lf
+*.cjs text eol=lf
+*.css text eol=lf
+*.html text eol=lf
+*.md text eol=lf
+*.json text eol=lf
+*.svg text eol=lf
+*.png binary
+*.ico binary
+# Preserve upstream bytes so pinned source SHA-256 manifests remain valid.
+resources/ars/** -text
+resources/scientific/** -text

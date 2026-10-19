@@ -1,0 +1,46 @@
+研序 Research Studio 0.2.2
+Unofficial, noncommercial graphical adaptation of Academic Research Skills.
+
+Academic Research Skills
+Author: Imbad0202 / C.-I. Wu
+Source: https://github.com/Imbad0202/academic-research-skills
+Commit: cfd081d8f309ec65254d9f9f04c845ee78b1ec1d
+License: Creative Commons Attribution-NonCommercial 4.0 International
+License text: ARS-LICENSE.txt (also bundled at resources/ars/LICENSE)
+License URL: https://creativecommons.org/licenses/by-nc/4.0/
+Changes: original Chinese desktop UI, local storage and confirmation tracking,
+Codex App Server and HTTP provider adapters, bounded role context selection,
+basic literature retrieval and document exports. This is not the original
+Claude Code runtime and does not implement all upstream controls.
+No endorsement by the original authors is implied.
+
+Runtime libraries are included under their own licenses, preserved in the
+PyInstaller distribution where provided:
+- Python: Python Software Foundation License
+- pywebview: BSD 3-Clause
+- pythonnet / clr-loader: MIT
+- pypdf: BSD 3-Clause
+- python-docx: MIT
+- lxml: BSD 3-Clause (includes libxml2/libxslt notices)
+- PyInstaller bootloader: GPL with the documented distribution exception
+
+Codex is an independently installed OpenAI product; it is not redistributed
+or modified by this package. Model-service terms and account limitations apply.
+Scientific Agent Skills integration (added in Research Studio 0.2.0)
+Repository: https://github.com/K-Dense-AI/scientific-agent-skills
+Pinned source: a1043ef544e3a100c28e70a736b6cf32554d0677
+Version: 2.72.0
+Root license: MIT, copyright K-Dense Inc.; individual skill license declarations apply separately.
+Original notices and skill sources are preserved under resources/scientific/.
+Source manifest records SHA-256 for every bundled skill, reference, script and template file.
+Adaptation: searchable skill library, staged research methods, local CSV profiling and source retrieval.
+Bundling does not install the scientific packages, provide third-party database entitlements,
+or certify scientific results. This combined application also includes ARS materials and
+retains the original application's noncommercial use restriction.
+
+UI design reference (Research Studio 0.2.1)
+Soft UI v0.4, Star1ver-an/raster-ui
+https://github.com/Star1ver-an/raster-ui/tree/430ab2b9202af099877916f90fcf344bb225a7e2/soft-ui
+The material direction informed the independently implemented web/soft-ui.css.
+No upstream UI source files, screenshots, fonts or demonstration scripts are distributed.
+

@@ -1,0 +1,64 @@
+const skillNames={
+ 'literature-review':'文献综述','database-lookup':'数据库查询','hypothesis-generation':'候选假说设计',
+ 'experimental-design':'实验设计','statistical-power':'样本量与功效','scientific-critical-thinking':'科学证据评价',
+ 'scientific-brainstorming':'研究思路探索','scientific-writing':'科学写作','peer-review':'稿件审阅',
+ 'scientific-visualization':'科研绘图','scanpy':'单细胞分析 Scanpy','pydeseq2':'差异表达 PyDESeq2',
+ 'pathway-enrichment':'通路富集分析','exploratory-data-analysis':'数据探索与质控','statistical-analysis':'统计分析',
+ 'citation-management':'引用与书目管理','paper-lookup':'论文查询','biopython':'生物序列 Biopython',
+ 'bioservices':'生物数据库 BioServices','cellxgene-census':'公共单细胞图谱','bulk-rnaseq':'批量 RNA-seq 流程',
+ 'scientific-slides':'科研演示文稿','scientific-schematics':'科研示意图','research-grants':'基金申请',
+ 'primer-design':'PCR 引物设计','rdkit':'化学结构 RDKit','scvi-tools':'单细胞概率模型','scvelo':'RNA 速度分析'};
+let routeRecommendation=null,skillQuery='',skillGroup='all',skillDetail=null,recommendationVersion=0;
+const projectRoute=p=>S.catalog.flows[p.flow]?.route||'ars';
+const routeName=p=>S.catalog.routes?.[projectRoute(p)]?.name||'开题与写作';
+
+function routeCards(){return `<div class="route-cards">${Object.entries(S.catalog.routes).map(([key,r])=>`<section class="panel route-card ${r.color}"><div class="route-card-top"><span class="route-emblem">${icon(key==='ars'?'book':'bars',25)}</span><span class="route-kicker">${key==='ars'?'路径 A':'路径 B'}<small>${e(r.source)}</small></span></div><h2>${e(r.name)}</h2><p>${e(r.description)}</p><small>${e(r.suitable)}</small><div class="route-card-bottom">${button('path','进入'+r.name,key==='ars'?'primary':'secondary','arrow',`data-route="${key}"`)}<span>${r.flows.length} 种工作流</span></div></section>`).join('')}</div>`}
+function routeHome(){return `<section class="section route-home"><div class="section-title"><div><h2>选择适合当前任务的研究路径</h2><p>可以直接进入，也可以新建项目后根据课题与材料查看推荐。</p></div>${button('create','输入课题，帮我推荐','secondary','spark')}</div>${routeCards()}</section>`}
+function skillCategory(id){if(/literature|paper|citation|writing|review|slides|poster|grants|venue|research-lookup/.test(id))return 'writing';if(/hypothesis|experimental|brainstorm|critical|power/.test(id))return 'design';if(/scanpy|deseq|rna|gene|genom|bio|omics|anndata|scvi|scvelo|pathway|primer|phylogen|mageck|pysam|cellxgene/.test(id))return 'bio';if(/stat|plot|seaborn|visual|pandas|polars|pymc|scikit|eda|exploratory|networkx|shap/.test(id))return 'stats';return 'other'}
+function skillList(){const q=skillQuery.trim().toLowerCase();const list=S.catalog.scientific.skills.filter(s=>(skillGroup==='all'||skillCategory(s.id)===skillGroup)&&((skillNames[s.id]||'')+' '+s.id+' '+s.description).toLowerCase().includes(q));return `<p class="skill-count">显示 ${list.length} / ${S.catalog.scientific.skills.length} 项技能</p><div class="skill-grid">${list.map(s=>`<button class="skill-card" data-action="skill-detail" data-skill="${e(s.id)}"><strong>${e(skillNames[s.id]||s.id)}</strong><code>${e(s.id)}</code><p>${e(s.description.slice(0,150))}${s.description.length>150?'…':''}</p><span>查看方法、依赖与来源 ${icon('arrow',13)}</span></button>`).join('')||'<p class="muted">没有匹配技能，可尝试英文名称或更短的关键词。</p>'}</div>`}
+function pathways(){const route=S.pathwayRoute;if(!route)return `<div class="page-heading"><div class="eyebrow">TWO RESEARCH PATHS</div><h1>从现在的任务出发</h1><p>两套科研方法，共用材料管理、模型连接和成果导出。</p></div>${routeCards()}`;
+ const r=S.catalog.routes[route],projects=S.projects.filter(p=>projectRoute(p)===route);
+ return `<div class="page-heading heading-row"><div><div class="eyebrow">${route==='ars'?'ACADEMIC RESEARCH SKILLS':'SCIENTIFIC AGENT SKILLS'}</div><h1>${e(r.name)}</h1><p>${e(r.description)}</p></div>${button('create','新建此路径项目','primary','plus',`data-flow="${r.flows[0]}"`)}</div>
+ <div class="route-switch">${Object.entries(S.catalog.routes).map(([key,x])=>button('path',x.name,key===route?'primary':'secondary','',`data-route="${key}"`)).join('')}</div>
+ <section class="section"><div class="section-title"><div><h2>选择工作流</h2><p>选择当前要完成的成果，后续可以在另一条路径继续。</p></div></div><div class="template-grid large">${r.flows.map(templateCard).join('')}</div></section>
+ ${projects.length?`<section class="section"><div class="section-title"><h2>此路径的项目</h2></div><div class="project-grid">${projects.map(projectCard).join('')}</div></section>`:''}
+ ${route==='scientific'?`<section class="panel execution-note"><h3>${icon('info',18)} 工具与专业技能</h3><p>内置一键计算：CSV/TSV 数据结构检查、缺失值、重复行与描述统计。文献页支持 PubMed 和 Crossref 检索。</p><p>下面的 ${S.catalog.scientific.skills.length} 项技能保留完整方法与来源。专业组学、外部平台和绘图等任务需按技能准备相应环境；阶段报告会区分实际计算与操作计划。</p></section><section class="section"><div class="section-title"><div><h2>专业技能库</h2><p>来源版本 ${e(S.catalog.scientific.version)} · ${e(S.catalog.scientific.commit.slice(0,12))} · 点击查看依赖与完整流程。</p></div></div><div class="skill-search"><label class="search-field">${icon('search',17)}<input id="skill-query" value="${e(skillQuery)}" placeholder="搜索技能，如 文献、单细胞、scanpy"></label><select id="skill-group" aria-label="技能类别">${[['all','全部领域'],['writing','文献与写作'],['design','实验与方案'],['bio','生物与组学'],['stats','统计与绘图'],['other','其他领域']].map(([k,n])=>`<option value="${k}" ${skillGroup===k?'selected':''}>${n}</option>`).join('')}</select></div><div id="skill-list">${skillList()}</div></section>`:
+ `<section class="panel execution-note"><h3>按阶段推进成果</h3><p>完整流程保留研究探索、提纲、起草、核验、模拟审阅、返修与整理定稿。每个阶段分别保存和确认；修改前序输入会标记受影响的成果。</p></section>`}`;
+}
+
+function flowChoices(route,selected){return S.catalog.routes[route].flows.map(k=>{const f=S.catalog.flows[k];return `<label class="flow-choice ${k===selected?'selected':''}"><input type="radio" name="flow" value="${k}" ${k===selected?'checked':''}><strong>${e(f.name)}</strong><small>${e(f.description)}</small></label>`}).join('')}
+function newProjectModal(selected='full',skill=''){
+ routeRecommendation=null;recommendationVersion++;const route=S.catalog.flows[selected]?.route||'ars';
+ modal(`<div class="eyebrow">A NEW RESEARCH PROJECT</div><h2>为课题选择研究路径</h2><p class="modal-description">先填写当前目标和材料，也可以直接选路径。推荐在本机生成，不调用模型。</p><form id="create-form">
+ <label class="field">项目名称或课题<input name="title" required maxlength="140" placeholder="例如：TMEM43 在 IRI-AKI 慢性转归中的作用"></label>
+ <label class="field">研究目标或当前需求<textarea name="topic" rows="3" placeholder="例如：暂无实验数据，先完成开题；或已有表达矩阵，希望做数据质控。"></textarea></label>
+ <div class="form-columns"><label class="field">现在主要想完成什么？<select name="goal"><option value="unsure">暂不确定，请结合课题判断</option><option value="proposal">开题与完整研究方案</option><option value="write">论文写作与整理</option><option value="review">审阅与返修</option><option value="screen">系统综述筛选</option><option value="literature">文献或数据库证据探索</option><option value="mechanism">机制假说与实验设计</option><option value="data">数据分析与结果解读</option></select></label><label class="field">当前有哪些材料？<select name="data_kind"><option value="unknown">尚未说明</option><option value="none">暂无实验数据</option><option value="papers">文献、笔记或稿件</option><option value="table">CSV/TSV 表格数据</option><option value="omics">组学、单细胞或测序数据</option><option value="mixed">文献和数据都有</option></select></label></div>
+ <div class="recommend-action">${button('recommend-route','推荐适合我的路径','secondary','spark')}<span>结合目标与材料给出理由，选择由你决定。</span></div><div id="route-recommendation" aria-live="polite"></div>
+ <label class="field">选择研究路径</label><div class="route-options">${Object.entries(S.catalog.routes).map(([key,r])=>`<label class="route-option ${route===key?'selected':''}"><input type="radio" name="route" value="${key}" ${route===key?'checked':''}><strong>${e(r.name)}</strong><small>${e(r.source)}</small></label>`).join('')}</div>
+ <label class="field">选择此路径的工作流</label><div id="route-flow-choices" class="flow-choices">${flowChoices(route,selected)}</div>
+ <label class="field" id="selected-skill-field" ${route==='scientific'?'':'hidden'}>专业技能参考（可选）<select name="selected_skill"><option value="">由工作流选择适用技能</option>${S.catalog.scientific.skills.map(s=>`<option value="${e(s.id)}" ${skill===s.id?'selected':''}>${e(skillNames[s.id]||s.id)}</option>`).join('')}</select></label>
+ <div class="form-columns"><label class="field">学科或领域<input name="discipline" placeholder="例如：肾脏病学"></label><label class="field">引用格式<select name="citation"><option>APA 7</option><option>IEEE</option><option>Vancouver</option><option>GB/T 7714</option><option>Chicago</option><option>MLA</option></select></label></div>
+ <label class="field">这项研究是否已有你实际做过的实验或数据分析？<select name="experiments"><option value="none">没有，当前为文献或研究计划</option><option value="declared">有，后续导入结果与来源说明</option><option value="undecided">暂不确定，推进前再确认</option></select></label><input type="hidden" name="route_choice" value="manual">
+ <div class="modal-footer"><span>项目和材料保存在本机，路径在项目建立时固定。</span>${button('noop','创建研究项目','primary','arrow','type="submit"')}</div></form>`,true);
+}
+function recommendationInput(form){return Object.fromEntries(['title','topic','goal','data_kind'].map(k=>[k,form.elements[k].value]))}
+function recommendationFingerprint(form){return JSON.stringify(recommendationInput(form))}
+function resetRouteRecommendation(){const f=$('#create-form');if(!f)return;recommendationVersion++;routeRecommendation=null;$('#route-recommendation').innerHTML='';f.elements.route_choice.value='manual'}
+function selectRoute(form,route,flow){form.elements.route.value=route;$('#route-flow-choices').innerHTML=flowChoices(route,flow||S.catalog.routes[route].flows[0]);$('#selected-skill-field').hidden=route!=='scientific';if(route!=='scientific')form.elements.selected_skill.value='';document.querySelectorAll('.route-option').forEach(l=>l.classList.toggle('selected',$('input',l).checked))}
+async function pathwayAction(action,el){
+ if(action==='path'){if(S.draft!==null)await saveOutput(true);S.pathwayRoute=el.dataset.route;S.view='pathways';clearTimeout(pollTimer);S.projects=await api('projects');window.history?.pushState({},'',S.pathwayRoute==='ars'?'/ars':'/scientific');render();return}
+ if(action==='recommend-route'){
+  const f=$('#create-form'),fingerprint=recommendationFingerprint(f),version=++recommendationVersion;el.disabled=true;
+  try{const r=await api('recommend',recommendationInput(f));if(!f.isConnected||version!==recommendationVersion||fingerprint!==recommendationFingerprint(f))return;
+   routeRecommendation={...r,fingerprint};$('#route-recommendation').innerHTML=`<section class="route-recommendation"><span class="badge green">推荐 · ${e(r.confidence)}</span><h3>${e(S.catalog.routes[r.route].name)} · ${e(S.catalog.flows[r.flow].name)}</h3><ul>${r.reasons.map(x=>`<li>${e(x)}</li>`).join('')}</ul>${r.notes.map(x=>`<p>${e(x)}</p>`).join('')}<p>${e(r.alternative.reason)}</p>${button('apply-route','采用这条推荐','primary','check')}</section>`;
+  }finally{if(el.isConnected)el.disabled=false}return;
+ }
+ if(action==='apply-route'){const f=$('#create-form'),r=routeRecommendation;if(!r||r.fingerprint!==recommendationFingerprint(f))return toast('课题或材料已变更，请重新获取推荐。',true);selectRoute(f,r.route,r.flow);f.elements.route_choice.value='recommended';toast('已选择推荐路径，也可以继续手动调整。');return}
+ if(action==='skill-detail'){const d=await api('scientific/skill',{id:el.dataset.skill});skillDetail=d;modal(`<span class="badge">Scientific Agent Skills</span><h2>${e(skillNames[d.id]||d.id)}</h2><p class="modal-description">${e(d.availability)}</p><div class="skill-detail-actions">${button('use-skill','用此技能新建专题','primary','plus')}${button('external','查看固定版本来源','secondary','external',`data-url="${e(d.source)}"`)}</div><p class="field-help">技能声明许可：${e(d.license)}；外部依赖与服务要求见下文。</p><article class="markdown skill-source">${markdown(d.text)}</article>`,true);return}
+ if(action==='use-skill'&&skillDetail)newProjectModal('scientific_task',skillDetail.id);
+}
+
+document.addEventListener('input',ev=>{const t=ev.target;if(t.id==='skill-query'){skillQuery=t.value;$('#skill-list').innerHTML=skillList()}if(t.closest('#create-form')&&['title','topic'].includes(t.name))resetRouteRecommendation()});
+document.addEventListener('change',ev=>{const t=ev.target;if(t.id==='skill-group'){skillGroup=t.value;$('#skill-list').innerHTML=skillList()}const f=t.closest('#create-form');if(!f)return;if(t.name==='route'){selectRoute(f,t.value);f.elements.route_choice.value='manual'}if(t.name==='flow')f.elements.route_choice.value='manual';if(['goal','data_kind'].includes(t.name))resetRouteRecommendation()});
+async function syncPathLocation(){const pathname=window.location?.pathname;if(!['/ars','/scientific'].includes(pathname))return;const id=new URLSearchParams(window.location.search).get('project');if(id&&S.projects.some(p=>p.id===id)){await openProject(id,'work',false)}else{S.view='pathways';S.pathwayRoute=pathname==='/ars'?'ars':'scientific';render()}}
+window.addEventListener?.('popstate',()=>syncPathLocation().catch(err=>toast(err.message,true)));
