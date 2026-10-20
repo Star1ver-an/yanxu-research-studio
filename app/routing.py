@@ -45,6 +45,9 @@ def recommend(data):
     elif goal=='literature':
         route='scientific';flow='scientific_evidence'
         reasons.append('你要检索并整合证据，可先用数据库与文献技能建立证据表。')
+    elif re.search(r'完整研究流程|开题与完整研究方案|从(?:零|研究问题|开题).{0,40}(?:定稿|全过程)|full research (?:workflow|pipeline)',active):
+        route='ars';flow='full'
+        reasons.append('你描述的是从开题到定稿的完整流程，审阅和返修属于后续阶段。')
     elif re.search(r'审稿|返修|reviewer|rebuttal|稿件审阅',active):
         route='ars';flow='review';reasons.append('课题描述包含明确的稿件审阅或返修任务。')
     elif kind in ('table','omics') or re.search(r'分析(?:这|已有|现有)?(?:份|个)?数据|数据分析|差异表达分析|单细胞分析|scanpy|deseq|rna.?seq|csv|tsv|h5ad|富集分析',active) and not no_data:

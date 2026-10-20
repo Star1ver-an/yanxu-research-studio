@@ -7,7 +7,10 @@ def identifier_terms(query):
 
 
 def required_terms(value):
-    terms = list(dict.fromkeys(t.strip() for t in re.split(r'[,，;；\s]+',value or '') if t.strip()))
+    # A phrase is one requirement; spaces are meaningful. The UI documents
+    # commas/semicolons as separators so "retrieval augmented generation"
+    # must not become three broad alternatives.
+    terms = list(dict.fromkeys(re.sub(r'\s+',' ',t).strip() for t in re.split(r'[,，;；\n]+',value or '') if t.strip()))
     if len(terms)>10 or any(len(t)>80 for t in terms):
         raise ValueError('限定词最多 10 个，每个不超过 80 字。')
     return terms
@@ -15,8 +18,11 @@ def required_terms(value):
 
 def metadata_matches(entry, terms):
     text = entry['title']+' '+entry.get('abstract','')
-    return not terms or any(re.search((r'(?<![A-Za-z0-9_])'+re.escape(t)+r'(?![A-Za-z0-9_])')
-                            if t.isascii() else re.escape(t),text,re.I) for t in terms)
+    def pattern(term):
+        if not term.isascii():return re.escape(term)
+        words=re.split(r'[\s-]+',term)
+        return r'(?<![A-Za-z0-9_])'+r'[\s\-‐‑–—]+'.join(re.escape(w) for w in words)+r'(?![A-Za-z0-9_])'
+    return not terms or any(re.search(pattern(t),text,re.I) for t in terms)
 
 
 def filter_entries(entries, terms, journal_only):

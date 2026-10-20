@@ -85,6 +85,15 @@ class LiteratureTests(unittest.TestCase):
         supplement=dict(title='TMEM43 meeting abstract',type='journal-article',issue='Supplement_1')
         self.assertEqual(filter_entries([supplement],[],True)[0],[])
 
+    def test_computing_topic_phrase_does_not_admit_single_word_noise(self):
+        from app.literature import required_terms
+        terms=required_terms('retrieval augmented generation, dense passage retrieval')
+        self.assertEqual(len(terms),2)
+        self.assertTrue(metadata_matches({'title':'Retrieval-Augmented Generation for Knowledge-Intensive NLP Tasks'},terms))
+        self.assertTrue(metadata_matches({'title':'Dense Passage Retrieval for Open-Domain Question Answering'},terms))
+        self.assertFalse(metadata_matches({'title':'Electricity generation and supply forecasting'},terms))
+        self.assertFalse(metadata_matches({'title':'Image retrieval techniques'},terms))
+
     def test_search_is_unselected_deduplicated_and_does_not_invalidate(self):
         p=self.store.get(self.p['id']);p['cursor']=1;p['outputs']['research']=dict(text='既有成果',approved=True,stale=False);self.store.put(p)
         records=[{'DOI':'10.1/x','title':['TMEM43 renal study'],'type':'journal-article'},

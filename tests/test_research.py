@@ -21,7 +21,7 @@ class ResearchTests(unittest.TestCase):
     def setUp(self):
         self.temp=tempfile.TemporaryDirectory();self.addCleanup(self.temp.cleanup)
         self.store=Store(self.temp.name);self.service=Service(self.store)
-        self.pid=self.store.create({'title':'检索增强生成的回答可靠性评估','flow':'full','discipline':'人工智能'})['id']
+        self.pid=self.store.create({'title':'检索增强生成的回答可靠性评估','flow':'full','discipline':'人工智能','citation':'IEEE'})['id']
         self.service.upload(self.pid,{'name':'rag-notes.txt','data':base64.b64encode('RAG evaluation requires a held-out test set. Repeated measurements record random seeds.\nThis is a synthetic software test fixture, not an experimental finding.'.encode()).decode()})
         self.asset=self.store.get(self.pid)['assets'][0]['id']
 
@@ -29,8 +29,30 @@ class ResearchTests(unittest.TestCase):
         self.service.research_save(self.pid,{'collection':group,'record':data})
         return self.store.get(self.pid)['research'][group][-1]
 
+    def test_new_reference_style_follows_project_target_and_preserves_user_choice(self):
+        for target,expected in [('APA 7','author-year'),('Chicago','author-year'),('MLA','author-year'),('IEEE','numeric'),('GB/T 7714','numeric')]:
+            project=self.store.create({'title':'AI 文献格式测试','citation':target})
+            self.assertEqual(workspace(project)['citation_style'],expected)
+            project['research']['citation_style']='numeric' if expected=='author-year' else 'author-year'
+            self.assertEqual(workspace(project)['citation_style'],project['research']['citation_style'])
+
     def evidence(self):
         return self.save('evidence',title='独立测试集要求',asset_id=self.asset,page='1',quote='RAG evaluation requires a held-out test set.',level='direct',finding='这是测试笔记中的说明，不能当作真实研究结果。')
+
+    def test_grouped_model_citations_resolve_and_protect_linked_references(self):
+        first=self.save('references',title='RAG methods',authors='Ada',year='2020')
+        second=self.save('references',title='Retrieval evaluation',authors='Lin',year='2021')
+        text='组合引用 [@'+first['id']+'; @'+second['id']+']，再次 [@'+first['id']+']。'
+        self.service.edit(self.pid,{'stage':'research','text':text})
+        md=self.service.export(self.pid,'md')[1].decode('utf-8-sig')
+        self.assertIn('组合引用 [1, 2]，再次 [1]',md)
+        self.assertNotIn('[@',md)
+        with self.assertRaisesRegex(ValueError,'稿件中仍有此引用'):
+            self.service.research_delete(self.pid,{'collection':'references','id':second['id'],'acknowledge':True})
+        self.service.research_style(self.pid,{'style':'author-year'})
+        self.assertIn('[Ada, 2020; Lin, 2021]',self.service.export(self.pid,'md')[1].decode('utf-8-sig'))
+        self.service.edit(self.pid,{'stage':'research','text':text+' [@'+first['id']+'; @'+'b'*32+']'})
+        self.assertTrue(any('稿件引用缺失' in x for x in self.service.public_project(self.pid)['research_status']['warnings']))
 
     def test_task_dependency_cycle_and_completion(self):
         a=self.save('tasks',title='定义评价指标')

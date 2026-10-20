@@ -24,14 +24,24 @@ def profile_csv(name,text):
         values=[row[index].strip() for row in data]
         observed=[x for x in values if x.lower() not in MISSING]
         nums=[];nonnumeric=0;nonfinite=0
-        for value in observed:
+        locations={'missing':[],'nonnumeric':[],'nonfinite':[]}
+        for row_number,value in enumerate(values,1):
+            if value.lower() in MISSING:
+                if len(locations['missing'])<20:locations['missing'].append(row_number)
+                continue
             try:n=float(value)
-            except ValueError:nonnumeric+=1;continue
-            if not math.isfinite(n):nonfinite+=1
+            except ValueError:
+                nonnumeric+=1
+                if len(locations['nonnumeric'])<20:locations['nonnumeric'].append(row_number)
+                continue
+            if not math.isfinite(n):
+                nonfinite+=1
+                if len(locations['nonfinite'])<20:locations['nonfinite'].append(row_number)
             else:nums.append(n)
         column=dict(name=label,missing=len(values)-len(observed),observed=len(observed),
             unique=len(set(observed)),nonnumeric=nonnumeric,nonfinite=nonfinite,
-            kind='numeric' if observed and not nonnumeric and not nonfinite else 'mixed' if nums else 'text')
+            kind='numeric' if observed and not nonnumeric and not nonfinite else 'mixed' if nums else 'text',
+            locations=locations)
         if column['kind']=='numeric':
             try:sd=statistics.stdev(nums) if len(nums)>1 else None
             except OverflowError:sd=None
@@ -39,7 +49,14 @@ def profile_csv(name,text):
             column.update(n=len(nums),mean=statistics.mean(nums),median=statistics.median(nums),
                 minimum=min(nums),maximum=max(nums),sd=sd)
         columns.append(column)
+    seen={};duplicate_examples=[]
+    for index,row in enumerate(data,1):
+        key=tuple(row)
+        if key in seen and len(duplicate_examples)<20:
+            duplicate_examples.append({'row':index,'first_row':seen[key]})
+        else:seen.setdefault(key,index)
     return dict(name=name,rows=len(data),columns=len(header),duplicate_rows=len(data)-len(set(map(tuple,data))),
+        duplicate_examples=duplicate_examples,
         sha256=hashlib.sha256(text.encode('utf-8')).hexdigest(),fields=columns)
 
 
@@ -53,16 +70,25 @@ def table_report(assets):
     for p in profiles:
         body += ['\n## '+cell(p['name']),f"数据行：{p['rows']}；列数：{p['columns']}；完全重复的额外行：{p['duplicate_rows']}。",
             '完全重复不等于错误样本，请结合样本 ID 和采集记录判断。',
-            '| 列名 | 类型 | 缺失 | 非有限数 | 非空唯一值 |','|---|---|---:|---:|---:|']
+            '| 列名 | 类型 | 缺失 | 非数值 | 非有限数 | 非空唯一值 |','|---|---|---:|---:|---:|---:|']
         for f in p['fields']:
-            body.append(f"| {cell(f['name'])} | {dict(numeric='数值',mixed='混合',text='文本')[f['kind']]} | {f['missing']} | {f['nonfinite']} | {f['unique']} |")
+            body.append(f"| {cell(f['name'])} | {dict(numeric='数值',mixed='混合',text='文本')[f['kind']]} | {f['missing']} | {f['nonnumeric']} | {f['nonfinite']} | {f['unique']} |")
+        body += ['\n### 待核对位置','数据行从 1 开始，不包含列名行；多行引用字段按一条数据记录计数。每类最多展示前 20 个位置；全部数量见上表。文本列的非数值通常是正常文本，混合列需结合字段含义核对。']
+        locations=[]
+        for f in p['fields']:
+            for kind,label in [('missing','缺失'),('nonnumeric','非数值'),('nonfinite','非有限数')]:
+                if kind=='nonnumeric' and f['kind']=='text':continue
+                if f['locations'][kind]:locations.append(f"- {cell(f['name'])} · {label}：数据行 "+'、'.join(map(str,f['locations'][kind])))
+        for item in p['duplicate_examples']:
+            locations.append(f"- 完全重复：数据行 {item['row']} 与数据行 {item['first_row']} 相同。")
+        body += locations or ['未发现上述待核对位置。']
         numeric=[f for f in p['fields'] if f['kind']=='numeric']
         if numeric:
-            body += ['\n### 数值列描述统计','| 列名 | n | 均值 | 中位数 | 标准差 | 最小值 | 最大值 |','|---|---:|---:|---:|---:|---:|---:|']
+            body += ['\n### 数值列描述统计','标准差采用样本标准差（分母 n-1）；n=1 时不计算。这里只按列汇总，不比较处理组。','| 列名 | n | 均值 | 中位数 | 标准差 | 最小值 | 最大值 |','|---|---:|---:|---:|---:|---:|---:|']
             for f in numeric:
                 body.append('| '+' | '.join([cell(f['name']),str(f['n'])]+[number(f[k]) for k in ['mean','median','sd','minimum','maximum']])+' |')
         body += ['\n输入文本 SHA-256：`'+p['sha256']+'`。']
-    body += ['\n## 待研究者确认','确认样本/实验单位、列含义、分组、缺失值编码和重复记录处理。数值格式不能证明计数来源；本步骤不判断是否符合 DESeq2 输入要求。',
+    body += ['\n## 待研究者确认','确认样本/实验单位、列含义、分组、缺失值编码和重复记录处理。本步骤仅检查通用表格结构，不替代特定分析工具的输入验证。',
              '\n## 证据与局限','空白、NA、N/A、null、none 视为缺失；NaN/Inf 记为非有限数。混合列不自动计算数值统计。均值和标准差不代表组间效应或显著性；当前计算不验证数据真实性。']
-    return '\n'.join(body),dict(tool='local-csv-profile-v1',status='completed',profiles=profiles,
+    return '\n'.join(body),dict(tool='local-csv-profile-v2',status='completed',profiles=profiles,
         network=False,model_called=False)

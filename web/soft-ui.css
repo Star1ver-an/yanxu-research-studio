@@ -542,3 +542,7 @@ h3 {font-size:15px;color:var(--ink)}
 @media(max-width:1000px){.batch-actions{margin-left:0}.manager-filters .search-field{flex-basis:100%}.manager-filters select{flex:1;min-width:140px;max-width:none}.guide-entry{align-items:flex-start;flex-direction:column}.project-batch-bar{gap:12px}}
 @media(prefers-reduced-motion:reduce){.guide-mode *{scroll-behavior:auto!important}}
 .guide-mode .modal-overlay.guide-centered{background:#10182070}
+.breadcrumb{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.top-actions{flex-shrink:0}
+.project-title-row>div:first-child{min-width:0}
+.project-title-row h1{overflow-wrap:anywhere}
