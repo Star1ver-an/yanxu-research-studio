@@ -22,8 +22,9 @@ from .backups import Backups
 from .assistant import Assistant
 from .followup import followup
 from .plotting import Plotting
+from .analysis_jobs import AnalysisJobs
 
-class Service(ProjectManagement,ResearchTools,Plotting):
+class Service(ProjectManagement,ResearchTools,Plotting,AnalysisJobs):
     def __init__(self,store=None):
         self.store=store or Store()
         self.lock=self.store.lock
@@ -58,9 +59,11 @@ class Service(ProjectManagement,ResearchTools,Plotting):
                 r['partial']=j.get('partial','')
         return p
 
-    def assert_idle(self,p,allow_inactive=False):
+    def assert_idle(self,p,allow_inactive=False,allow_analysis=False):
         if self.updating:
             raise ValueError('软件正在安装更新，请稍后修改。')
+        if not allow_analysis and self.analysis_busy(p['id']):
+            raise ValueError('此项目正在分析，请等待完成或先取消分析。')
         if any(r['status']=='running' for r in p['runs']):
             raise ValueError('此项目正在运行，请等待完成或先停止。')
         if not allow_inactive and lifecycle(p)!='active':
@@ -282,7 +285,7 @@ class Service(ProjectManagement,ResearchTools,Plotting):
             chunks.append('\n勾选的检索结果（仅元数据或摘要，未核验全文支持关系）：\n'+json.dumps(selected,ensure_ascii=False))
         for a in p['assets']:
             if a.get('enabled',True):
-                if a['name'].lower().endswith(('.xlsx','.png','.jpg','.jpeg')) or (p['flow']=='scientific_data' and a['name'].lower().endswith(('.csv','.tsv'))):
+                if a['name'].lower().endswith(('.xlsx','.png','.jpg','.jpeg','.h5ad','.zip','.gmt','.fcs','.vcf')) or (p['flow']=='scientific_data' and a['name'].lower().endswith(('.csv','.tsv'))):
                     chunks.append('\n表格材料（内容由本机工具读取）：'+json.dumps({k:a.get(k) for k in ('name','size','chars','sha256')},ensure_ascii=False))
                     continue
                 chunks.append('\n<material name='+json.dumps(a['name'],ensure_ascii=False)+'>\n'+a['text']+'\n</material>')
@@ -467,6 +470,8 @@ class Service(ProjectManagement,ResearchTools,Plotting):
                     path=self.store.root/a['file']
                     if path.is_file():
                         z.write(path,'materials/'+Path(a['file']).name)
+                for key,raw in self.analysis_bundle(p).items():
+                    z.writestr('analysis-results/'+key+'.json',raw)
                 z.writestr('来源与说明.txt',source_note+'\nARS 来源：https://github.com/Imbad0202/academic-research-skills\n版本提交：'+SOURCE_COMMIT+'\nCC BY-NC 4.0；本应用为非官方图形化改编。\nScientific Agent Skills 来源：https://github.com/K-Dense-AI/scientific-agent-skills\n该库根许可 MIT，各技能另有许可声明。\n备份不包含模型密钥或 Codex 登录凭据。')
             return name+'.zip',output.getvalue(),'application/zip'
         raise ValueError('不支持的导出格式。')

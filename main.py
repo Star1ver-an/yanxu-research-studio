@@ -87,7 +87,7 @@ class DesktopAPI:
         with self._service.lock:
             if self._service.updating:
                 raise ValueError('已经在准备安装更新。')
-            if any(p['running'] for p in self._service.project_list()) or self._service.assistant.busy() or self._service.plotting_busy():
+            if any(p['running'] for p in self._service.project_list()) or self._service.assistant.busy() or self._service.plotting_busy() or self._service.analysis_runtime.phase=='installing':
                 raise ValueError('研究任务或 AI 问答仍在运行，请等待完成或先停止，再安装更新。')
             runner,plan=self._updates.prepare_install(sys.executable,[os.getpid(),os.getppid()],self._restart_args)
             self._service.updating=True
@@ -127,7 +127,11 @@ def main():
     parser.add_argument('--server',action='store_true')
     parser.add_argument('--port',type=int,default=0)
     parser.add_argument('--apply-update',default='')
+    parser.add_argument('--analysis-worker',nargs=2,metavar=('INPUT','OUTPUT'))
     args=parser.parse_args()
+    if args.analysis_worker:
+        from app.analysis_worker import run
+        sys.exit(run(*args.analysis_worker))
     root=data_directory()
     root.mkdir(parents=True,exist_ok=True)
     logging.basicConfig(filename=str(root/'application.log'),level=logging.ERROR,

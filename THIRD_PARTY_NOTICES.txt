@@ -55,3 +55,18 @@ those Windows fonts are not redistributed. SVG exports may contain glyph paths.
 LibreOffice and Poppler used for development-only DOCX pagination verification
 are not bundled with the application and are not required for local plotting.
 
+Local statistical analysis (Research Studio 0.9.0)
+- SciPy: BSD 3-Clause, https://scipy.org/
+- scikit-learn: BSD 3-Clause, https://scikit-learn.org/
+- pandas: BSD 3-Clause, https://pandas.pydata.org/
+- statsmodels: BSD 3-Clause, https://www.statsmodels.org/
+- lifelines: MIT, https://lifelines.readthedocs.io/
+- formulaic: MIT, https://github.com/matthewwardrop/formulaic
+- autograd and autograd-gamma: MIT, https://github.com/HIPS/autograd
+- FlowIO: BSD 3-Clause, https://github.com/whitews/FlowIO
+Dependency distributions retain their own notices, including bundled numerical libraries.
+Optional anndata, Scanpy, UMAP, PyDESeq2, GSEApy and their dependencies are not
+bundled; an explicitly requested private environment installs them with their
+own license files. CPython private runtime is obtained from the Python Software
+Foundation's official NuGet package with pinned SHA-512 verification.
+

@@ -1,10 +1,34 @@
 # 研序 Research Studio
 
+## v0.9.0 数据分析与出图（M2 / M3）
+
+两条研究路径均可在 **研究工具 → 图表与绘图 → 数据分析 → 出图** 使用。同一处保留 M1 的“已有结果重绘”；新增向导按 **选择方法 → 材料与字段 → 分析条件 → 预检与明确运行 → 结果与保存** 推进。可搜索方法，按领域筛选，不需要编写代码。Cox 分类参照和流式父门有表单；高级参数折叠显示。默认示例为推理服务可靠性、模型概率评估及高维特征表示等计算机课题，所有验收夹具均为合成数据。
+
+| 分析领域 | 实际计算与绘图 | 输入和适用条件 |
+|---|---|---|
+| 生存与预测 M2 | KM 的 CI、删失标记、风险表及 log-rank；Aalen–Johansen 竞争风险；Cox 的 HR、CI 和 PH 检验；ROC/PR、bootstrap CI、校准、Brier、DCA；逻辑回归内部留出评估和可解释评分 | 独立单位的原始时长/事件，或真实标签与已有独立评估概率；确认事件编码和样本单位。建模先拆分，标准化只拟合训练集 |
+| Meta M2 | 共同效应、Paule–Mandel 随机效应、森林、漏斗、留一敏感性和 Baujat 图，报告 Q/I²/τ² | 2–50 项独立研究，已有效应与 SE 或正态近似 95% CI；明确差值/比值/log 比值。OR/SMD 不提供普通 Egger |
+| 组学 M3 | PCA、已归一化 log2 连续表达的 Welch + BH、PyDESeq2 原始计数拟合、ORA、GSEA prerank | 明确矩阵方向、独立生物重复、分组；ORA 需要真实完整背景及本地 GMT，不猜测数据库注释 |
+| 单细胞与空间 M3 | QC、总量归一化/log1p/PCA/t-SNE，可选 UMAP/Scanpy Leiden；按样本的表达和组成摘要；真实坐标空间表达 | CSV/TSV/XLSX、H5AD 或 10x MTX ZIP；使用已有注释和独立样本 ID，不推断细胞类型，也不将细胞作为生物重复 |
+| 变异与流式 M3 | 已有变异矩阵、真实位点 lollipop、已有 CNV 分段；FCS/事件表的补偿、变换、矩形/多边形父门及完整事件计数 | 用户已有变异/VCF 结果、真实 FCS 或事件表；明确门与补偿来源，显示抽样不改变统计分母 |
+
+共 **20 个分析方法入口**，部分入口包含多个图和视图。M2 与基础 M3 依赖随 Windows 软件提供。PyDESeq2、GSEA、H5AD、UMAP 和聚类等高级组件在分析环境中按需安装：可指定已有 Python 3.11–3.13，也可在无 Python 的 Windows 上下载私有 CPython，再创建专用 venv。默认官方源；网络较慢时可切到国内镜像（华为 NuGet、清华 PyPI）。Python 包始终按官方 CPython NuGet 的固定 SHA-512 核验。仅在用户点击安装时联网，不修改系统 Python 或系统软件源；环境检查真实导入组件，安装遇到暂时失败会复用下载内容重试一次。组件缺失时说明原因，预检也检查参数相关依赖。
+
+计算在受控独立进程中运行，可取消；队列最多 3 个任务、同时计算 1 个，单次最长 20 分钟。禁止模型生成并执行 Python/R 代码。AI 只接收问题、所选方法/参数及列结构，不接收原始行、FCS 事件、H5AD 矩阵或原图；修改先成为待核对候选，不能代替作者确认独立样本等研究条件。所有本机计算、改样式和导出均无需模型请求。
+
+保存后的结果按内容 SHA-256 固定，配方、参数、来源 SHA、软件版本、完整结果表和警告可追溯；同参数重跑不会覆盖已保存图或其历史结果。标题和样式修改复用结果，多面板自定义轴名仅用于主图。可下载完整 CSV/JSON、PNG/SVG/PDF/TIFF 及含材料和冻结结果的单图 ZIP；项目副本、历史恢复、项目 ZIP、整库备份与 Word 附图继续可用。列表不加载完整大表，选图后再查看结果。可清理未被保存图、历史及本会话结果引用的缓存。
+
+资源限制：单输入 20 MB、单任务输入合计 60 MB、表格 50,000 行/200 列；稀疏矩阵另有细胞、特征和非零项上限（不静默截断或整体稠密化）；流式最多 200,000 事件，具体以方法预检提示为准。单结果 20 MB、结果缓存 512 MB、实际绘图最多 2,400 万像素，扩高森林图仍须满足像素限制。CSV 导出转义潜在电子表格公式。
+
+方法边界在选择时展示：CIF 没有 Gray 检验；Cox 不含时间依赖/聚类或因果解释；内部留出不是外部验证；评分公式不是传统医学列线图；Welch 不冒充 DESeq2；没有变异 calling、自动细胞类型注释、组织配准或自动生物门控。统计结果需结合研究设计核对。
+
+方法依据：[lifelines](https://lifelines.readthedocs.io/en/stable/)、[scikit-learn 数据泄漏说明](https://scikit-learn.org/stable/common_pitfalls.html)、[statsmodels Meta](https://www.statsmodels.org/stable/generated/statsmodels.stats.meta_analysis.combine_effects.html)、[Scanpy](https://scanpy.readthedocs.io/en/stable/)、[PyDESeq2](https://pydeseq2.readthedocs.io/en/stable/)、[GSEApy](https://gseapy.readthedocs.io/en/latest/)、[FlowIO](https://flowio.readthedocs.io/en/latest/)、[Python Windows NuGet](https://docs.python.org/3/using/windows.html#the-nuget-org-packages)。
+
 ## v0.8.0 科研绘图（M0 / M1）
 
 项目内打开 **研究工具 → 图表与绘图**，或在材料卡点击 **用于绘图**。先选择 CSV / TSV / XLSX、描述图的用途，再用本机推荐或手动选择图型；没有数据也可以画可编辑技术路线。首次进入提供四步说明，选图后收起来源和推荐区，优先展示画布。
 
-- **17 种图型**：折线、散点、柱状、箱线加原始点、小提琴加原始点、直方、热图、混淆矩阵、火山、MA、森林、ROC、PR、生存曲线、富集点图、技术路线和原图面板拼版。ROC / PR / 生存 / 森林 / 富集 / 火山等导入已有结果重绘，不计算 AUC、检验、效应合并或差异表达。临床统计、Meta 和组学计算引擎属于后续阶段。
+- **17 种图型**：折线、散点、柱状、箱线加原始点、小提琴加原始点、直方、热图、混淆矩阵、火山、MA、森林、ROC、PR、生存曲线、富集点图、技术路线和原图面板拼版。这些图型导入已有结果重绘；v0.9.0 的原始数据计算使用上面的独立分析向导。
 - **真实数据约束**：默认不平滑、不填补、不合并重复值、不添加显著性或误差线。柱图默认逐行展示，显式均值汇总保留原始点。缺失值排除数量、无效概率、区间与字段错误明确提示。PNG / JPG 原图保留，等比拼版并添加面板标记，不生成实验内容或虚构比例尺。
 - **AI 辅助**：本机推荐、样式修改和导出不调用模型。AI 选图与自然语言改图使用当前 Codex / API 连接，发送用途、字段类型计数和配方，不发送预览行或图像像素；候选逐项显示修改，确认后应用到草稿。模型仅能返回受验证配方。同一请求跨重启复用回执，失败不自动重试，避免重复调用。
 - **可复现与保存**：来源摘要、引擎版本、字段与处理配置、图注、实验 / 阶段 / 稿件位置随图保存，保留最近 10 份历史。支持撤销重做、版本恢复、复制、批量删除。项目副本和完整 ZIP 备份可恢复编辑；图表与原始材料的“用于模型”开关独立。
@@ -14,7 +38,7 @@
 
 验收包含真实绘图与格式测试、本机双协议 API、两条路径的界面链路、项目复制与备份恢复；Word 使用独立 LibreOffice / Poppler 渲染了中文图注、竖图和跨页表格并逐页检查。渲染工具仅供开发验收，不随应用分发；真实付费 API 未在本次验收中调用。
 
-当前版本：0.8.1。
+当前版本：0.9.0。
 
 v0.8.1 修复 Windows 在 Codex 中启动与从桌面启动时的数据目录重定向差异：复用已有的唯一科研工作区，更新助手显式沿用同一目录，不合并或覆盖其他工作区。
 
@@ -22,7 +46,7 @@ v0.8.1 修复 Windows 在 Codex 中启动与从桌面启动时的数据目录重
 
 **[下载 Windows 版](https://github.com/Star1ver-an/yanxu-research-studio/releases/latest)** · [项目主页](https://github.com/Star1ver-an/yanxu-research-studio)
 
-下载 Release 中的 `YanxuResearchStudio-Windows-v0.7.0.zip`，解压后双击 `YanxuResearchStudio.exe`。GitHub 的“Code → Download ZIP”下载的是源码，需要开发环境才能运行。
+下载最新 Release 中的 `YanxuResearchStudio-Windows-v0.9.0.zip`，解压后双击 `YanxuResearchStudio.exe`。GitHub 的“Code → Download ZIP”下载的是源码，需要开发环境才能运行。
 
 ## 持续跟进与易用性（v0.7.0 第三期）
 

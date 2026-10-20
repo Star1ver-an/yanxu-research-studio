@@ -6,3 +6,10 @@ Pillow>=11
 matplotlib>=3.9,<4
 numpy>=2,<3
 openpyxl>=3.1,<4
+scipy==1.16.3
+scikit-learn==1.7.2
+statsmodels==0.14.6
+lifelines==0.30.0
+pandas==2.3.3
+flowio==1.4.0
+formulaic==1.2.1
