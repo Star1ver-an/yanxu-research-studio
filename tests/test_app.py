@@ -184,7 +184,7 @@ class ApplicationTests(unittest.TestCase):
         from main import DesktopAPI
         bridge=DesktopAPI(self.service)
         public=[name for name in dir(bridge) if not name.startswith('_')]
-        self.assertEqual(set(public),{'save_export','open_data_folder','open_link','report_ready'})
+        self.assertEqual(set(public),{'save_export','save_assistant_export','open_data_folder','open_link','report_ready'})
         self.assertTrue(all(callable(getattr(bridge,name)) for name in public))
 
     def test_native_policy_supports_official_bridge_wrapper_factory(self):

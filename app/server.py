@@ -22,6 +22,7 @@ class LocalServer(ThreadingHTTPServer):
         self.service.backups.start()
 
     def server_close(self):
+        self.service.assistant.close()
         self.updates.close()
         self.service.backups.close()
         super().server_close()
@@ -90,6 +91,7 @@ class Handler(BaseHTTPRequestHandler):
         names={'/':'index.html','/ars':'index.html','/scientific':'index.html',
                '/app.js':'app.js','/pathways.js':'pathways.js','/appearance.js':'appearance.js','/updates.js':'updates.js',
                '/projects.js':'projects.js','/onboarding.js':'onboarding.js','/research.js':'research.js','/research.css':'research.css',
+               '/assistant.js':'assistant.js','/assistant.css':'assistant.css',
                '/style.css':'style.css','/soft-ui.css':'soft-ui.css','/mark.svg':'mark.svg','/favicon.svg':'favicon.svg'}
         if path not in names:
             return self.reply({'error':'Not found'},404)
@@ -122,6 +124,15 @@ class Handler(BaseHTTPRequestHandler):
                 raise ValueError('请求格式无效。')
             service=self.server.service
             path=urlparse(self.path).path
+            if path.startswith('/api/assistant/'):
+                action=path.rsplit('/',1)[-1]
+                if action=='export':
+                    return self.reply(service.assistant.export(data),mime='text/markdown; charset=utf-8')
+                operations={'state':service.assistant.state,'preview':service.assistant.preview,
+                            'send':service.assistant.send,'stop':service.assistant.stop,'clear':service.assistant.clear}
+                if action not in operations:
+                    raise ValueError('不支持的助手操作。')
+                return self.reply(operations[action](data))
             if path.startswith('/api/updates/'):
                 action=path.rsplit('/',1)[-1]
                 if action=='check':
