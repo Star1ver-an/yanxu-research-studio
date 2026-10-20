@@ -23,8 +23,9 @@ from .assistant import Assistant
 from .followup import followup
 from .plotting import Plotting
 from .analysis_jobs import AnalysisJobs
+from .paper_figures import PaperFigures
 
-class Service(ProjectManagement,ResearchTools,Plotting,AnalysisJobs):
+class Service(ProjectManagement,ResearchTools,Plotting,AnalysisJobs,PaperFigures):
     def __init__(self,store=None):
         self.store=store or Store()
         self.lock=self.store.lock

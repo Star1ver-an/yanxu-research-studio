@@ -37,6 +37,7 @@ mapping 仅支持 x/y/group/label/lower/upper/size/color，值为真实列名，
 style 仅支持 xlabel/ylabel,width(3-16英寸),height(2.5-16英寸),dpi(72-600),font_size(6-24),palette(muted/accessible/gray),legend(bool),xlim/ylim(递增两数),xscale/yscale(linear/log)。
 options 仅支持 aggregate(none/mean),bins(2-100整数),annotate(bool),y_is_neglog10(bool),p_threshold,fc_threshold,reference,columns(1-6整数),orientation(vertical/horizontal),label_points(bool),sort_x(bool)。
 diagram为{nodes:[{id,label}],edges:[{from,to,label}]}；panels为[{asset_id,label}]且来源须在source_ids中。
+graphical_abstract 还需 abstract={status:plan/results,summary,sections:[{title,nodes:[节点ID]}]}，2–3个分区，每个节点恰好属于一个分区。保留用户未要求修改的节点、连线和分区；不得把方案改为已验证结论。
 不需要的字段省略；不使用columns参数映射数据列（仅布局列数）。不支持风险表、置信区间估计、任意颜色代码/任意字体代码或图像合成。'''
 
 
@@ -60,14 +61,8 @@ def remap_plotting(original, asset_mapping):
         ids = spec.get('source_ids', [])
         if any(a not in asset_mapping for a in ids):
             raise ValueError('绘图配方关联的原始材料缺失。')
-        spec['source_ids'] = [asset_mapping[a] for a in ids]
-        if spec['kind']=='analysis':
-            spec['analysis']['inputs']={k:asset_mapping[v] for k,v in spec['analysis']['inputs'].items()}
-        for item in spec.get('panels', []):
-            if item.get('asset_id') not in asset_mapping:
-                raise ValueError('拼图配方关联的原始图片缺失。')
-            item['asset_id'] = asset_mapping[item['asset_id']]
-        return spec
+        from .paper_engine import remap_spec
+        return validate_spec(remap_spec(spec, asset_mapping))
     def hashes(value):
         if not isinstance(value, dict) or any(k not in asset_mapping or not re.fullmatch('[0-9a-f]{64}', str(v)) for k,v in value.items()):
             raise ValueError('绘图来源摘要无效。')
@@ -94,12 +89,17 @@ def remap_plotting(original, asset_mapping):
             **annotations(row), 'restored':True})
         if spec['kind']=='analysis':
             result[-1]['metadata']=copy.deepcopy(row.get('metadata',{}))
-    return {'figures':result}
+    out = {'figures': result}
+    if original.get('paper'):
+        from .paper_figures import validate_plan
+        out['paper'] = {'revision': 1, 'plan': validate_plan(original['paper'].get('plan')), 'review': {}}
+    return out
 
 
 class Plotting:
     def init_plotting(self):
         self.init_analysis()
+        self.init_paper()
         self.plot_worker = ThreadPoolExecutor(max_workers=1, thread_name_prefix='figure-render')
         self.plot_slots = threading.BoundedSemaphore(3)
         self.plot_jobs = {}
@@ -112,12 +112,13 @@ class Plotting:
             self._plot_write_receipts(c)
 
     def close_plotting(self):
+        self.close_paper()
         self.close_analysis()
         for item in list(self.plot_jobs.values()): item['cancel'].set()
         self.plot_worker.shutdown(wait=False, cancel_futures=True)
 
     def plotting_busy(self, pid=None):
-        return self.analysis_busy(pid) or any(pid is None or item['pid']==pid for item in list(self.plot_jobs.values()))
+        return self.paper_busy(pid) or self.analysis_busy(pid) or any(pid is None or item['pid']==pid for item in list(self.plot_jobs.values()))
 
     def _plot_write_receipts(self, connection=None):
         self.plot_receipts = self.plot_receipts[-64:]
@@ -128,8 +129,8 @@ class Plotting:
                 ('plot_ai_v1',json.dumps(self.plot_receipts,ensure_ascii=False)))
 
     def _plot_sources(self, p, ids):
-        if not isinstance(ids,list) or len(ids)>12 or len(set(ids))!=len(ids) or any(not isinstance(a,str) for a in ids):
-            raise ValueError('请选择最多 12 份不同的绘图材料。')
+        if not isinstance(ids,list) or len(ids)>24 or len(set(ids))!=len(ids) or any(not isinstance(a,str) for a in ids):
+            raise ValueError('请选择最多 24 份不同的绘图材料。')
         sources=[];total=0
         folder=self._owned_folder('materials',p['id'])
         for aid in ids:
@@ -161,6 +162,8 @@ class Plotting:
         try:
             if spec['kind']=='analysis':
                 result=self.plot_worker.submit(self._analysis_render,pid,spec,sources,fmt).result()
+            elif spec['kind']=='composition':
+                result=self.plot_worker.submit(self._paper_render_composition,pid,spec,sources,fmt).result()
             else:
                 result=self.plot_worker.submit(render_figure,spec,sources,fmt).result()
             result['source_hashes']={s['id']:hashlib.sha256(s['raw']).hexdigest() for s in sources}
@@ -305,6 +308,9 @@ class Plotting:
                 for i,table in enumerate(full['tables']):
                     content,_=self.analysis_table(pid,{'id':row['id'],'table':table,'format':'csv'})
                     z.writestr('analysis/table-'+str(i+1)+'.csv',content)
+            if spec['kind']=='composition':
+                for key, raw in self.analysis_bundle({'plotting': {'figures': [row]}, 'assets': p['assets'], 'id': p['id']}).items():
+                    z.writestr('analysis-results/'+key+'.json',raw)
             for source in self._plot_sources(p,spec.get('source_ids',[])):
                 suffix=Path(source['name']).suffix.lower()
                 z.writestr('sources/'+source['id']+suffix,source['raw'])
@@ -466,6 +472,10 @@ class Plotting:
             if not isinstance(obj,dict):raise ValueError('AI 配方格式无效。')
             candidate=validate_spec(obj.get('spec'))
             if candidate.get('source_ids',[])!=spec.get('source_ids',[]): raise ValueError('AI 修改了来源材料选择，未应用。')
+            if spec['kind']=='composition' and (candidate['kind']!='composition' or candidate.get('composition')!=spec.get('composition')):
+                raise ValueError('AI 只能调整组合图的标题与外观；子图内容与版本需在论文清单明确更新。')
+            if spec['kind']=='graphical_abstract' and (candidate['kind']!='graphical_abstract' or candidate.get('abstract',{}).get('status','plan')!=spec.get('abstract',{}).get('status','plan')):
+                raise ValueError('AI 不能修改作者声明的方案或结果状态。')
             if spec['kind']=='analysis':
                 if candidate['kind']!='analysis' or candidate['analysis']['method']!=spec['analysis']['method'] or candidate['analysis']['inputs']!=spec['analysis']['inputs']:
                     raise ValueError('AI 修改了已选分析方法或输入，请人工重新选择并预检。')
