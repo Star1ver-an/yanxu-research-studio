@@ -56,7 +56,7 @@ def workspace(p):
     result = p.setdefault('research', {})
     for key in COLLECTIONS:
         result.setdefault(key, [])
-    result.setdefault('citation_style', 'numeric')
+    result.setdefault('citation_style', 'author-year' if str(p.get('citation','')).upper().startswith(('APA','CHICAGO','MLA')) else 'numeric')
     return result
 
 
@@ -96,24 +96,32 @@ def pages(asset):
     return [text[i:i + 16000] for i in range(0, len(text), 16000)] or ['']
 
 
+CITATIONS = re.compile(r'\[@([0-9a-f]{32}(?:\s*;\s*@?[0-9a-f]{32})*)\]')
+
+def citation_ids(text):
+    return [rid.strip().lstrip('@') for match in CITATIONS.finditer(text) for rid in match[1].split(';')]
+
 def bibliography(p, text):
     refs = {r['id']: r for r in workspace(p)['references']}
-    order = list(dict.fromkeys(re.findall(r'\[@([0-9a-f]{32})\]', text)))
+    order = list(dict.fromkeys(citation_ids(text)))
     style = workspace(p).get('citation_style', 'numeric')
     lines = []
     for index, rid in enumerate(order, 1):
         ref = refs.get(rid)
-        if not ref:
-            text = text.replace('[@' + rid + ']', '[引用缺失：' + rid[:8] + ']')
-            continue
-        label = str(index) if style == 'numeric' else (ref.get('authors') or '作者未填').split(';')[0] + ', ' + (ref.get('year') or '年份未填')
-        text = text.replace('[@' + rid + ']', '[' + label + ']')
+        if not ref:continue
         details = '. '.join(v for v in [ref.get('authors'), ref.get('title'), ref.get('venue'), ref.get('year')] if v)
         if ref.get('doi'):
             details += '. https://doi.org/' + ref['doi']
         elif ref.get('url'):
             details += '. ' + ref['url']
         lines.append(f'[{index}] {details}')
+    def render(match):
+        labels=[]
+        for rid in citation_ids(match[0]):
+            ref=refs.get(rid)
+            labels.append('引用缺失：'+rid[:8] if not ref else str(order.index(rid)+1) if style=='numeric' else (ref.get('authors') or '作者未填').split(';')[0]+', '+(ref.get('year') or '年份未填'))
+        return '['+(', ' if style=='numeric' else '; ').join(labels)+']'
+    text=CITATIONS.sub(render,text)
     return text + ('\n\n# 参考文献\n\n' + '\n\n'.join(lines) if lines else '')
 
 
@@ -164,7 +172,7 @@ class ResearchTools:
                 warnings.append('材料来源需复核：' + item['title'])
         combined = '\n'.join(o.get('text', '') for o in p['outputs'].values())
         ids = {r['id'] for r in w['references']}
-        for rid in set(re.findall(r'\[@([0-9a-f]{32})\]', combined)) - ids:
+        for rid in set(citation_ids(combined)) - ids:
             warnings.append('稿件引用缺失：' + rid[:8])
         for x in w['experiments']:
             missing = [name for name in ('baseline', 'dataset', 'split', 'metric', 'unit', 'seeds', 'sample_reason', 'analysis') if not x.get(name)]
@@ -328,7 +336,7 @@ class ResearchTools:
             for rows in (w[key] for key in COLLECTIONS):
                 if any(any(item.get(k) == rid for k in ('reference_id', 'evidence_id', 'experiment_id', 'depends_on')) for item in rows):
                     raise ValueError('其他记录仍有关联，请先修改关联。')
-            if group == 'references' and any('[@' + rid + ']' in o.get('text', '') for o in p['outputs'].values()):
+            if group == 'references' and any(rid in citation_ids(o.get('text', '')) for o in p['outputs'].values()):
                 raise ValueError('稿件中仍有此引用，请先修改正文。')
             w[group] = [r for r in w[group] if r['id'] != rid]
             if w.get('enabled'):

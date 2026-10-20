@@ -46,6 +46,12 @@ class RecommendationTests(unittest.TestCase):
     def test_invalid_or_empty_input(self):
         for data in [{},dict(title='x',goal='bad'),dict(title='x',data_kind='bad'),dict(title='x'*141)]:
             with self.assertRaises(ValueError):recommend(data)
+    def test_complete_workflow_is_not_mistaken_for_existing_manuscript_review(self):
+        data=dict(title='RAG 回答可靠性评估',topic='暂无实验数据，完成开题与完整研究方案，走完提纲、核验、模拟审阅、返修与定稿。')
+        self.assertEqual(recommend(data)['flow'],'full')
+        self.assertEqual(recommend({**data,'goal':'review'})['flow'],'review')
+        self.assertEqual(recommend(dict(title='RAG',topic='已有稿件，需要模拟审阅和返修'))['flow'],'review')
+        self.assertEqual(recommend(dict(title='边缘设备评测',goal='data',data_kind='table',topic='先检查 CSV，再走完整研究流程'))['flow'],'scientific_data')
 
 
 class SourceTests(unittest.TestCase):
@@ -85,6 +91,19 @@ class DataTests(unittest.TestCase):
     def test_invalid_tables_fail_without_silent_truncation(self):
         for text in ['a,a\n1,2','a,\n1,2','a,b\n1,2,3','a\n','a\n"unterminated']:
             with self.assertRaises(ValueError):profile_csv('data.csv',text)
+    def test_quality_issues_have_bounded_data_record_positions(self):
+        text='id,accuracy,latency\na,0.9,20\nb,not_measured,\na,0.9,20\nc,NaN,22\n'
+        p=profile_csv('edge.csv',text)
+        self.assertEqual(p['duplicate_examples'],[{'row':3,'first_row':1}])
+        self.assertEqual(p['fields'][1]['locations'],{'missing':[],'nonnumeric':[2],'nonfinite':[4]})
+        self.assertEqual(p['fields'][2]['locations']['missing'],[2])
+        report,_=table_report([dict(name='edge.csv',text=text)])
+        self.assertIn('accuracy · 非数值：数据行 2',report)
+        self.assertIn('数据行 3 与数据行 1 相同',report)
+        self.assertNotIn('DESeq2',report)
+        many=profile_csv('many.csv','value\n'+''.join('NA\n' for _ in range(25)))
+        self.assertEqual(many['fields'][0]['missing'],25)
+        self.assertEqual(len(many['fields'][0]['locations']['missing']),20)
     def test_report_uses_only_selected_tables_and_no_model(self):
         report,execution=table_report([dict(name='data.csv',text='x\n1\n3',enabled=True),dict(name='bad.csv',text='bad',enabled=False)])
         self.assertIn('均值',report);self.assertEqual(execution['profiles'][0]['fields'][0]['mean'],2)

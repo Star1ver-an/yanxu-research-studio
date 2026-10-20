@@ -2,3 +2,26 @@
 .rt-main .section-title>div{flex:1;min-width:0}.rt-main .section-title>.btn{flex-shrink:0;white-space:nowrap}.rt-nav button{line-height:1.5}.rt-context .btn{flex-shrink:0;white-space:nowrap}
 .rt-form-page[hidden],[data-action="rt-form-prev"][hidden],[data-action="rt-form-next"][hidden],#rt-record-form button[type="submit"][hidden]{display:none!important}.rt-form-page textarea{min-height:64px}.rt-form-page .field{margin-bottom:16px}.rt-form-page h3{margin-bottom:22px}.rt-form-page .rt-form-grid{gap:0 16px}
 .rt-inline-claim{display:inline;border:0;border-bottom:1px dashed var(--accent);background:transparent;color:inherit;cursor:pointer;padding:0;font:inherit;text-align:left}.rt-inline-claim:hover{color:var(--accent)}
+
+/* Keep form navigation visible while long source text scrolls independently. */
+.rt-editor-modal{display:flex;flex-direction:column;overflow:hidden}
+.rt-editor-modal .modal-close{position:absolute;top:20px;right:20px;margin:0;flex-shrink:0}
+.rt-editor-modal>h2,.rt-editor-modal>.modal-description,.rt-editor-modal>.notice{flex-shrink:0}
+.rt-editor-modal>.modal-description{margin-bottom:16px}
+#rt-record-form{display:flex;flex-direction:column;min-height:0;overflow:hidden}
+.rt-form-scroll{min-height:0;overflow:auto;overscroll-behavior:contain;scrollbar-gutter:stable;padding:0 5px 4px}
+.rt-form-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
+.rt-form-grid .field{min-width:0}
+.rt-form-grid .field:has(input[name=title]){grid-column:1/-1}
+.rt-form-page .field:has(textarea){grid-column:auto}
+.rt-form-page .field:has(textarea[name=license]){grid-column:1/-1}
+.rt-editor-modal .rt-form-grid .field{margin:12px 0}
+.rt-editor-modal .rt-form-page textarea{min-height:76px;height:90px}
+#rt-record-form>.modal-footer{flex-shrink:0;margin-top:12px;padding-top:14px;gap:16px}
+#rt-record-form>.modal-footer>.rt-actions{margin:0;flex-shrink:0;justify-content:flex-end}
+.rt-record-head{flex-wrap:wrap}
+.rt-record-head h3{flex:1;min-width:180px}
+.rt-record-head .badge{flex-shrink:0}
+.rt-main dt{text-wrap:balance}
+@media(max-width:1100px){.rt-nav{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:6px}.rt-nav button{text-align:center}}
+@media(max-width:700px){.rt-nav{grid-template-columns:repeat(3,minmax(0,1fr))}.rt-form-grid{grid-template-columns:minmax(0,1fr)}#rt-record-form>.modal-footer{align-items:stretch}#rt-record-form>.modal-footer>.rt-actions{width:100%;display:flex}.rt-editor-modal .rt-actions>.btn{width:auto;flex:1}.rt-context{flex-wrap:wrap}}

@@ -1,12 +1,21 @@
 # 研序 Research Studio
 
-当前版本：0.4.0。
+当前版本：0.4.1。
 
 面向科研工作者的本地 Windows 桌面应用：把两套科研技能组织成可点击的页面，支持课题路径推荐、分阶段开题与写作、材料管理、本机表格质控和成果导出。
 
 **[下载 Windows 版](https://github.com/Star1ver-an/yanxu-research-studio/releases/latest)** · [项目主页](https://github.com/Star1ver-an/yanxu-research-studio)
 
-下载 Release 中的 `YanxuResearchStudio-Windows-v0.4.0.zip`，解压后双击 `YanxuResearchStudio.exe`。GitHub 的“Code → Download ZIP”下载的是源码，需要开发环境才能运行。
+下载 Release 中的 `YanxuResearchStudio-Windows-v0.4.1.zip`，解压后双击 `YanxuResearchStudio.exe`。GitHub 的“Code → Download ZIP”下载的是源码，需要开发环境才能运行。
+
+## v0.4.1 修复
+
+- 研究工具弹窗的内容独立滚动，操作区保持可见；实验向导采用对齐的双列字段，较小屏幕自动换行，名称和许可说明保留整行。
+- 修复实验表单“数据来源”字段与浏览器 `dataset` 属性重名造成的草稿恢复和保存失败。
+- 完整流程描述中提到审阅、返修时，不再误判为直接处理已有稿件；明确选择的研究目标优先。
+- 检索限定词保留英文短语，支持空格与连字符变体，避免拆成泛词带来无关结果。多个限定词或短语使用逗号、分号或换行分隔。
+- 本机表格质控补充非数值计数、缺失与混合值所在数据行、重复行对应位置；每类最多展示前 20 个位置，完整数量继续保留。说明样本标准差分母及跨组汇总边界。
+- 同时支持单条 `[@文献ID]` 与组合 `[@文献ID; @文献ID]` 引用的预览、导出和删除保护。新引用库按 APA / Chicago / MLA 初始化作者年份格式，IEEE 等初始化编号格式；已有选择保留，仍属于通用格式而非完整 CSL 排版。
 
 重复双击程序会唤起已有窗口，恢复最小化或隐藏状态；启动时显式显示桌面窗口。窗口若遗留在断开的显示器上，会回到当前屏幕。退出后可正常重新打开。不会为重复启动创建第二个工作区或改写研究成果。
 
