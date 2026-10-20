@@ -43,6 +43,7 @@ jobs:
       - run: node tests/test_updates.cjs
       - run: node tests/test_management.cjs
       - run: node tests/test_research.cjs
+      - run: node tests/test_assistant.cjs
       - run: python tools/build_windows.py
       - run: python tools/package_source.py
       - run: python tools/prepare_release.py $env:RELEASE_TAG

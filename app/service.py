@@ -19,6 +19,7 @@ from .literature import required_terms,identifier_terms,filter_entries
 from .project_management import ProjectManagement,lifecycle,project_title
 from .research import ResearchTools, snapshot, bibliography
 from .backups import Backups
+from .assistant import Assistant
 
 class Service(ProjectManagement,ResearchTools):
     def __init__(self,store=None):
@@ -27,15 +28,17 @@ class Service(ProjectManagement,ResearchTools):
         self.jobs={}
         self.updating=False
         self.backups=Backups(self)
+        self.assistant=Assistant(self)
 
     def project_list(self):
-        return [{k:v for k,v in p.items() if k not in ('runs','outputs','assets','literature','confirmations','research','versions')} |
+        return [{k:v for k,v in p.items() if k not in ('runs','outputs','assets','literature','confirmations','research','versions','assistant_chat')} |
                 {'asset_count':len(p['assets']),'output_count':len(p['outputs']),
                  'research_status':self.research_status(p),
                  'running':any(r['status']=='running' for r in p['runs'])} for p in self.store.list()]
 
     def public_project(self,pid):
         p=self.store.get(pid)
+        p.pop('assistant_chat',None)
         p['research_status']=self.research_status(p)
         p['versions']=[{k:v for k,v in item.items() if k!='text'} for item in p.get('versions',[])]
         for a in p['assets']:
@@ -260,7 +263,7 @@ class Service(ProjectManagement,ResearchTools):
         chunks=['作者声明与任务配置：\n'+json.dumps(config,ensure_ascii=False,indent=2)]
         chunks += ['\n作者本次要求：\n'+note]
         if p.get('research',{}).get('enabled'):
-            chunks.append('\n研究助手记录（由作者整理，完成状态不是真实性认证；实验计划不得写成已执行结果）。如引用库中文献，请使用 [@完整文献ID] 标记，不得虚构ID；未核实的支持关系应保留待核实。书目核对不等于全文支持：\n'+json.dumps(p['research'],ensure_ascii=False))
+            chunks.append('\n研究工具记录（由作者整理，完成状态不是真实性认证；实验计划不得写成已执行结果）。如引用库中文献，请使用 [@完整文献ID] 标记，不得虚构ID；未核实的支持关系应保留待核实。书目核对不等于全文支持：\n'+json.dumps(p['research'],ensure_ascii=False))
         selected=[l for l in p['literature'] if l.get('enabled',True)]
         if selected:
             chunks.append('\n勾选的检索结果（仅元数据或摘要，未核验全文支持关系）：\n'+json.dumps(selected,ensure_ascii=False))
@@ -446,7 +449,7 @@ class Service(ProjectManagement,ResearchTools):
             with zipfile.ZipFile(output,'w',zipfile.ZIP_DEFLATED) as z:
                 z.writestr('项目备份.json',json.dumps({'format':'yanxu-project-v1','project':p},ensure_ascii=False,indent=2))
                 z.writestr('阶段报告.md',md)
-                z.writestr('研究助手记录.md',self.research_export(pid,'research')[1])
+                z.writestr('研究工具记录.md',self.research_export(pid,'research')[1])
                 for a in p['assets']:
                     path=self.store.root/a['file']
                     if path.is_file():

@@ -22,7 +22,7 @@ def project_title(value):
 
 class ProjectManagement:
     def _owned_folder(self,kind,identity):
-        if kind not in ('materials','invocations') or not re.fullmatch(r'[0-9a-f]{32}',identity):
+        if kind not in ('materials','invocations','assistant-invocations') or not re.fullmatch(r'[0-9a-f]{32}',identity):
             raise ValueError('项目文件位置无效。')
         root=self.store.root.resolve()
         path=(root/kind/identity).resolve()
@@ -70,6 +70,7 @@ class ProjectManagement:
             asset.update(id=identity,file=str(target.relative_to(self.store.root.resolve())),sha256=digest)
         for entry in result['literature']:entry['id']=uuid.uuid4().hex
         result.pop('versions',None)
+        result.pop('assistant_chat',None)
         if 'research' in result:
             for key,value in result['research'].items():
                 if isinstance(value,list):
@@ -91,6 +92,8 @@ class ProjectManagement:
             for p in projects:
                 folders=[self._owned_folder('materials',p['id'])]
                 folders += [self._owned_folder('invocations',r['id']) for r in p['runs']]
+                folders += [self._owned_folder('assistant-invocations',m['turn'])
+                            for m in p.get('assistant_chat',{}).get('messages',[]) if m['role']=='assistant']
                 for folder in folders:
                     if folder.exists():
                         staging.mkdir(parents=True,exist_ok=True)
@@ -120,6 +123,8 @@ class ProjectManagement:
             if self.updating:raise ValueError('软件正在安装更新，请稍后管理项目。')
             projects=[self.store.get(pid) for pid in ids]
             for p in projects:
+                if getattr(self,'assistant',None) and self.assistant.busy(p['id']):
+                    raise ValueError('此项目的 AI 助手正在回答，请等待或停止后再管理项目。')
                 self.assert_idle(p,allow_inactive=True)
                 if any(r['id'] in self.jobs for r in p['runs']):raise ValueError('项目任务正在结束，请稍后再试。')
             if action=='purge':
