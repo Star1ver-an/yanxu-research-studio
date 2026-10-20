@@ -42,6 +42,7 @@ _CATALOG = [
     ('km', '生存曲线（已有结果）', 'biomedical', ['x', 'y'], 'results', '导入已有时间与生存概率；不拟合、不估计在险人数、不做 log-rank 检验。'),
     ('enrichment', '富集点图（已有结果）', 'biomedical', ['x', 'y'], 'results', '展示已有富集统计；可选 size/count 与 color，不运行 GO/KEGG 富集分析。'),
     ('diagram', '技术路线 / 模型框图', 'diagram', [], 'raw', '用可编辑节点与箭头构图；概念/机制假设需由研究者确认。'),
+    ('graphical_abstract', '论文图形摘要', 'diagram', [], 'raw', '用分区、节点和箭头表达问题、方法与验证；明确标注研究方案或结果示意。'),
     ('panel', '原图面板拼版', 'image', [], 'raw', '保留原始图片、等比显示并在图外添加 A/B 标签；不修饰实验内容。'),
 ]
 
@@ -70,9 +71,9 @@ def validate_spec(spec):
         encoded = json.dumps(spec, ensure_ascii=False, allow_nan=False)
     except (ValueError, TypeError, RecursionError):
         raise ValueError('绘图配置包含无效或非有限数值。') from None
-    if len(encoded) > 100000:
+    if len(encoded) > (600000 if spec.get('kind') == 'composition' else 100000):
         raise ValueError('绘图配置过大，请简化标签或节点。')
-    allowed = {'version', 'kind', 'title', 'source_ids', 'mapping', 'style', 'options', 'diagram', 'panels','analysis','analysis_result'}
+    allowed = {'version', 'kind', 'title', 'source_ids', 'mapping', 'style', 'options', 'diagram', 'panels','analysis','analysis_result','composition','abstract'}
     if set(spec) - allowed:
         raise ValueError('绘图配置含不支持的字段：' + ', '.join(sorted(set(spec) - allowed)))
     spec = copy.deepcopy(spec)
@@ -80,7 +81,7 @@ def validate_spec(spec):
         raise ValueError('暂不支持此绘图配置版本。')
     spec['version'] = 1
     kind = spec.get('kind')
-    if not isinstance(kind, str) or kind not in {x[0] for x in _CATALOG}|{'analysis'}:
+    if not isinstance(kind, str) or kind not in {x[0] for x in _CATALOG}|{'analysis','composition'}:
         raise ValueError('请选择受支持的图型。')
     spec['title'] = _text(spec.get('title', ''), '图题', 300)
     ids = spec.setdefault('source_ids', [])
@@ -136,10 +137,23 @@ def validate_spec(spec):
     for key, low, high in [('p_threshold', 1e-300, 1), ('fc_threshold', 0, 1000), ('reference', -1e12, 1e12)]:
         if key in opts:
             _number(opts[key], key, low, high)
-    _validate_diagram(spec.get('diagram', {}), required=kind == 'diagram')
+    _validate_diagram(spec.get('diagram', {}), required=kind in {'diagram','graphical_abstract'})
     _validate_panels(spec.get('panels', []), required=kind == 'panel')
     if kind == 'panel' and any(p['asset_id'] not in ids for p in spec['panels']):
         raise ValueError('面板来源必须包含在所选 source_ids 中。')
+    if kind == 'composition':
+        from .paper_engine import validate_composition
+        spec['composition'] = validate_composition(spec.get('composition'))
+        children = {s for item in spec['composition']['items'] for s in item['spec']['source_ids']}
+        if children != set(ids): raise ValueError('组合图来源必须与子图来源的并集一致。')
+        if spec['mapping'] or spec['options'] or spec.get('diagram') or spec.get('panels'):
+            raise ValueError('组合图请在 composition 字段指定子图。')
+    elif 'composition' in spec:
+        raise ValueError('单图不能包含组合图配置。')
+    if kind == 'graphical_abstract':
+        from .paper_engine import validate_abstract
+        spec['abstract'] = validate_abstract(spec.get('abstract'), spec['diagram'])
+    elif 'abstract' in spec: raise ValueError('只有图形摘要支持分区配置。')
     if kind=='analysis':
         from .analysis import validate
         spec['analysis']=validate(spec.get('analysis'))
@@ -232,6 +246,12 @@ def _wrap(value, units):
     if current:
         lines.append(current.rstrip())
     return '\n'.join(lines)
+
+
+def _title_wrap(value, style):
+    # Composition fitting may enlarge the source font before shrinking a panel.
+    # Wrap against physical text width as well as canvas width to avoid clipping.
+    return _wrap(value, min(style['width'] * 10, style['width'] * 120 / (style['font_size'] + 2)))
 
 
 def _check_item_layout(spec, count):
@@ -649,7 +669,7 @@ def render_figure(spec, sources, fmt='png'):
     if fmt not in {'png', 'svg', 'pdf', 'tiff'}:
         raise ValueError('导出格式支持 PNG、SVG、PDF、TIFF。')
     spec = validate_spec(spec)
-    if spec['kind']=='analysis':
+    if spec['kind'] in {'analysis','composition'}:
         raise ValueError('请先通过数据分析流程运行计算，再从项目中预览或导出分析图。')
     if not isinstance(sources, list) or len(sources) > 24:
         raise ValueError('绘图材料来源无效（最多 24 个）。')
@@ -693,10 +713,13 @@ def render_figure(spec, sources, fmt='png'):
                 if spec['kind'] == 'panel':
                     _panel(fig, spec, selected, warnings, metadata)
                     if spec['title']:
-                        fig.suptitle(_wrap(spec['title'], style['width'] * 10), fontsize=style['font_size'] + 2)
+                        fig.suptitle(_title_wrap(spec['title'], style), fontsize=style['font_size'] + 2)
                 else:
                     ax = fig.add_subplot(111)
-                    if spec['kind'] == 'diagram':
+                    if spec['kind'] == 'graphical_abstract':
+                        from .paper_engine import draw_abstract
+                        draw_abstract(ax, spec, warnings, metadata)
+                    elif spec['kind'] == 'diagram':
                         _diagram(ax, spec, warnings, metadata)
                     else:
                         if not selected:
@@ -734,7 +757,7 @@ def render_figure(spec, sources, fmt='png'):
                         if spec['kind'] not in {'heatmap', 'confusion'}:
                             ax.grid(axis='y', alpha=.16, lw=.6, zorder=0)
                     if spec['title']:
-                        ax.set_title(_wrap(spec['title'], style['width'] * 10), fontsize=style['font_size'] + 2, pad=12)
+                        ax.set_title(_title_wrap(spec['title'], style), fontsize=style['font_size'] + 2, pad=12)
                 output = io.BytesIO()
                 kwargs = {'format': fmt, 'dpi': style['dpi'], 'facecolor': 'white'}
                 if fmt == 'svg':

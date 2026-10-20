@@ -164,6 +164,7 @@ document.addEventListener('click',async event=>{
  else if(a.startsWith('rt-'))await researchAction(a,el);
  else if(a.startsWith('pl-'))await plottingAction(a,el);
  else if(a.startsWith('an-'))await analysisAction(a,el);
+ else if(a.startsWith('pf-'))await paperAction(a,el);
  else if(a.startsWith('pm-'))await projectManagementAction(a,el);
  else if(a.startsWith('guide-'))await guideAction(a,el);
  else if(a.startsWith('update-'))await updateAction(a);

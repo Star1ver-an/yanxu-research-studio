@@ -96,6 +96,7 @@ class Handler(BaseHTTPRequestHandler):
                '/followup.js':'followup.js','/followup.css':'followup.css',
                '/plotting.js':'plotting.js','/plotting.css':'plotting.css',
                '/analysis.js':'analysis.js','/analysis.css':'analysis.css',
+               '/paper.js':'paper.js','/paper.css':'paper.css',
                '/style.css':'style.css','/soft-ui.css':'soft-ui.css','/mark.svg':'mark.svg','/favicon.svg':'favicon.svg'}
         if path not in names:
             return self.reply({'error':'Not found'},404)
@@ -227,6 +228,14 @@ class Handler(BaseHTTPRequestHandler):
                     'analysis-inspect':service.analysis_inspect,
                     'analysis-start':service.analysis_start,'analysis-job':service.analysis_job,
                     'analysis-cancel':service.analysis_cancel,'plot-analysis-result':service.plot_analysis_result})
+                functions.update({'paper-state':service.paper_state,'paper-save':service.paper_save,
+                    'paper-review':service.paper_review,'paper-compose':service.paper_compose,'paper-abstract':service.paper_abstract,
+                    'paper-batch-preview':service.paper_batch_preview,'paper-batch-start':service.paper_batch_start,
+                    'paper-source-draft':service.paper_source_draft,'paper-export-start':service.paper_export_start,
+                    'paper-job':service.paper_job,'paper-cancel':service.paper_cancel,'paper-clean':service.paper_clean_deliveries})
+                if action=='paper-download':
+                    name,raw,mime=service.paper_download(pid,data)
+                    return self.reply(raw,mime=mime,extra={'Content-Disposition':"attachment; filename*=UTF-8''"+__import__('urllib.parse',fromlist=['quote']).quote(name)})
                 if action=='analysis-table':
                     raw,mime=service.analysis_table(pid,data)
                     return self.reply(raw,mime=mime,extra={'Content-Disposition':'attachment; filename="analysis-table.'+('json' if data.get('format')=='json' else 'csv')+'"'})

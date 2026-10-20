@@ -327,15 +327,17 @@ class AnalysisJobs:
         found={}
         for row in p.get('plotting',{}).get('figures',[]):
             for version in [row,*row.get('history',[])]:
-                if version.get('spec',{}).get('kind')!='analysis': continue
-                metadata=version.get('metadata',{})
-                key=metadata.get('analysis_key')
-                if not key:
-                    sources=self._plot_sources(p,version['spec']['source_ids'])
-                    key=cache_key(version['spec']['analysis'],sources)
-                result,sha=self._analysis_load(key)
-                if metadata.get('result_sha256') and sha!=metadata['result_sha256']: raise ValueError('分析结果校验不一致，未生成不完整备份。')
-                found[key]=analysis.checked_result(result)
+                from .paper_engine import walk_specs
+                for spec in walk_specs(version.get('spec',{})):
+                    if spec.get('kind')!='analysis': continue
+                    metadata=version.get('metadata',{}) if spec is version.get('spec') else {}
+                    key=spec.get('analysis_result') or metadata.get('analysis_key')
+                    if not key:
+                        sources=self._plot_sources(p,spec['source_ids'])
+                        key=cache_key(spec['analysis'],sources)
+                    result,sha=self._analysis_load(key)
+                    if metadata.get('result_sha256') and sha!=metadata['result_sha256']: raise ValueError('分析结果校验不一致，未生成不完整备份。')
+                    found[key]=analysis.checked_result(result)
         return found
 
     def analysis_clean_cache(self,data=None):
@@ -345,8 +347,10 @@ class AnalysisJobs:
             for project in self.store.list():
                 for row in project.get('plotting',{}).get('figures',[]):
                     for version in [row,*row.get('history',[])]:
-                        key=version.get('spec',{}).get('analysis_result')
-                        if key: protected.add(key)
+                        from .paper_engine import walk_specs
+                        for spec in walk_specs(version.get('spec',{})):
+                            key=spec.get('analysis_result')
+                            if key: protected.add(key)
             for job in self.analysis_jobs.values():
                 key=job.get('spec',{}).get('analysis_result')
                 if key: protected.add(key)

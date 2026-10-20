@@ -87,8 +87,8 @@ class PlotEngineTests(unittest.TestCase):
 
     def test_catalog_does_not_claim_specialist_analysis(self):
         items = catalog()
-        self.assertEqual(len(items), 17)
-        self.assertEqual(len({i['id'] for i in items}), 17)
+        self.assertEqual(len(items), 18)
+        self.assertEqual(len({i['id'] for i in items}), 18)
         self.assertTrue(all(i['support'] == 'results' for i in items if i['id'] in {'km', 'forest', 'roc', 'volcano'}))
         items[0]['label'] = 'changed'
         self.assertNotEqual(catalog()[0]['label'], 'changed')
@@ -239,6 +239,13 @@ class PlotEngineTests(unittest.TestCase):
         data = source('condition,score\n' + '\n'.join(f'category{i},{i}' for i in range(90)))
         with self.assertRaisesRegex(ValueError, '80'):
             render_figure(recipe('line', {'x': 'condition', 'y': 'score'}), [data])
+
+    def test_enlarged_composition_title_wraps_to_physical_font_width(self):
+        from app.plot_engine import _title_wrap
+        text='边缘推理模型压缩与能耗评估 合成验收 错误率'
+        wrapped=_title_wrap(text,{'width':6,'font_size':22})
+        self.assertGreater(len(wrapped.splitlines()),1)
+        self.assertEqual(wrapped.replace('\n','').replace(' ',''),text.replace(' ',''))
 
 
 if __name__ == '__main__':

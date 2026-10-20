@@ -248,10 +248,17 @@ class Backups:
                         from . import analysis
                         keys=set()
                         for figure in original['plotting']['figures']:
-                            for version in [figure,*figure.get('history',[])]:
+                            from .paper_engine import walk_specs
+                            versions = []
+                            for record in [figure,*figure.get('history',[])]:
+                                for spec in walk_specs(record.get('spec',{})):
+                                    versions.append(record if spec is record.get('spec') else {
+                                        'spec': spec, 'metadata': {'analysis_key': spec.get('analysis_result',''),
+                                                                 'result_sha256': spec.get('analysis_result','')}})
+                            for version in versions:
                                 if version.get('spec',{}).get('kind')!='analysis': continue
                                 meta=version.get('metadata',{})
-                                key=meta.get('analysis_key','')
+                                key=version['spec'].get('analysis_result') or meta.get('analysis_key','')
                                 if not re.fullmatch('[0-9a-f]{64}',key): raise ValueError('分析备份缺少有效结果标识。')
                                 member='analysis-results/'+key+'.json'
                                 if member not in names or archive.getinfo(member).file_size>20*1024*1024: raise ValueError('备份缺少冻结的分析结果。')
