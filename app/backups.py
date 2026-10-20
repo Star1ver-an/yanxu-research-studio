@@ -308,6 +308,19 @@ class Backups:
                         if not isinstance(version, dict) or version.get('stage') not in FLOWS[p['flow']]['stages'] or not isinstance(version.get('text'), str) or len(version['text']) > 800000:
                             raise ValueError('历史报告格式无效。')
                         p['versions'].append({'id': uuid.uuid4().hex, 'stage': version['stage'], 'text': version['text'], 'created': now(), 'reason': '从备份恢复', 'sha256': hashlib.sha256(version['text'].encode()).hexdigest()})
+                    memory = original.get('assistant_memory', {})
+                    if not isinstance(memory, dict) or not isinstance(memory.get('items', []), list) or len(memory.get('items', [])) > 30:
+                        raise ValueError('项目记忆格式无效。')
+                    memory_items = []
+                    for item in memory.get('items', []):
+                        if (not isinstance(item, dict) or any(not isinstance(item.get(k), str) or not item[k].strip()
+                            or len(item[k]) > limit for k, limit in (('title', 100), ('text', 4000)))
+                            or type(item.get('enabled', True)) is not bool):
+                            raise ValueError('项目记忆内容无效。')
+                        memory_items.append({'id': uuid.uuid4().hex, 'title': item['title'], 'text': item['text'],
+                                             'enabled': False, 'source': '从备份恢复，待用户核对',
+                                             'created': now(), 'updated': now()})
+                    if memory_items: p['assistant_memory'] = {'revision': 0, 'items': memory_items}
                     prepared.append((p, files))
                 return prepared
         except ValueError:

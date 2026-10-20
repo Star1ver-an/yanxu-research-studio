@@ -1,0 +1,40 @@
+const fs=require('node:fs'),vm=require('node:vm'),assert=require('node:assert/strict'),path=require('node:path');
+const els={'meta[name="research-token"]':{content:'test'}},events={};
+const ctx=vm.createContext({document:{querySelector:s=>els[s],getElementById:()=>null,addEventListener:(type,fn)=>(events[type]||=[]).push(fn),body:{classList:{toggle(){}}}},
+ window:{history:{pushState(){}},scrollTo(){},addEventListener(){}},crypto:require('node:crypto').webcrypto,setTimeout:()=>1,clearTimeout(){},URL,Date,Intl,Set,Map,structuredClone,console});
+for(const file of ['research.js','assistant.js','assistant-proposals.js','followup.js','app.js'])vm.runInContext(fs.readFileSync(path.join(__dirname,'../web',file),'utf8').replace(/\binit\(\);\s*$/,''),ctx);
+const run=code=>vm.runInContext(code,ctx);
+(async()=>{
+ run(`S.project={id:'a'.repeat(32),title:'RAG',flow:'full',cursor:0,runs:[],outputs:{},research:{experiments:[{id:'record',title:'计时条件'}]},followup:{next:{title:'继续',detail:'描述',target:{tab:'work',stage:'research'}},counts:{stages_done:0,stages_total:2,materials:0,tasks_done:0,tasks_total:0,checks:4,deferred:1},checks:[...Array(4)].map((_,i)=>({id:'c'+i,title:i===0?'<script>unsafe</script>':'待办',detail:'说明',level:'review',deferred:false,target:{tab:'work'}})).concat({id:'d',title:'稍后',detail:'说明',deferred:true,target:{tab:'materials'}}),memory:{revision:0,items:[{id:'m',title:'设备',text:'<img onerror=x>',enabled:true}]},timeline:[]}};S.view='project';S.tab='overview';S.catalog={flows:{full:{stages:['research','outline']}},stages:{research:{title:'研究探索'}}};AS.scope=S.project.id;`);
+ const html=run('followupView(S.project)');
+ assert.ok(!html.includes('<script>'));assert.ok(html.includes('&lt;script&gt;'));assert.ok(!html.includes('<img'));
+ assert.ok(html.includes('查看其余 1 项'));assert.ok(html.includes('已暂缓 1 项'));
+ assert.ok(run('fuExportNotice()').includes('还有 4 项'));
+ run(`calls=[];api=async(path,data)=>{calls.push({path,data});return S.project};render=()=>{};projectState=()=> 'active';rtEditor=(group,item)=>{edited={group,item}};`);
+ await run(`fuNavigate({tab:'research',group:'experiments',record:'record'})`);
+ assert.equal(run('RT.tab'),'experiments');assert.equal(run('edited.item.id'),'record');
+ await run(`fuNavigate({tab:'work',stage:'outline'})`);
+ assert.notEqual(run('S.activeStage'),'outline','locked stages cannot be reached from a follow-up');
+ const before=run('calls.length');await run(`fuNavigate({tab:'unsafe'})`);assert.equal(run('calls.length'),before);
+ await run(`fuNavigate({tab:'overview'})`);assert.equal(run('calls.at(-1).path'),'project/'+'a'.repeat(32));
+ run(`assistantOpen=async()=>{AS.open=true;AS.scope=S.project.id};assistantPaint=()=>{};toast=()=>{};api=async()=>({message:'old',text:'原问题',stage:'research',draft_kind:'tasks',options:{history:false,report:false,memory:true,materials:['a']}})`);
+ await run(`fuRecheck('old')`);
+ assert.equal(run(`AS.rechecks[AS.scope]`),'old');assert.equal(run(`assistantData().review_of`),'old');
+ assert.equal(run(`AS.drafts[AS.scope]`),'原问题');assert.equal(run('assistantOptions().history'),false);
+ run(`AS.state={messages:[{turn:'retry',role:'user',text:'再次复核'},{turn:'retry',role:'assistant',review_of:'original',draft_kind:'',stage:'research',options:{history:false,report:false,memory:true,materials:['selected']}}]};AS.rechecks[AS.scope]='';`);
+ await run(`assistantAction('as-retry',{dataset:{turn:'retry'}})`);
+ assert.equal(run('AS.rechecks[AS.scope]'),'original');
+ assert.equal(run('assistantOptions().materials[0]'),'selected');
+ run(`AS.drafts[AS.scope]='';AS.state.report_available=true;`);
+ const changeKind=kind=>{for(const fn of events.change||[])fn({target:{id:'as-kind',value:kind,dataset:{}}})};
+ changeKind('tasks');assert.match(run('AS.drafts[AS.scope]'),/研究待办/);
+ changeKind('experiments');assert.match(run('AS.drafts[AS.scope]'),/实验方案/);
+ run(`AS.drafts[AS.scope]='我自己填写的具体问题';`);
+ changeKind('issues');assert.equal(run('AS.drafts[AS.scope]'),'我自己填写的具体问题');
+ // Failed saves retain the editor and display the conflict where the user is working.
+ els['#fu-memory-error']={textContent:''};
+ run(`FU.memory={pid:S.project.id,revision:0,id:''};api=async()=>{throw Error('记忆已变化')};closed=false;closeModal=()=>{closed=true}`);
+ ctx.memoryForm={elements:{title:{value:'设备'},text:{value:'8 GB'},enabled:{checked:true}}};
+ await run('fuMemorySubmit(memoryForm)');assert.equal(els['#fu-memory-error'].textContent,'记忆已变化');assert.equal(run('closed'),false);
+ console.log('Follow-up UI checks passed: escaping, collapsed lists, exact destinations, locked stages, refreshed progress, recheck context and save conflict retention.');
+})().catch(e=>{console.error(e);process.exitCode=1});
