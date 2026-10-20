@@ -143,6 +143,20 @@ class UpdateTests(unittest.TestCase):
         service.updating=True
         with self.assertRaisesRegex(ValueError,'安装更新'):service.start('missing',{'stage':'research'})
 
+    def test_native_update_helper_inherits_the_exact_existing_workspace(self):
+        service=Service(Store(self.root/'physical-workspace'))
+        self.addCleanup(service.close_plotting)
+        self.addCleanup(service.assistant.close)
+        self.addCleanup(service.backups.close)
+        api=DesktopAPI(service);api._updates=Mock();api._window=Mock()
+        api._updates.prepare_install.return_value=(self.root/'update-runner.exe',self.root/'plan.json')
+        with patch('main.subprocess.Popen') as launch,patch('main.threading.Timer'):
+            api._install_update()
+        environment=launch.call_args.kwargs['env']
+        self.assertEqual(environment['YANXU_DATA_DIR'],str(service.store.root))
+        self.assertEqual(environment['PYINSTALLER_RESET_ENVIRONMENT'],'1')
+        self.assertTrue(service.updating)
+
     def test_local_api_requires_auth_and_development_install_is_blocked(self):
         import urllib.request,urllib.error
         server=LocalServer(Service(Store(self.root/'api')));server.updates.opener=self.manager.opener

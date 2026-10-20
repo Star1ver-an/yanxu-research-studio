@@ -1,5 +1,5 @@
 import base64
-from contextlib import contextmanager
+from contextlib import closing, contextmanager
 import ctypes
 from ctypes import wintypes
 from datetime import datetime, timezone
@@ -16,11 +16,78 @@ from .workflows import FLOWS
 def now():
     return datetime.now(timezone.utc).isoformat()
 
+def _physical_data_directory(path):
+    """Resolve a file, not just its directory, through Windows MSIX redirection.
+
+    A virtual directory can resolve to its logical name while an existing file
+    resolves into the package's LocalCache. Probe first-run workspaces as well,
+    before the desktop instance lock is taken; never open/recover their store.
+    """
+    root=Path(path).expanduser().resolve()
+    database=root/'workspace.sqlite3'
+    if database.is_file():
+        return database.resolve().parent
+    root.mkdir(parents=True,exist_ok=True)
+    probe=root/('.yanxu-location-'+uuid.uuid4().hex+'.tmp')
+    try:
+        with probe.open('xb') as stream:
+            stream.write(b'\0')
+        return probe.resolve().parent
+    finally:
+        probe.unlink(missing_ok=True)
+
+
+def _workspace_content(root):
+    """Read-only discovery: populated, empty, or unreadable (never recover)."""
+    database=root/'workspace.sqlite3'
+    if not database.is_file():
+        return 'empty'
+    try:
+        with closing(sqlite3.connect(database.resolve().as_uri()+'?mode=ro',uri=True,timeout=.5)) as connection:
+            tables={row[0] for row in connection.execute("SELECT name FROM sqlite_master WHERE type='table'")}
+            if 'projects' in tables and connection.execute('SELECT 1 FROM projects LIMIT 1').fetchone():
+                return 'populated'
+            if 'settings' in tables:
+                for row in connection.execute('SELECT body FROM settings LIMIT 2'):
+                    settings=json.loads(row[0])
+                    if isinstance(settings,dict) and settings:
+                        return 'populated'
+        return 'empty'
+    except (sqlite3.Error,OSError,ValueError,TypeError):
+        return 'unreadable'
+
+
+def _has_preserved_files(root):
+    # Retain an abnormal but potentially valuable workspace with orphaned
+    # material/backup files. Runtime logs and lock files do not constitute data.
+    try:
+        return any(folder.is_dir() and any(folder.iterdir())
+                   for folder in (root/'materials',root/'backups'))
+    except OSError:
+        return True
+
+
 def data_directory():
     override=os.environ.get('YANXU_DATA_DIR')
     if override:
-        return Path(override).resolve()
-    return Path(os.environ.get('LOCALAPPDATA',Path.home()))/'YanxuResearchStudio'
+        return _physical_data_directory(override)
+    local=Path(os.environ.get('LOCALAPPDATA',Path.home())).expanduser().resolve()
+    root=_physical_data_directory(local/'YanxuResearchStudio')
+    if _workspace_content(root)!='empty' or _has_preserved_files(root):
+        return root
+    candidates=set()
+    try:
+        package_roots=(local/'Packages').glob('OpenAI.Codex_*/LocalCache/Local/YanxuResearchStudio')
+        for candidate in package_roots:
+            database=candidate/'workspace.sqlite3'
+            if database.is_file():
+                physical=database.resolve().parent
+                if physical!=root and _workspace_content(physical)=='populated':
+                    candidates.add(physical)
+    except OSError:
+        pass
+    # Multiple independent workspaces are never merged or selected arbitrarily.
+    return next(iter(candidates)) if len(candidates)==1 else root
 
 class Blob(ctypes.Structure):
     _fields_=[('cbData',wintypes.DWORD),('pbData',ctypes.POINTER(ctypes.c_byte))]
@@ -46,7 +113,7 @@ DEFAULT_SETTINGS=dict(mode='codex',codex_path='',codex_model='',provider='compat
 
 class Store:
     def __init__(self,path=None):
-        self.root=Path(path or data_directory())
+        self.root=_physical_data_directory(path) if path else data_directory()
         self.root.mkdir(parents=True,exist_ok=True)
         self.lock=threading.RLock()
         self.db=self.root/'workspace.sqlite3'
