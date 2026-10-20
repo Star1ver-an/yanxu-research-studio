@@ -195,8 +195,13 @@ def extract_file(name,raw):
             text=raw.decode('utf-8-sig')
         except UnicodeDecodeError:
             text=raw.decode('gb18030')
+    elif suffix in ('.xlsx','.png','.jpg','.jpeg'):
+        from .plot_data import inspect_source
+        info=inspect_source(raw,name)
+        # Binary plotting materials remain local. No data rows or pixels in stage context.
+        text='本机绘图材料（未读取为写作正文）：'+json.dumps({k:v for k,v in info.items() if k!='preview'},ensure_ascii=False)
     else:
-        raise ValueError('支持 PDF、DOCX、TXT、Markdown、CSV、RIS、NBIB、BibTeX 和 JSON。')
+        raise ValueError('支持 PDF、DOCX、TXT、Markdown、CSV、TSV、XLSX、PNG、JPG、RIS、NBIB、BibTeX 和 JSON。')
     if not text.strip():
         raise ValueError('文件没有可用文本。')
     if len(text)>1200000:

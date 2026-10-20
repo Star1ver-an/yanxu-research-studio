@@ -39,6 +39,17 @@ class DesktopAPI:
         os.startfile(str(self._service.store.root))
         return True
 
+    def save_figure_export(self,pid,identity,fmt):
+        import webview
+        name,raw,_=self._service.plot_export(pid,{'id':identity,'format':fmt})
+        result=self._window.create_file_dialog(webview.FileDialog.SAVE,save_filename=name,
+                                             file_types=(f'绘图文件 (*.{fmt})',))
+        if result:
+            target=Path(result if isinstance(result,str) else result[0])
+            target.write_bytes(raw)
+            return {'saved':True,'path':str(target)}
+        return {'saved':False}
+
     def save_assistant_export(self, pid=''):
         import webview
         raw=self._service.assistant.export({'project':pid})
@@ -76,7 +87,7 @@ class DesktopAPI:
         with self._service.lock:
             if self._service.updating:
                 raise ValueError('已经在准备安装更新。')
-            if any(p['running'] for p in self._service.project_list()) or self._service.assistant.busy():
+            if any(p['running'] for p in self._service.project_list()) or self._service.assistant.busy() or self._service.plotting_busy():
                 raise ValueError('研究任务或 AI 问答仍在运行，请等待完成或先停止，再安装更新。')
             runner,plan=self._updates.prepare_install(sys.executable,[os.getpid(),os.getppid()],self._restart_args)
             self._service.updating=True

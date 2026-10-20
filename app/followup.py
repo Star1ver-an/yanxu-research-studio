@@ -107,6 +107,12 @@ def followup(p):
             add('experiment:' + item['id'], '补充实验条件：' + item['title'],
                 '尚未填写：' + '、'.join(FIELD_LABELS[k] for k in missing) + '。未知项可以保持待确认。',
                 {'tab': 'research', 'group': 'experiments', 'record': item['id']}, item)
+    from .plotting import figures,plot_stale
+    for item in figures(p):
+        if plot_stale(p,item):
+            add('plot:'+item['id'],'研究图表需要复核：'+item['title'],
+                '来源或关联实验发生变化，重新核对并保存后再导出。',
+                {'tab':'research','group':'figures'},[item,[(a['id'],a.get('sha256')) for a in p['assets']],w.get('experiments',[])])
     for item in w.get('claims', []):
         if item.get('assessment', 'unknown') in ('unknown', 'partial', 'contradicts'):
             add('claim:' + item['id'], '论点支持关系待核对：' + item['title'],

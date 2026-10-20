@@ -44,3 +44,14 @@ https://github.com/Star1ver-an/raster-ui/tree/430ab2b9202af099877916f90fcf344bb2
 The material direction informed the independently implemented web/soft-ui.css.
 No upstream UI source files, screenshots, fonts or demonstration scripts are distributed.
 
+Local scientific plotting (Research Studio 0.8.0)
+- Matplotlib: Matplotlib/PSF-based license, https://matplotlib.org/stable/project/license.html
+- NumPy: BSD 3-Clause, https://numpy.org/doc/stable/license.html
+- openpyxl: MIT, https://openpyxl.readthedocs.io/en/stable/
+- Pillow: HPND, https://pillow.readthedocs.io/en/stable/about.html
+Matplotlib distributions include notices for bundled fonts and libraries.
+The application uses Windows fonts already installed on the user's machine;
+those Windows fonts are not redistributed. SVG exports may contain glyph paths.
+LibreOffice and Poppler used for development-only DOCX pagination verification
+are not bundled with the application and are not required for local plotting.
+

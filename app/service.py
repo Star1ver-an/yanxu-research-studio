@@ -21,18 +21,20 @@ from .research import ResearchTools, snapshot, bibliography
 from .backups import Backups
 from .assistant import Assistant
 from .followup import followup
+from .plotting import Plotting
 
-class Service(ProjectManagement,ResearchTools):
+class Service(ProjectManagement,ResearchTools,Plotting):
     def __init__(self,store=None):
         self.store=store or Store()
         self.lock=self.store.lock
         self.jobs={}
         self.updating=False
+        self.init_plotting()
         self.backups=Backups(self)
         self.assistant=Assistant(self)
 
     def project_list(self):
-        return [{k:v for k,v in p.items() if k not in ('runs','outputs','assets','literature','confirmations','research','versions','assistant_chat','assistant_followup','assistant_memory')} |
+        return [{k:v for k,v in p.items() if k not in ('runs','outputs','assets','literature','confirmations','research','versions','assistant_chat','assistant_followup','assistant_memory','plotting')} |
                 {'asset_count':len(p['assets']),'output_count':len(p['outputs']),
                  'followup_next':followup(p)['next'],
                  'research_status':self.research_status(p),
@@ -41,6 +43,7 @@ class Service(ProjectManagement,ResearchTools):
     def public_project(self,pid):
         p=self.store.get(pid)
         p['followup']=followup(p)
+        p['plotting']=self.plot_public(p)
         p.pop('assistant_followup',None)
         p.pop('assistant_chat',None)
         p['research_status']=self.research_status(p)
@@ -279,7 +282,7 @@ class Service(ProjectManagement,ResearchTools):
             chunks.append('\n勾选的检索结果（仅元数据或摘要，未核验全文支持关系）：\n'+json.dumps(selected,ensure_ascii=False))
         for a in p['assets']:
             if a.get('enabled',True):
-                if p['flow']=='scientific_data' and a['name'].lower().endswith(('.csv','.tsv')):
+                if a['name'].lower().endswith(('.xlsx','.png','.jpg','.jpeg')) or (p['flow']=='scientific_data' and a['name'].lower().endswith(('.csv','.tsv'))):
                     chunks.append('\n表格材料（内容由本机工具读取）：'+json.dumps({k:a.get(k) for k in ('name','size','chars','sha256')},ensure_ascii=False))
                     continue
                 chunks.append('\n<material name='+json.dumps(a['name'],ensure_ascii=False)+'>\n'+a['text']+'\n</material>')
@@ -451,7 +454,7 @@ class Service(ProjectManagement,ResearchTools):
         if fmt=='md':
             return name+'.md',md.encode('utf-8-sig'),'text/markdown'
         if fmt=='docx':
-            return name+'.docx',make_docx(md),'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
+            return name+'.docx',make_docx(md,self.plot_word_figures(pid,sid if sid in stages else '')),'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
         if fmt=='json':
             return name+'.json',json.dumps({'format':'yanxu-project-v1','project':p},ensure_ascii=False,indent=2).encode('utf-8'),'application/json'
         if fmt=='zip':
@@ -469,6 +472,6 @@ class Service(ProjectManagement,ResearchTools):
         raise ValueError('不支持的导出格式。')
 
 
-def make_docx(md):
+def make_docx(md,figures=None):
     from .word_export import make_docx as build
-    return build(md)
+    return build(md,figures=figures)
