@@ -184,6 +184,17 @@ class AssistantTests(unittest.TestCase):
         p = self.store.get(p['id']); p['lifecycle'] = 'archived'; self.store.put(p)
         self.assertIn('先在研究项目列表恢复', self.local()['messages'][-1]['text'])
 
+    def test_completed_workflow_recommends_review_export_and_backup(self):
+        from app.workflows import FLOWS
+        for p in (self.p,self.other):
+            p=self.store.get(p['id']);p['cursor']=len(FLOWS[p['flow']]['stages']);self.store.put(p)
+            for intent in ('next','blocked'):
+                s=self.local(intent,project=p['id'],stage=FLOWS[p['flow']]['stages'][-1])
+                text=s['messages'][-1]['text']
+                self.assertIn('建议收尾',text)
+                self.assertIn('导出成果并创建备份',text)
+                self.assertNotIn('下一步目标',text)
+
     def test_out_of_order_stage_and_cross_project_material_rejected(self):
         with self.assertRaisesRegex(ValueError, '已到达'):
             self.chat.preview(self.data(stage='draft'))
