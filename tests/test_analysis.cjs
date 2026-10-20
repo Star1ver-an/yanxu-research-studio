@@ -45,8 +45,8 @@ const input=value=>{for(const listener of listeners.input||[])listener({target:{
  await run(`analysisAction('an-runtime-install-confirm',{dataset:{}})`);assert.equal(run('requests[0].path'),'analysis/runtime-install');assert.equal(run('requests[0].data.source'),'official');assert.ok(run('requests.some(r=>r.path==="analysis/runtime")'));
  // Selecting the regional source stays local until the explicit install confirmation.
  run('requests=[]');await change({id:'an-source',value:'china',dataset:{}});assert.equal(run('AnalysisRuntime.source'),'china');assert.equal(run('requests.length'),0);assert.ok(run('analysisRuntimeView()').includes('value="china" selected'));await run(`analysisAction('an-runtime-prepare',{dataset:{}})`);assert.equal(run('requests.length'),0);assert.ok(run('lastModal').includes('华为 NuGet 与清华 PyPI'));assert.ok(run('lastModal').includes('官方 SHA-512'));assert.ok(run('lastModal').includes('不修改系统下载源'));await run(`analysisAction('an-runtime-install-confirm',{dataset:{}})`);assert.equal(run('requests[0].path'),'analysis/runtime-install');assert.equal(run('requests[0].data.source'),'china');
- // Compressed VCF is accepted by the variant source picker; nested result content is escaped.
- run(`AN.spec=analysisNewSpec(AN.methods.find(m=>m.id==='variant'));AN.step=1`);assert.ok(run('analysisSources(AN,S.project)').includes('simulation.vcf.gz'));
+ // The source picker does not advertise compressed VCF to a plain-VCF reader; nested results stay escaped.
+ run(`AN.spec=analysisNewSpec(AN.methods.find(m=>m.id==='variant'));AN.step=1`);assert.ok(!run('analysisSources(AN,S.project)').includes('simulation.vcf.gz'));
  html=run(`analysisSavedResultView({statistics:{note:'<img onerror=bad>'},tables:{rows:{rows:[{name:'<svg onload=bad>'}]}},notes:['<script>bad</script>']})`);assert.ok(!html.includes('<img onerror'));assert.ok(html.includes('&lt;svg onload=bad&gt;'));assert.ok(html.includes('&lt;script&gt;bad&lt;/script&gt;'));
  // Gates are authored as ordinary form fields; a newly added gate cannot invent a real boundary.
  run(`AN.methods.push({id:'flow_gating',label:'Flow',available:true,inputs:[],columns:[],parameters:[{key:'gates',type:'text',default:'[]'},{key:'display_gate',type:'text',default:'all'}]});AN.spec=analysisNewSpec(AN.methods.find(m=>m.id==='flow_gating'));AN.job=null;AN.step=2`);
@@ -58,5 +58,12 @@ const input=value=>{for(const listener of listeners.input||[])listener({target:{
  // A network error after submission is retried using the same receipt, not another computation.
  run(`AN.spec=analysisNewSpec(AN.methods.find(m=>m.id==='variant'));AN.spec.analysis.inputs.data='v';AN.spec.source_ids=['v'];AN.preflight={signature:'sig-retry'};AN.job=null;attempts=[];retryCount=0;api=async(path,data)=>{if(path.endsWith('analysis-start')){attempts.push(data.request_id);if(!retryCount++)throw Error('connection reset');return {id:'retry-job',status:'queued'}}if(path.endsWith('analysis-job'))return {id:'retry-job',status:'completed',spec:AN.spec,result:{statistics:{n:1},tables:{}},preview:'cG5n'};throw Error(path)}`);
  await assert.rejects(run(`analysisAction('an-run',{dataset:{}})`),/connection reset/);const receipt=run('AN.pendingStart.request_id');ctx.crypto.randomUUID=()=> 'another-generated-request';await run(`analysisAction('an-run',{dataset:{}})`);assert.equal(run('attempts[0]'),receipt);assert.equal(run('attempts[1]'),receipt);
+ // An idle worker manager after restart still reports installed advanced capabilities accurately.
+ run(`AnalysisRuntime.value={phase:'idle',python:'C:/Private/python.exe',capabilities:Object.fromEntries(['anndata','h5py','umap','scanpy','igraph','leidenalg','pydeseq2','gseapy'].map(k=>[k,true]))};AnalysisRuntime.busy=''`);
+ assert.ok(run('analysisRuntimeView()').includes('可选分析环境 · 高级组件已就绪'));
+ run(`AnalysisRuntime.value.capabilities.scanpy=false`);assert.ok(run('analysisRuntimeView()').includes('可选分析环境 · 已连接独立环境'));
+ run(`AnalysisRuntime.value.phase='failed'`);assert.ok(run('analysisRuntimeView()').includes('可选分析环境 · 准备失败'));
+ run(`AnalysisRuntime.busy='checking'`);assert.ok(run('analysisRuntimeView()').includes('可选分析环境 · 正在准备'));
+ run(`AnalysisRuntime.busy='';AnalysisRuntime.value={phase:'idle',capabilities:{}}`);assert.ok(run('analysisRuntimeView()').includes('可选分析环境 · 基础环境'));
  console.log('Analysis UI checks passed: explicit fields and units, input validation, safe preflight, duplicate-request protection, cancellation, late-project isolation, frozen result binding, versioned saves, AI proposals, form-based gates, optional-environment consent and escaped results.');
 })().catch(error=>{console.error(error);process.exitCode=1});
