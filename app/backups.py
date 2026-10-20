@@ -88,6 +88,7 @@ class Backups:
             total = 0
             try:
                 with zipfile.ZipFile(temporary, 'w', zipfile.ZIP_DEFLATED) as archive:
+                    saved_analysis=set()
                     manifest=json.dumps({'format': 'yanxu-workspace-v1', 'created': now(),
                         'projects': projects, 'meaning': '项目与材料备份；不含连接设置、密钥、登录凭据或运行目录。'}, ensure_ascii=False)
                     if len(manifest.encode())>40*1024*1024:
@@ -108,6 +109,12 @@ class Backups:
                             if asset.get('sha256') and hashlib.sha256(raw).hexdigest() != asset['sha256']:
                                 raise ValueError('材料校验失败，请重新导入后再备份。')
                             archive.writestr('materials/' + p['id'] + '/' + path.name, raw)
+                        for key,raw in service.analysis_bundle(p).items():
+                            if key in saved_analysis: continue
+                            total+=len(raw)
+                            if total>MAX_EXPANDED-40*1024*1024: raise ValueError('整库分析结果过大，请分别导出项目备份。')
+                            archive.writestr('analysis-results/'+key+'.json',raw)
+                            saved_analysis.add(key)
                 if temporary.stat().st_size > MAX_BACKUP:
                     raise ValueError('压缩包超过 256 MB，请分别导出项目备份。')
                 temporary.replace(target)
@@ -238,6 +245,22 @@ class Backups:
                     if 'plotting' in original:
                         from .plotting import remap_plotting
                         p['plotting']=remap_plotting(original['plotting'],mapping)
+                        from . import analysis
+                        keys=set()
+                        for figure in original['plotting']['figures']:
+                            for version in [figure,*figure.get('history',[])]:
+                                if version.get('spec',{}).get('kind')!='analysis': continue
+                                meta=version.get('metadata',{})
+                                key=meta.get('analysis_key','')
+                                if not re.fullmatch('[0-9a-f]{64}',key): raise ValueError('分析备份缺少有效结果标识。')
+                                member='analysis-results/'+key+'.json'
+                                if member not in names or archive.getinfo(member).file_size>20*1024*1024: raise ValueError('备份缺少冻结的分析结果。')
+                                blob=archive.read(member)
+                                if hashlib.sha256(blob).hexdigest()!=meta.get('result_sha256'): raise ValueError('备份分析结果校验失败。')
+                                result=json.loads(blob)
+                                analysis.checked_result(result)
+                                if result.get('method')!=version['spec']['analysis']['method']: raise ValueError('备份分析结果方法不匹配。')
+                                if key not in keys: files.append((member,blob));keys.add(key)
                     literature = original.get('literature', [])
                     if not isinstance(literature, list) or len(literature) > 10000:
                         raise ValueError('文献记录无效。')
@@ -349,7 +372,9 @@ class Backups:
                         created.append(folder)
                     for relative, blob in files:
                         target = (service.store.root / relative).resolve()
-                        if target.parent != folder:
+                        if target.parent==service.analysis_cache.resolve() and re.fullmatch('[0-9a-f]{64}\\.json',target.name):
+                            if target.exists() and target.read_bytes()!=blob: raise ValueError('已存在的分析结果与备份不一致，未覆盖。')
+                        elif target.parent != folder:
                             raise ValueError('材料恢复位置无效。')
                         target.write_bytes(blob)
                 with service.store.connect() as connection:

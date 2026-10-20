@@ -72,7 +72,7 @@ def validate_spec(spec):
         raise ValueError('绘图配置包含无效或非有限数值。') from None
     if len(encoded) > 100000:
         raise ValueError('绘图配置过大，请简化标签或节点。')
-    allowed = {'version', 'kind', 'title', 'source_ids', 'mapping', 'style', 'options', 'diagram', 'panels'}
+    allowed = {'version', 'kind', 'title', 'source_ids', 'mapping', 'style', 'options', 'diagram', 'panels','analysis','analysis_result'}
     if set(spec) - allowed:
         raise ValueError('绘图配置含不支持的字段：' + ', '.join(sorted(set(spec) - allowed)))
     spec = copy.deepcopy(spec)
@@ -80,7 +80,7 @@ def validate_spec(spec):
         raise ValueError('暂不支持此绘图配置版本。')
     spec['version'] = 1
     kind = spec.get('kind')
-    if not isinstance(kind, str) or kind not in {x[0] for x in _CATALOG}:
+    if not isinstance(kind, str) or kind not in {x[0] for x in _CATALOG}|{'analysis'}:
         raise ValueError('请选择受支持的图型。')
     spec['title'] = _text(spec.get('title', ''), '图题', 300)
     ids = spec.setdefault('source_ids', [])
@@ -140,6 +140,19 @@ def validate_spec(spec):
     _validate_panels(spec.get('panels', []), required=kind == 'panel')
     if kind == 'panel' and any(p['asset_id'] not in ids for p in spec['panels']):
         raise ValueError('面板来源必须包含在所选 source_ids 中。')
+    if kind=='analysis':
+        from .analysis import validate
+        spec['analysis']=validate(spec.get('analysis'))
+        if 'analysis_result' in spec:
+            import re
+            if not isinstance(spec['analysis_result'],str) or not re.fullmatch('[0-9a-f]{64}',spec['analysis_result']):
+                raise ValueError('冻结分析结果标识无效。')
+        if set(spec['analysis']['inputs'].values())!=set(ids):
+            raise ValueError('分析材料必须与 source_ids 完全一致。')
+        if spec['mapping'] or spec['options'] or spec.get('panels') or spec.get('diagram'):
+            raise ValueError('分析配方请使用 analysis 字段设置方法参数。')
+    elif 'analysis' in spec or 'analysis_result' in spec:
+        raise ValueError('普通绘图配方不能附带分析参数。')
     return spec
 
 
@@ -636,6 +649,8 @@ def render_figure(spec, sources, fmt='png'):
     if fmt not in {'png', 'svg', 'pdf', 'tiff'}:
         raise ValueError('导出格式支持 PNG、SVG、PDF、TIFF。')
     spec = validate_spec(spec)
+    if spec['kind']=='analysis':
+        raise ValueError('请先通过数据分析流程运行计算，再从项目中预览或导出分析图。')
     if not isinstance(sources, list) or len(sources) > 24:
         raise ValueError('绘图材料来源无效（最多 24 个）。')
     source_map = {}
@@ -710,6 +725,9 @@ def render_figure(spec, sources, fmt='png'):
                                 if isinstance(field, str) and any(_numeric(r[field]) and r[field] <= 0 for r in table['rows']):
                                     raise ValueError('对数轴不能包含零或负值，请先核对数据。')
                                 getattr(ax, 'set_' + axis + 'scale')('log')
+                                from matplotlib.ticker import FuncFormatter
+                                getattr(ax, axis+'axis').set_major_formatter(FuncFormatter(lambda value,pos: format(value,'.4g')))
+                                getattr(ax, axis+'axis').set_minor_formatter(FuncFormatter(lambda value,pos: ''))
                         handles, labels = ax.get_legend_handles_labels()
                         if handles and style.get('legend', True):
                             ax.legend(handles, labels, frameon=False, loc='best', fontsize=max(7, style['font_size'] - 1))

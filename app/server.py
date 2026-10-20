@@ -95,6 +95,7 @@ class Handler(BaseHTTPRequestHandler):
                '/assistant.js':'assistant.js','/assistant-proposals.js':'assistant-proposals.js','/assistant.css':'assistant.css',
                '/followup.js':'followup.js','/followup.css':'followup.css',
                '/plotting.js':'plotting.js','/plotting.css':'plotting.css',
+               '/analysis.js':'analysis.js','/analysis.css':'analysis.css',
                '/style.css':'style.css','/soft-ui.css':'soft-ui.css','/mark.svg':'mark.svg','/favicon.svg':'favicon.svg'}
         if path not in names:
             return self.reply({'error':'Not found'},404)
@@ -127,6 +128,13 @@ class Handler(BaseHTTPRequestHandler):
                 raise ValueError('请求格式无效。')
             service=self.server.service
             path=urlparse(self.path).path
+            if path.startswith('/api/analysis/'):
+                action=path.rsplit('/',1)[-1]
+                operations={'runtime':service.analysis_runtime.status,'runtime-check':service.analysis_runtime.check,
+                            'runtime-install':service.analysis_runtime.install,'cache-clean':service.analysis_clean_cache}
+                if action not in operations: raise ValueError('不支持的分析环境操作。')
+                if action!='runtime' and (service.updating or service.plotting_busy()): raise ValueError('任务或更新进行中，请稍后操作分析环境。')
+                return self.reply(operations[action](data))
             if path.startswith('/api/assistant/'):
                 action=path.rsplit('/',1)[-1]
                 if action=='export':
@@ -215,6 +223,13 @@ class Handler(BaseHTTPRequestHandler):
                     'plot-recommend':service.plot_recommend,'plot-render':service.plot_render,
                     'plot-save':service.plot_save,'plot-delete':service.plot_delete,
                     'plot-duplicate':service.plot_duplicate,'plot-restore':service.plot_restore,'plot-ai':service.plot_ai})
+                functions.update({'analysis-catalog':service.analysis_catalog,'analysis-preview':service.analysis_preview,
+                    'analysis-inspect':service.analysis_inspect,
+                    'analysis-start':service.analysis_start,'analysis-job':service.analysis_job,
+                    'analysis-cancel':service.analysis_cancel,'plot-analysis-result':service.plot_analysis_result})
+                if action=='analysis-table':
+                    raw,mime=service.analysis_table(pid,data)
+                    return self.reply(raw,mime=mime,extra={'Content-Disposition':'attachment; filename="analysis-table.'+('json' if data.get('format')=='json' else 'csv')+'"'})
                 if action=='plot-export':
                     name,raw,mime=service.plot_export(pid,data)
                     return self.reply(raw,mime=mime,extra={'Content-Disposition':"attachment; filename*=UTF-8''"+__import__('urllib.parse',fromlist=['quote']).quote(name)})
