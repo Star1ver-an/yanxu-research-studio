@@ -1,4 +1,5 @@
-"""Read-only, project-scoped guidance. Navigation is always chosen by the app."""
+"""Project-scoped guidance and explicitly reviewed collaboration drafts."""
+import copy
 import hashlib
 import json
 from pathlib import Path
@@ -10,6 +11,7 @@ from .storage import now
 from .workflows import VERSION, FLOWS, STAGES
 from .project_management import lifecycle
 from .providers import CodexClient, api_complete, Cancelled, ProviderError
+from .assistant_proposals import AssistantProposals, KINDS, proposal_instruction
 
 MAX_MESSAGES = 200
 MAX_CONTEXT = 120000
@@ -33,7 +35,7 @@ KNOWLEDGE = """研序软件指南（与当前版本一起维护）
 连接：本机Codex复用正常ChatGPT登录，不会自动切到API。找不到入口时在模型与连接检测或指定路径，未登录时由用户在Codex中登录。API支持Chat Completions兼容与Anthropic Messages；用户在设置保存协议、地址、模型和密钥后测试连接。401检查密钥，403检查权限，404检查端点和模型，429检查额度并稍后重试，超时检查网络。不能凭错误提示断言服务商故障；助手不会读取或展示密钥。
 导出：项目右上角导出Markdown、Word DOCX、JSON、含原始材料的ZIP。JSON不是完整备份。Word是通用引用格式，不是完整CSL，也没有Zotero动态域。不提供PDF导出、LaTeX排版或一键投稿。备份与恢复先预览，再恢复为独立副本，报告需重新确认。
 管理：研究项目列表可批量重命名、置顶、归档、创建副本、移入回收站及恢复；永久删除另需确认。归档和回收站项目须恢复后才能编辑。运行中的研究任务需先等待或停止。
-AI助手：本机指导不调用模型；自由问答使用当前已保存的连接，每次一次请求。聊天不运行研究阶段、不修改报告、不替用户确认成果。只允许导航到现有页面。项目对话各自保存，工作区对话不读取任何项目内容。项目聊天包含在项目JSON/ZIP和整库备份；复制或恢复项目会从空白对话开始。工作区聊天仅保存在本机，不在项目备份中。每个对话最多200条消息，可清空重新开始。历史上下文可选最近6轮；本轮不选材料不代表历史回答中没有材料信息，可关闭历史。
+AI助手：本机指导不调用模型；自由问答使用当前已保存的连接，每次一次请求。普通问答不写入研究内容；用户可明确选择研究待办、实验方案、修改意见或报告修改草稿。生成后先编辑核对，再预览影响并确认保存。不会执行实验、运行阶段或替用户确认成果。只有应用提供的保存预览可以写入。实验草稿固定研究计划，意见固定AI建议、未处理。报告修改保留原快照并使受影响成果重核；本机计算报告不能替换。项目对话各自保存，工作区对话不读取任何项目内容。项目聊天包含在项目JSON/ZIP和整库备份；复制或恢复项目会从空白对话开始。工作区聊天仅保存在本机，不在项目备份中。每个对话最多200条消息，可清空重新开始。历史上下文可选最近6轮；本轮不选材料不代表历史回答中没有材料信息，可关闭历史。
 """
 
 SYSTEM = """你是研序AI助手，帮助用户使用软件并根据项目阶段解决研究卡点。
@@ -62,7 +64,7 @@ def fingerprint(p):
     return digest({k: v for k, v in p.items() if k not in ('assistant_chat', 'updated', 'versions')})
 
 
-class Assistant:
+class Assistant(AssistantProposals):
     def __init__(self, service):
         self.service = service
         self.jobs = {}
@@ -165,9 +167,14 @@ class Assistant:
     def _context(self, pid, data):
         p = self._project(pid)
         opts = self._options(p, data)
+        kind = self._draft_kind(p,opts,data.get('draft_kind',''))
+        opts['draft_kind'] = kind
         session = self._read(pid)
         sources = [f'软件指南 v{VERSION}', '项目目标与流程状态' if p else '当前页面']
         chunks = [KNOWLEDGE, '\n当前程序状态（以此为准）：\n' + json.dumps(self._snapshot(p, opts), ensure_ascii=False)]
+        if kind:
+            chunks.append(proposal_instruction(kind,opts['stage']))
+            sources.append('协助草稿：'+KINDS[kind]+'（仅生成，待核对保存）')
         if opts['error']:
             chunks.append('\n用户选择求助的错误：' + opts['error'])
             sources.append('本次错误提示（已隐藏密钥与路径）')
@@ -280,6 +287,8 @@ class Assistant:
     def send(self, data):
         pid = data.get('project', '')
         intent = data.get('intent', '')
+        if intent and data.get('draft_kind'):
+            raise ValueError('本机快捷指导不能生成协助草稿，请选择自由问答。')
         if intent and intent not in QUESTIONS:
             raise ValueError('不支持的指导类型。')
         text = QUESTIONS[intent] if intent else data.get('text', '')
@@ -314,20 +323,23 @@ class Assistant:
                       'created': now(), 'status': 'running', 'mode': 'local' if intent else self.service.store.get_settings()['mode'],
                       'sources': sources, 'state': fingerprint(p), 'version': VERSION,
                       'actions': self._actions(p, text + ' ' + opts['error']), 'context_chars': len(context)}
+            answer['draft_kind']=opts.get('draft_kind','')
             session['messages'] += [user, answer]
             if intent:
                 answer.update(status='completed', text=self._local(p, intent, opts))
                 self._write(pid, session)
             else:
                 self._write(pid, session)
-                job = {'pid': pid, 'turn': request, 'cancel': threading.Event(), 'progress': '正在连接模型'}
+                job = {'pid': pid, 'turn': request, 'cancel': threading.Event(), 'progress': '正在连接模型',
+                       'draft_kind':opts.get('draft_kind',''),'stage':opts['stage'],
+                       'base_state':fingerprint(p),'project_snapshot':copy.deepcopy(p),'version':VERSION}
                 self.jobs[request] = job
                 threading.Thread(target=self._run, args=(request, settings, context, text.strip()), daemon=True).start()
         return self.state(data)
 
     def _run(self, request, settings, context, question):
         job = self.jobs[request]
-        status, text = 'completed', ''
+        status, text, proposal = 'completed', '', None
         def progress(label, partial=''):
             # Commentary and partials are progress only, never saved as answers.
             job['progress'] = '正在等待模型回答' if not partial else '正在整理回答'
@@ -344,6 +356,9 @@ class Assistant:
                 raise Cancelled('问答已停止，之前的对话与研究成果已保留。')
             if not isinstance(text, str) or not text.strip() or len(text) > 80000:
                 raise ProviderError('回答为空或过长，请缩小问题后重试。')
+            if job['draft_kind']:
+                try:text,proposal=self._parse_proposal(text,job)
+                except ValueError as e:raise ProviderError(str(e)) from e
         except Cancelled as e:
             status, text = 'stopped', safe_error(e)
         except ProviderError as e:
@@ -357,6 +372,7 @@ class Assistant:
                     for m in session['messages']:
                         if m['turn'] == request and m['role'] == 'assistant':
                             m.update(status=status, text=text, finished=now())
+                            if proposal and status=='completed':m['proposal']=proposal
                     self._write(job['pid'], session)
                 finally:
                     self.jobs.pop(request, None)
@@ -389,6 +405,8 @@ class Assistant:
             lines = ['# 研序 AI 助手对话', '\n范围：' + state['title'], '\n导出时间：' + now()]
             for m in state['messages']:
                 lines += ['\n---\n\n## ' + ('用户' if m['role'] == 'user' else '助手') + ' · ' + m['status'], m['text']]
+                if m.get('proposal'):
+                    lines += ['\n协助草稿与保存记录（不代表实验已执行）：', '```json\n'+json.dumps(m['proposal'],ensure_ascii=False,indent=2)+'\n```']
                 if m.get('sources'):
                     lines.append('\n参考范围：' + '、'.join(m['sources']))
             return '\n\n'.join(lines).encode('utf-8-sig')

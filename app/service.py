@@ -125,23 +125,29 @@ class Service(ProjectManagement,ResearchTools):
                 self.store.put(p)
         return self.public_project(pid)
 
+    def prepare_report_edit(self,p,data):
+        """Apply an edit and downstream invalidation in memory."""
+        sid=data['stage']
+        stages=FLOWS[p['flow']]['stages']
+        if sid not in stages:
+            raise ValueError('无效阶段。')
+        if len(str(data.get('text','')))>800000:
+            raise ValueError('报告过长。')
+        previous=p['outputs'].get(sid,{})
+        text=str(data.get('text',''))
+        if text==previous.get('text'):
+            return False
+        snapshot(p,sid,'编辑保存前')
+        p['outputs'][sid]={**previous,'text':text,'approved':False,'edited':now(),'stale':False}
+        self.invalidate(p,stages.index(sid))
+        return True
+
     def edit(self,pid,data):
         with self.lock:
             p=self.store.get(pid)
             self.assert_idle(p)
-            sid=data['stage']
-            stages=FLOWS[p['flow']]['stages']
-            if sid not in stages:
-                raise ValueError('无效阶段。')
-            if len(str(data.get('text','')))>800000:
-                raise ValueError('报告过长。')
-            previous=p['outputs'].get(sid,{})
-            text=str(data.get('text',''))
-            if text==previous.get('text'):
+            if not self.prepare_report_edit(p,data):
                 return self.public_project(pid)
-            snapshot(p,sid,'编辑保存前')
-            p['outputs'][sid]={**previous,'text':text,'approved':False,'edited':now(),'stale':False}
-            self.invalidate(p,stages.index(sid))
             self.store.put(p)
         return self.public_project(pid)
 

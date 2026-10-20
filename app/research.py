@@ -211,6 +211,111 @@ class ResearchTools:
             raise ValueError('材料文件已被外部修改，请重新导入。')
         return raw, 'application/pdf' if path.suffix == '.pdf' else 'text/plain; charset=utf-8'
 
+    def prepare_research_record(self, p, group, supplied):
+        """Validate and apply to an in-memory project; caller commits atomically."""
+        if group not in COLLECTIONS:
+            raise ValueError('研究工具类型无效。')
+        w = workspace(p)
+        rows = w[group]
+        if not isinstance(supplied, dict):
+            raise ValueError('请填写记录。')
+        rid = supplied.get('id')
+        previous = next((r for r in rows if r['id'] == rid), None)
+        if rid and not previous:
+            raise ValueError('记录已不存在，请刷新。')
+        if not previous and len(rows) >= 200:
+            raise ValueError('每类最多保存 200 条记录。')
+        record = {'id': rid or uuid.uuid4().hex, 'created': previous['created'] if previous else now(), 'updated': now()}
+        for key in COLLECTIONS[group]:
+            value = supplied.get(key, '')
+            if not isinstance(value, str) or len(value) > (16000 if key == 'quote' else 6000):
+                raise ValueError('字段过长或格式无效：' + key)
+            record[key] = value.strip()
+            allowed = ENUMS.get((group, key))
+            if allowed:
+                record[key] = record[key] or allowed[0]
+                if record[key] not in allowed:
+                    raise ValueError('请选择有效状态。')
+        if not record['title'] or len(record['title']) > 500:
+            raise ValueError('请填写 1–500 字的名称或条目。')
+        for field in ('due','source_date'):
+            if record.get(field):
+                try:date.fromisoformat(record[field])
+                except ValueError:raise ValueError('日期格式应为 YYYY-MM-DD。') from None
+        for field in ('url', 'source_url'):
+            if record.get(field) and not re.match(r'^https?://[^\s<>"\x00-\x1f]+$', record[field]):
+                raise ValueError('来源链接须为 http 或 https 地址。')
+        if record.get('stage') and record['stage'] not in FLOWS[p['flow']]['stages']:
+            raise ValueError('请选择当前项目的阶段。')
+        links = {'reference_id': 'references', 'evidence_id': 'evidence', 'experiment_id': 'experiments', 'depends_on': 'tasks'}
+        for field, target in links.items():
+            if record.get(field) and not any(r['id'] == record[field] for r in w[target]):
+                raise ValueError('关联记录不存在。')
+        if record.get('asset_id') and not any(a['id'] == record['asset_id'] for a in p['assets']):
+            raise ValueError('关联材料不存在。')
+        if group == 'tasks':
+            node = record.get('depends_on')
+            seen = {record['id']}
+            lookup = {r['id']: r for r in rows}
+            while node:
+                if node in seen:
+                    raise ValueError('任务依赖不能形成循环。')
+                seen.add(node)
+                node = lookup[node].get('depends_on')
+            if record['status'] == 'done' and record.get('depends_on') and lookup[record['depends_on']]['status'] != 'done':
+                raise ValueError('请先完成前置任务。')
+            if previous and previous.get('status') == 'done' and record['status'] != 'done' and any(t.get('depends_on') == rid and t.get('status') == 'done' for t in rows):
+                raise ValueError('请先将后置任务改为未完成。')
+        if group == 'references':
+            if record['year'] and not re.fullmatch(r'\d{4}',record['year']):
+                raise ValueError('年份请填写四位数字，未知可留空。')
+            record['doi'] = doi(record['doi'])
+            for ref in rows:
+                if ref['id'] != rid and ((record['doi'] and ref.get('doi') == record['doi']) or (normalize(record['title']) == normalize(ref['title']) and record['year'] == ref.get('year', ''))):
+                    raise ValueError('这篇文献已在引用库中，请编辑已有记录。')
+            if previous and all(previous.get(k) == record.get(k) for k in ('title', 'authors', 'year', 'venue', 'doi')):
+                if previous.get('verification'):
+                    record['verification'] = previous['verification']
+        if group == 'evidence':
+            asset = next((a for a in p['assets'] if a['id'] == record['asset_id']), None)
+            if not asset:
+                raise ValueError('请先导入并选择原始材料。')
+            try:
+                page = int(record['page'])
+            except ValueError:
+                raise ValueError('请填写有效页码。') from None
+            parts = pages(asset)
+            clean = lambda value: re.sub(r'\s+', '', unicodedata.normalize('NFKC', value))
+            if not 1 <= page <= len(parts) or len(normalize(record['quote'])) < 3 or clean(record['quote']) not in clean(parts[page - 1]):
+                raise ValueError('原文摘录未在指定页找到，请从材料文字中选择并核对。')
+            record['source_sha256'] = asset['sha256']
+            record['quote_matched'] = True
+        if group == 'claims' and record['assessment'] != 'unknown' and (not record['evidence_id'] or not record['reason']):
+            raise ValueError('判断支持关系时，请关联证据并填写理由。')
+        if group == 'experiments' and record['status'] == 'completed' and not record['asset_id']:
+            raise ValueError('标记已执行前，请关联真实结果材料。')
+        if group == 'figures':
+            asset = next((a for a in p['assets'] if a['id'] == record['asset_id']), None)
+            if not asset:
+                raise ValueError('请关联图表使用的原始数据材料。')
+            record['source_sha256'] = asset['sha256']
+            exp = next((r for r in w['experiments'] if r['id'] == record['experiment_id']), None)
+            if exp:
+                record['experiment_digest'] = hashlib.sha256(json.dumps(exp, sort_keys=True).encode()).hexdigest()
+            if record['status'] == 'reviewed' and (not record['procedure'] or not record['caption'] or not record['location']):
+                raise ValueError('核对图表前，请补充处理步骤、图注和稿件位置。')
+        if group == 'issues' and record['status'] == 'done' and (not record['response'] or not record['location']):
+            raise ValueError('完成意见处理前，请填写回复与修改位置。')
+        if group == 'checklist' and record['status'] in ('done', 'na') and not record['evidence']:
+            raise ValueError('请填写完成依据或不适用的理由。')
+        if previous:
+            rows[rows.index(previous)] = record
+        else:
+            rows.append(record)
+        if w.get('enabled') and group in ('references', 'evidence', 'claims', 'experiments', 'figures'):
+            self.invalidate_inputs(p)
+        return record
+
     def research_save(self, pid, data):
         group = data.get('collection')
         if group not in COLLECTIONS:
@@ -220,106 +325,7 @@ class ResearchTools:
             self.assert_idle(p)
             if self.updating:
                 raise ValueError('软件正在更新，请稍后保存。')
-            w = workspace(p)
-            rows = w[group]
-            supplied = data.get('record')
-            if not isinstance(supplied, dict):
-                raise ValueError('请填写记录。')
-            rid = supplied.get('id')
-            previous = next((r for r in rows if r['id'] == rid), None)
-            if rid and not previous:
-                raise ValueError('记录已不存在，请刷新。')
-            if not previous and len(rows) >= 200:
-                raise ValueError('每类最多保存 200 条记录。')
-            record = {'id': rid or uuid.uuid4().hex, 'created': previous['created'] if previous else now(), 'updated': now()}
-            for key in COLLECTIONS[group]:
-                value = supplied.get(key, '')
-                if not isinstance(value, str) or len(value) > (16000 if key == 'quote' else 6000):
-                    raise ValueError('字段过长或格式无效：' + key)
-                record[key] = value.strip()
-                allowed = ENUMS.get((group, key))
-                if allowed:
-                    record[key] = record[key] or allowed[0]
-                    if record[key] not in allowed:
-                        raise ValueError('请选择有效状态。')
-            if not record['title'] or len(record['title']) > 500:
-                raise ValueError('请填写 1–500 字的名称或条目。')
-            for field in ('due','source_date'):
-                if record.get(field):
-                    try:date.fromisoformat(record[field])
-                    except ValueError:raise ValueError('日期格式应为 YYYY-MM-DD。') from None
-            for field in ('url', 'source_url'):
-                if record.get(field) and not re.match(r'^https?://[^\s<>"\x00-\x1f]+$', record[field]):
-                    raise ValueError('来源链接须为 http 或 https 地址。')
-            if record.get('stage') and record['stage'] not in FLOWS[p['flow']]['stages']:
-                raise ValueError('请选择当前项目的阶段。')
-            links = {'reference_id': 'references', 'evidence_id': 'evidence', 'experiment_id': 'experiments', 'depends_on': 'tasks'}
-            for field, target in links.items():
-                if record.get(field) and not any(r['id'] == record[field] for r in w[target]):
-                    raise ValueError('关联记录不存在。')
-            if record.get('asset_id') and not any(a['id'] == record['asset_id'] for a in p['assets']):
-                raise ValueError('关联材料不存在。')
-            if group == 'tasks':
-                node = record.get('depends_on')
-                seen = {record['id']}
-                lookup = {r['id']: r for r in rows}
-                while node:
-                    if node in seen:
-                        raise ValueError('任务依赖不能形成循环。')
-                    seen.add(node)
-                    node = lookup[node].get('depends_on')
-                if record['status'] == 'done' and record.get('depends_on') and lookup[record['depends_on']]['status'] != 'done':
-                    raise ValueError('请先完成前置任务。')
-                if previous and previous.get('status') == 'done' and record['status'] != 'done' and any(t.get('depends_on') == rid and t.get('status') == 'done' for t in rows):
-                    raise ValueError('请先将后置任务改为未完成。')
-            if group == 'references':
-                if record['year'] and not re.fullmatch(r'\d{4}',record['year']):
-                    raise ValueError('年份请填写四位数字，未知可留空。')
-                record['doi'] = doi(record['doi'])
-                for ref in rows:
-                    if ref['id'] != rid and ((record['doi'] and ref.get('doi') == record['doi']) or (normalize(record['title']) == normalize(ref['title']) and record['year'] == ref.get('year', ''))):
-                        raise ValueError('这篇文献已在引用库中，请编辑已有记录。')
-                if previous and all(previous.get(k) == record.get(k) for k in ('title', 'authors', 'year', 'venue', 'doi')):
-                    if previous.get('verification'):
-                        record['verification'] = previous['verification']
-            if group == 'evidence':
-                asset = next((a for a in p['assets'] if a['id'] == record['asset_id']), None)
-                if not asset:
-                    raise ValueError('请先导入并选择原始材料。')
-                try:
-                    page = int(record['page'])
-                except ValueError:
-                    raise ValueError('请填写有效页码。') from None
-                parts = pages(asset)
-                clean = lambda value: re.sub(r'\s+', '', unicodedata.normalize('NFKC', value))
-                if not 1 <= page <= len(parts) or len(normalize(record['quote'])) < 3 or clean(record['quote']) not in clean(parts[page - 1]):
-                    raise ValueError('原文摘录未在指定页找到，请从材料文字中选择并核对。')
-                record['source_sha256'] = asset['sha256']
-                record['quote_matched'] = True
-            if group == 'claims' and record['assessment'] != 'unknown' and (not record['evidence_id'] or not record['reason']):
-                raise ValueError('判断支持关系时，请关联证据并填写理由。')
-            if group == 'experiments' and record['status'] == 'completed' and not record['asset_id']:
-                raise ValueError('标记已执行前，请关联真实结果材料。')
-            if group == 'figures':
-                asset = next((a for a in p['assets'] if a['id'] == record['asset_id']), None)
-                if not asset:
-                    raise ValueError('请关联图表使用的原始数据材料。')
-                record['source_sha256'] = asset['sha256']
-                exp = next((r for r in w['experiments'] if r['id'] == record['experiment_id']), None)
-                if exp:
-                    record['experiment_digest'] = hashlib.sha256(json.dumps(exp, sort_keys=True).encode()).hexdigest()
-                if record['status'] == 'reviewed' and (not record['procedure'] or not record['caption'] or not record['location']):
-                    raise ValueError('核对图表前，请补充处理步骤、图注和稿件位置。')
-            if group == 'issues' and record['status'] == 'done' and (not record['response'] or not record['location']):
-                raise ValueError('完成意见处理前，请填写回复与修改位置。')
-            if group == 'checklist' and record['status'] in ('done', 'na') and not record['evidence']:
-                raise ValueError('请填写完成依据或不适用的理由。')
-            if previous:
-                rows[rows.index(previous)] = record
-            else:
-                rows.append(record)
-            if w.get('enabled') and group in ('references', 'evidence', 'claims', 'experiments', 'figures'):
-                self.invalidate_inputs(p)
+            self.prepare_research_record(p, group, data.get('record'))
             self.store.put(p)
         return self.public_project(pid)
 
