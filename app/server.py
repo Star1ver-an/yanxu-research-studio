@@ -92,6 +92,7 @@ class Handler(BaseHTTPRequestHandler):
                '/app.js':'app.js','/pathways.js':'pathways.js','/appearance.js':'appearance.js','/updates.js':'updates.js',
                '/projects.js':'projects.js','/onboarding.js':'onboarding.js','/research.js':'research.js','/research.css':'research.css',
                '/assistant.js':'assistant.js','/assistant-proposals.js':'assistant-proposals.js','/assistant.css':'assistant.css',
+               '/followup.js':'followup.js','/followup.css':'followup.css',
                '/style.css':'style.css','/soft-ui.css':'soft-ui.css','/mark.svg':'mark.svg','/favicon.svg':'favicon.svg'}
         if path not in names:
             return self.reply({'error':'Not found'},404)
@@ -128,11 +129,17 @@ class Handler(BaseHTTPRequestHandler):
                 action=path.rsplit('/',1)[-1]
                 if action=='export':
                     return self.reply(service.assistant.export(data),mime='text/markdown; charset=utf-8')
+                if action=='progress-export':
+                    return self.reply(service.assistant.progress_export(data),mime='text/markdown; charset=utf-8')
                 operations={'state':service.assistant.state,'preview':service.assistant.preview,
                             'send':service.assistant.send,'stop':service.assistant.stop,'clear':service.assistant.clear,
                             'proposal-preview':service.assistant.proposal_preview,
                             'proposal-apply':service.assistant.proposal_apply,
-                            'proposal-discard':service.assistant.proposal_discard}
+                            'proposal-discard':service.assistant.proposal_discard,
+                            'followup':service.assistant.followup_state,
+                            'defer':service.assistant.followup_defer,
+                            'memory-save':service.assistant.memory_save,
+                            'recheck':service.assistant.recheck}
                 if action not in operations:
                     raise ValueError('不支持的助手操作。')
                 return self.reply(operations[action](data))

@@ -79,4 +79,4 @@ async function assistantProposalAction(action,el){
   const p=m.proposal;if(p.kind==='report'){await assistantJump('work');S.activeStage=p.stage;render()}else{RT.tab=p.kind==='tasks'?'navigator':p.kind;await assistantJump('research')}
  }
 }
-document.addEventListener('change',ev=>{if(ev.target.id==='as-kind'){AS.kinds[AS.scope]=ev.target.value;AS.preview=null;assistantPaint()}});
+document.addEventListener('change',ev=>{if(ev.target.id==='as-kind'){AS.kinds[AS.scope]=ev.target.value;const starter=k=>'请结合当前课题生成'+k+'草稿，未知条件保留待确认。',draft=AS.drafts[AS.scope]||'',automatic=Object.values(asKinds).some(k=>draft===starter(k));if(ev.target.value&&(!draft.trim()||automatic))AS.drafts[AS.scope]=starter(asKinds[ev.target.value]);else if(!ev.target.value&&automatic)AS.drafts[AS.scope]='';if(ev.target.value==='report'&&AS.state?.report_available)assistantOptions().report=true;AS.preview=null;assistantPaint()}});

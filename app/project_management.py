@@ -71,6 +71,7 @@ class ProjectManagement:
         for entry in result['literature']:entry['id']=uuid.uuid4().hex
         result.pop('versions',None)
         result.pop('assistant_chat',None)
+        result.pop('assistant_followup',None)
         if 'research' in result:
             for key,value in result['research'].items():
                 if isinstance(value,list):

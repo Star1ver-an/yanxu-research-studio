@@ -60,6 +60,17 @@ class DesktopAPI:
             self._updates.start_auto()
         return True
 
+    def save_progress_export(self, pid):
+        import webview
+        raw = self._service.assistant.progress_export({'project': pid})
+        result = self._window.create_file_dialog(webview.FileDialog.SAVE, save_filename='研序-项目进度简报.md',
+                                                 file_types=('Markdown (*.md)',))
+        if result:
+            target = Path(result if isinstance(result, str) else result[0])
+            target.write_bytes(raw)
+            return {'saved': True, 'path': str(target)}
+        return {'saved': False}
+
     def _install_update(self):
         from app.updater import reset_environment
         with self._service.lock:

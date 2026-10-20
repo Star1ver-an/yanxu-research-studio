@@ -20,6 +20,7 @@ from .project_management import ProjectManagement,lifecycle,project_title
 from .research import ResearchTools, snapshot, bibliography
 from .backups import Backups
 from .assistant import Assistant
+from .followup import followup
 
 class Service(ProjectManagement,ResearchTools):
     def __init__(self,store=None):
@@ -31,13 +32,16 @@ class Service(ProjectManagement,ResearchTools):
         self.assistant=Assistant(self)
 
     def project_list(self):
-        return [{k:v for k,v in p.items() if k not in ('runs','outputs','assets','literature','confirmations','research','versions','assistant_chat')} |
+        return [{k:v for k,v in p.items() if k not in ('runs','outputs','assets','literature','confirmations','research','versions','assistant_chat','assistant_followup','assistant_memory')} |
                 {'asset_count':len(p['assets']),'output_count':len(p['outputs']),
+                 'followup_next':followup(p)['next'],
                  'research_status':self.research_status(p),
                  'running':any(r['status']=='running' for r in p['runs'])} for p in self.store.list()]
 
     def public_project(self,pid):
         p=self.store.get(pid)
+        p['followup']=followup(p)
+        p.pop('assistant_followup',None)
         p.pop('assistant_chat',None)
         p['research_status']=self.research_status(p)
         p['versions']=[{k:v for k,v in item.items() if k!='text'} for item in p.get('versions',[])]
