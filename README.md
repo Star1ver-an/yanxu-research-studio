@@ -1,5 +1,10 @@
 # 研序 Research Studio
 
+## v0.9.1 界面复核修正
+
+- 重启后按实际组件检测结果显示高级分析环境状态，避免已就绪时仍提示基础环境。
+- 变异来源选择器仅列出实际支持的未压缩 VCF 文件。
+
 ## v0.9.0 数据分析与出图（M2 / M3）
 
 两条研究路径均可在 **研究工具 → 图表与绘图 → 数据分析 → 出图** 使用。同一处保留 M1 的“已有结果重绘”；新增向导按 **选择方法 → 材料与字段 → 分析条件 → 预检与明确运行 → 结果与保存** 推进。可搜索方法，按领域筛选，不需要编写代码。Cox 分类参照和流式父门有表单；高级参数折叠显示。默认示例为推理服务可靠性、模型概率评估及高维特征表示等计算机课题，所有验收夹具均为合成数据。
@@ -46,7 +51,7 @@ v0.8.1 修复 Windows 在 Codex 中启动与从桌面启动时的数据目录重
 
 **[下载 Windows 版](https://github.com/Star1ver-an/yanxu-research-studio/releases/latest)** · [项目主页](https://github.com/Star1ver-an/yanxu-research-studio)
 
-下载最新 Release 中的 `YanxuResearchStudio-Windows-v0.9.0.zip`，解压后双击 `YanxuResearchStudio.exe`。GitHub 的“Code → Download ZIP”下载的是源码，需要开发环境才能运行。
+下载最新 Release 中的 `YanxuResearchStudio-Windows-v0.9.1.zip`，解压后双击 `YanxuResearchStudio.exe`。GitHub 的“Code → Download ZIP”下载的是源码，需要开发环境才能运行。
 
 ## 持续跟进与易用性（v0.7.0 第三期）
 
