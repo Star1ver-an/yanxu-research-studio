@@ -72,6 +72,9 @@ class ProjectManagement:
         result.pop('versions',None)
         result.pop('assistant_chat',None)
         result.pop('assistant_followup',None)
+        if 'plotting' in result:
+            from .plotting import remap_plotting
+            result['plotting']=remap_plotting(result['plotting'],asset_mapping)
         if 'research' in result:
             for key,value in result['research'].items():
                 if isinstance(value,list):
@@ -91,6 +94,8 @@ class ProjectManagement:
         moves=[]
         try:
             for p in projects:
+                if getattr(self,'plotting_busy',None) and self.plotting_busy(p['id']):
+                    raise ValueError('此项目正在绘图或请求绘图 AI，请等待完成后再管理项目。')
                 folders=[self._owned_folder('materials',p['id'])]
                 folders += [self._owned_folder('invocations',r['id']) for r in p['runs']]
                 folders += [self._owned_folder('assistant-invocations',m['turn'])
@@ -124,6 +129,8 @@ class ProjectManagement:
             if self.updating:raise ValueError('软件正在安装更新，请稍后管理项目。')
             projects=[self.store.get(pid) for pid in ids]
             for p in projects:
+                if getattr(self,'plotting_busy',None) and self.plotting_busy(p['id']):
+                    raise ValueError('此项目正在绘图或请求绘图 AI，请等待完成后再管理项目。')
                 if getattr(self,'assistant',None) and self.assistant.busy(p['id']):
                     raise ValueError('此项目的 AI 助手正在回答，请等待或停止后再管理项目。')
                 self.assert_idle(p,allow_inactive=True)

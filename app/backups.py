@@ -62,7 +62,7 @@ class Backups:
     def create(self, automatic=False):
         service = self.service
         with service.lock:
-            if service.updating or any(p['running'] for p in service.project_list()):
+            if service.updating or service.plotting_busy() or any(p['running'] for p in service.project_list()):
                 if automatic:
                     return self.status()
                 raise ValueError('请等待任务结束后再备份，以保留一致的成果。')
@@ -235,6 +235,9 @@ class Backups:
                                             'text': text, 'size': len(blob), 'chars': len(text), 'sha256': digest,
                                             'enabled': bool(asset.get('enabled', True)), 'created': now()})
                         files.append((rel, blob))
+                    if 'plotting' in original:
+                        from .plotting import remap_plotting
+                        p['plotting']=remap_plotting(original['plotting'],mapping)
                     literature = original.get('literature', [])
                     if not isinstance(literature, list) or len(literature) > 10000:
                         raise ValueError('文献记录无效。')
@@ -336,7 +339,7 @@ class Backups:
         service = self.service
         created = []
         with service.lock:
-            if service.updating or any(p['running'] for p in service.project_list()):
+            if service.updating or service.plotting_busy() or any(p['running'] for p in service.project_list()):
                 raise ValueError('请等待任务结束或软件更新完成后恢复。')
             try:
                 for p, files in prepared:

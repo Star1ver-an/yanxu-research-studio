@@ -22,6 +22,7 @@ class LocalServer(ThreadingHTTPServer):
         self.service.backups.start()
 
     def server_close(self):
+        self.service.close_plotting()
         self.service.assistant.close()
         self.updates.close()
         self.service.backups.close()
@@ -93,6 +94,7 @@ class Handler(BaseHTTPRequestHandler):
                '/projects.js':'projects.js','/onboarding.js':'onboarding.js','/research.js':'research.js','/research.css':'research.css',
                '/assistant.js':'assistant.js','/assistant-proposals.js':'assistant-proposals.js','/assistant.css':'assistant.css',
                '/followup.js':'followup.js','/followup.css':'followup.css',
+               '/plotting.js':'plotting.js','/plotting.css':'plotting.css',
                '/style.css':'style.css','/soft-ui.css':'soft-ui.css','/mark.svg':'mark.svg','/favicon.svg':'favicon.svg'}
         if path not in names:
             return self.reply({'error':'Not found'},404)
@@ -209,6 +211,13 @@ class Handler(BaseHTTPRequestHandler):
                     'version-restore':service.version_restore,'issues-import':service.issues_import,
                     'reference-import':service.reference_import,'reference-verify':service.reference_verify})
                 functions.update({'run-preview':service.run_preview,'research-context':service.research_context})
+                functions.update({'plot-inspect':service.plot_inspect,'plot-catalog':service.plot_catalog,
+                    'plot-recommend':service.plot_recommend,'plot-render':service.plot_render,
+                    'plot-save':service.plot_save,'plot-delete':service.plot_delete,
+                    'plot-duplicate':service.plot_duplicate,'plot-restore':service.plot_restore,'plot-ai':service.plot_ai})
+                if action=='plot-export':
+                    name,raw,mime=service.plot_export(pid,data)
+                    return self.reply(raw,mime=mime,extra={'Content-Disposition':"attachment; filename*=UTF-8''"+__import__('urllib.parse',fromlist=['quote']).quote(name)})
                 if action in functions:
                     return self.reply(functions[action](pid,data))
                 if action=='stop':

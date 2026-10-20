@@ -12,6 +12,8 @@ command=[sys.executable,'-m','PyInstaller','--noconfirm','--clean','--onefile','
  '--name','YanxuResearchStudio','--icon',str(icon),
  '--add-data',str(root/'web')+';web', '--add-data',str(root/'resources')+';resources',
  '--collect-all','webview','--collect-all','pythonnet','--collect-all','clr_loader',
+ '--collect-data','matplotlib','--hidden-import','matplotlib.backends.backend_agg',
+ '--hidden-import','matplotlib.backends.backend_pdf','--hidden-import','matplotlib.backends.backend_svg',
  '--hidden-import','webview.platforms.edgechromium','--hidden-import','webview.platforms.winforms',
  '--exclude-module','PyQt5','--exclude-module','PyQt6','--exclude-module','PySide2','--exclude-module','PySide6',
  '--distpath',str(root/'dist'),'--workpath',str(root/'build'),str(root/'main.py')]
