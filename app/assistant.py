@@ -272,7 +272,10 @@ class Assistant:
                 advice = '当前阶段尚无有效成果，请运行这一步。' + (' 尚无启用材料，建议先导入相关论文或笔记；无实验数据时应明确只做方案。' if not any(a.get('enabled', True) for a in p['assets']) else '')
             if p['runs'] and p['runs'][-1]['status'] in ('failed', 'interrupted', 'stopped', 'cancelled'):
                 advice += ' 最近研究运行未成功完成，可查看运行记录后重试。'
-        return f"### 当前判断\n{advice}\n\n### 所处流程\n{FLOWS[p['flow']]['name']} · 已推进 {p['cursor']}/{len(steps)} 阶段。\n\n### 下一步目标\n{STAGES[sid]['title']}：{STAGES[sid]['subtitle']}。\n\n依据：当前项目状态；未读取材料正文，未调用模型。"
+        target = ('### 建议收尾\n复核未解决的问题与证据，导出成果并创建备份。'
+                  if p['cursor'] >= len(steps) else
+                  f"### 下一步目标\n{STAGES[sid]['title']}：{STAGES[sid]['subtitle']}。")
+        return f"### 当前判断\n{advice}\n\n### 所处流程\n{FLOWS[p['flow']]['name']} · 已推进 {p['cursor']}/{len(steps)} 阶段。\n\n{target}\n\n依据：当前项目状态；未读取材料正文，未调用模型。"
 
     def send(self, data):
         pid = data.get('project', '')
