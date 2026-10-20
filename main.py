@@ -92,8 +92,12 @@ class DesktopAPI:
             runner,plan=self._updates.prepare_install(sys.executable,[os.getpid(),os.getppid()],self._restart_args)
             self._service.updating=True
             try:
+                environment=reset_environment()
+                # MSIX can redirect LocalAppData files while leaving directory
+                # resolve() unchanged. The copied helper must use this same store.
+                environment['YANXU_DATA_DIR']=str(self._service.store.root)
                 subprocess.Popen([str(runner),'--apply-update',str(plan)],cwd=runner.parent,
-                    env=reset_environment(),creationflags=getattr(subprocess,'CREATE_NO_WINDOW',0))
+                    env=environment,creationflags=getattr(subprocess,'CREATE_NO_WINDOW',0))
             except OSError:
                 self._service.updating=False
                 self._updates.phase='ready'
