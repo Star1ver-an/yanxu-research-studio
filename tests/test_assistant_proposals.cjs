@@ -1,0 +1,22 @@
+const fs=require('node:fs'),vm=require('node:vm'),assert=require('node:assert/strict'),path=require('node:path');
+const els={'meta[name="research-token"]':{content:'test'}},events={};
+const ctx=vm.createContext({document:{querySelector:s=>els[s],getElementById:()=>null,addEventListener:(t,f)=>(events[t]||=[]).push(f),body:{classList:{toggle:()=>{}}}},window:{addEventListener:()=>{},history:{pushState:()=>{}}},crypto:require('node:crypto').webcrypto,structuredClone,setTimeout:()=>1,clearTimeout:()=>{},URL,Date,Intl,Set,Map,queueMicrotask:()=>{},console});
+for(const file of ['research.js','assistant.js','assistant-proposals.js','app.js'])vm.runInContext(fs.readFileSync(path.join(__dirname,'../web',file),'utf8').replace(/\binit\(\);\s*$/,''),ctx);
+const run=code=>vm.runInContext(code,ctx);
+(async()=>{
+ run(`S.project={id:'p',title:'RAG',flow:'full',cursor:0,runs:[]};S.view='project';S.activeStage='research';S.catalog={flows:{full:{stages:['research']}},stages:{research:{title:'研究探索'}}};AS.scope='p';AS.state={messages:[],job:null};`);
+ assert.equal(run(`assistantData().draft_kind`),'');run(`AS.kinds.p='tasks'`);assert.equal(run(`assistantData().draft_kind`),'tasks');
+ const escaped=run(`assistantProposalCard({id:'m',outdated:false,proposal:{kind:'tasks',status:'draft'}})`);assert.ok(escaped.includes('编辑与核对'));assert.ok(!escaped.includes('确认成果'));
+ const saved=run(`assistantProposalCard({id:'m',proposal:{kind:'experiments',status:'saved',receipt:{count:1,affected:['research']}}})`);assert.ok(saved.includes('相关成果需要重核'));assert.ok(saved.includes('查看保存位置'));
+ assert.ok(run(`proposalField('dataset','</textarea><script>x</script>',0)`).includes('&lt;script&gt;'));
+ assert.ok(!run(`proposalField('dataset','</textarea><script>x</script>',0)`).includes('<script>'));
+ run(`AS.review={pid:'p',message:'m',kind:'tasks',draft:{records:[{title:'A'},{title:'B'}]},selected:[0,1]};`);
+ els['#as-proposal-form']={querySelectorAll:s=>s==='[data-proposal-field]'?[{dataset:{proposalIndex:'0',proposalField:'title'},value:'Edited A'}]:[{dataset:{proposalSelected:'0'},checked:false},{dataset:{proposalSelected:'1'},checked:true}]};
+ run('cacheAssistantProposal()');assert.equal(run('AS.review.draft.records[0].title'),'Edited A');assert.equal(run('AS.review.selected.join()'),'1');
+ run(`calls=[];api=async(path,data)=>{calls.push({path,data});throw Error('预览冲突')}`);els['#as-proposal-error']={textContent:''};
+ await run('assistantProposalSubmit()');assert.equal(run('calls[0].data.draft.records.length'),1);assert.equal(run('calls[0].data.draft.records[0].title'),'B');assert.equal(els['#as-proposal-error'].textContent,'预览冲突');
+ run(`AS.review.preview={sha256:'reviewed'};AS.review.data={project:'p',message:'m',draft:{records:[{title:'B'}]}};`);ctx.btn={disabled:false,isConnected:true};
+ await run(`assistantProposalAction('as-proposal-apply',btn)`);assert.equal(run('calls.at(-1).path'),'assistant/proposal-apply');assert.equal(run('calls.at(-1).data.acknowledge'),true);assert.equal(run('calls.at(-1).data.preview_sha256'),'reviewed');assert.equal(ctx.btn.disabled,false);assert.ok(run('AS.review')!==null);
+ const code=fs.readFileSync(path.join(__dirname,'../web/assistant-proposals.js'),'utf8');assert.ok(code.includes('as-proposal-scroll'));assert.ok(code.includes('as-report-diff'));
+ console.log('Assistant proposal UI checks passed: explicit mode, editable drafts, escaped fields, selected subset, conflict recovery and confirmed apply.');
+})().catch(e=>{console.error(e);process.exitCode=1});
