@@ -44,6 +44,7 @@ jobs:
       - run: node tests/test_management.cjs
       - run: node tests/test_research.cjs
       - run: node tests/test_assistant.cjs
+      - run: node tests/test_assistant_navigation.cjs
       - run: node tests/test_assistant_proposals.cjs
       - run: node tests/test_followup.cjs
       - run: node tests/test_plotting.cjs

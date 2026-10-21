@@ -4,7 +4,7 @@ import sys
 
 ROOT = Path(getattr(sys, '_MEIPASS', Path(__file__).resolve().parent.parent))
 ARS = ROOT / 'resources' / 'ars'
-VERSION = '0.10.0'
+VERSION = '0.11.0'
 SOURCE_COMMIT = 'cfd081d8f309ec65254d9f9f04c845ee78b1ec1d'
 
 def stage(key, title, subtitle, skill, agent, instruction, gate=False):

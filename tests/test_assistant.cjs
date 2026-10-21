@@ -28,6 +28,6 @@ const run=code=>vm.runInContext(code,ctx);
  // Both DOM and state can change between preview and submitting the question.
  run(`AS.scope='a'.repeat(32);AS.drafts[AS.scope]='新问题';AS.preview={text:'旧问题'};calls=[];api=async()=>{calls.push(1)}`);
  await run('assistantSend()');assert.equal(run('calls.length'),0);
- const css=fs.readFileSync(path.join(__dirname,'../web/assistant.css'),'utf8');assert.ok(css.includes('.assistant-open .app-body{display:none}'));assert.ok(css.includes('min-width:1600px'));assert.ok(css.includes('overscroll-behavior:contain'));
+ const css=fs.readFileSync(path.join(__dirname,'../web/assistant.css'),'utf8');assert.ok(!css.includes('.assistant-open .app-body{display:none}'));assert.ok(css.includes('width:min(420px'));assert.ok(css.includes('height:min(580px'));assert.ok(css.includes('.as-launcher{position:fixed'));assert.ok(css.includes('overscroll-behavior:contain'));
  console.log('Assistant frontend checks passed: scope isolation, opt-in context, escaped replies, navigation whitelist, preview, failure recovery and delayed response isolation.');
 })().catch(e=>{console.error(e);process.exitCode=1});

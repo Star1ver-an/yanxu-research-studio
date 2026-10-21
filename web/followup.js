@@ -22,7 +22,6 @@ function followupView(p){
 async function fuNavigate(target){
  if(!S.project||!target||typeof target!=='object')return;
  if(S.draft!==null)await saveOutput(true);
- if(typeof AS!=='undefined'){AS.open=false;assistantSync()}
  if(target.action==='project-info'){infoModal();return}
  if(target.action==='export'){exportModal();return}
  if(target.action==='recheck'){await fuRecheck(target.message);return}
@@ -44,9 +43,9 @@ async function fuNavigate(target){
 async function fuRecheck(message){
  const pid=S.project?.id;if(!pid)return;
  const result=await api('assistant/recheck',{project:pid,message});if(S.project?.id!==pid)return;
- S.activeStage=result.stage;await assistantOpen();
+ S.activeStage=result.stage;await assistantOpen(pid);
  AS.drafts[pid]=result.text;AS.kinds[pid]=result.draft_kind;AS.options[pid]=result.options;
- AS.rechecks[pid]=result.message;AS.preview=null;AS.contextOpen=true;AS.error='';assistantPaint();
+ AS.stageOverrides[pid]=result.stage;AS.rechecks[pid]=result.message;AS.preview=null;AS.contextOpen=true;AS.error='';assistantPaint();
  toast('已带回原问题，请检查参考范围。');
 }
 function fuMemoryEditor(id=''){

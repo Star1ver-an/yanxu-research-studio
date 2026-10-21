@@ -40,7 +40,7 @@ def main():
                     if response.status==200:break
             except OSError: time.sleep(.4)
         else: raise RuntimeError('冻结程序未在 120 秒内启动。')
-        for asset in ['paper.js','paper.css','plotting.js','analysis.js']:
+        for asset in ['paper.js','paper.css','plotting.js','analysis.js','assistant.js','assistant.css','assistant-proposals.js','app.js','followup.js','onboarding.js']:
             with urlopen(base+'/'+asset,timeout=15) as response:
                 if response.read() != (ROOT/'web'/asset).read_bytes():
                     raise RuntimeError('冻结界面文件与当前源码不一致：'+asset)
@@ -51,7 +51,10 @@ def main():
         # Exercise paper-management endpoints and frozen plot workers before publishing.
         paper=subprocess.run([sys.executable,str(ROOT/'tools/verify_paper.py'),'--base-url',base,
             '--output',str(output/'paper-acceptance')],cwd=ROOT,env=dict(os.environ,PYTHONUTF8='1'),timeout=900,**hidden())
-        return paper.returncode
+        if paper.returncode:return paper.returncode
+        assistant=subprocess.run([sys.executable,str(ROOT/'tools/verify_assistant.py'),'--base-url',base,
+            '--output',str(output/'assistant-acceptance')],cwd=ROOT,env=dict(os.environ,PYTHONUTF8='1'),timeout=120,**hidden())
+        return assistant.returncode
     finally:
         stop_process(process)
         process.wait(timeout=30)
