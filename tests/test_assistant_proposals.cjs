@@ -1,6 +1,6 @@
 const fs=require('node:fs'),vm=require('node:vm'),assert=require('node:assert/strict'),path=require('node:path');
 const els={'meta[name="research-token"]':{content:'test'}},events={};
-const ctx=vm.createContext({document:{querySelector:s=>els[s],getElementById:()=>null,addEventListener:(t,f)=>(events[t]||=[]).push(f),body:{classList:{toggle:()=>{}}}},window:{addEventListener:()=>{},history:{pushState:()=>{}}},crypto:require('node:crypto').webcrypto,structuredClone,setTimeout:()=>1,clearTimeout:()=>{},URL,Date,Intl,Set,Map,queueMicrotask:()=>{},console});
+const ctx=vm.createContext({L:value=>value,H:(strings,...values)=>strings.map((part,i)=>part+(i<values.length?values[i]:'')).join(''),document:{querySelector:s=>els[s],getElementById:()=>null,addEventListener:(t,f)=>(events[t]||=[]).push(f),body:{classList:{toggle:()=>{}}}},window:{addEventListener:()=>{},history:{pushState:()=>{}}},crypto:require('node:crypto').webcrypto,structuredClone,setTimeout:()=>1,clearTimeout:()=>{},URL,Date,Intl,Set,Map,queueMicrotask:()=>{},console});
 for(const file of ['research.js','assistant.js','assistant-proposals.js','app.js'])vm.runInContext(fs.readFileSync(path.join(__dirname,'../web',file),'utf8').replace(/\binit\(\);\s*$/,''),ctx);
 const run=code=>vm.runInContext(code,ctx);
 (async()=>{

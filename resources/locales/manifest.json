@@ -1,0 +1,16 @@
+{
+  "schema": 1,
+  "source_locale": "zh-CN",
+  "locales": [
+    "zh-CN",
+    "zh-TW",
+    "en",
+    "ja",
+    "ko"
+  ],
+  "messages": 3903,
+  "reviewed_core_messages": 658,
+  "placeholder_syntax": "{number}",
+  "content_policy": "Application-owned UI and guidance only; author content remains unchanged.",
+  "draft_tooling": "Offline Argos Translate / OpenCC used only during development; no models or translation dependencies distributed."
+}

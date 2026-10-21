@@ -1,6 +1,6 @@
 const fs=require('node:fs'),vm=require('node:vm'),assert=require('node:assert/strict'),path=require('node:path');
 const events={},els={'meta[name="research-token"]':{content:'qa'}};
-const ctx=vm.createContext({document:{querySelector:s=>els[s],getElementById:()=>null,addEventListener:(t,f)=>(events[t]||=[]).push(f),body:{classList:{toggle:()=>{}}}},window:{history:{pushState:()=>{}},innerWidth:1000,innerHeight:700},crypto:require('node:crypto').webcrypto,setTimeout:()=>1,clearTimeout:()=>{},URL,Date,Intl,console,structuredClone});
+const ctx=vm.createContext({L:value=>value,H:(strings,...values)=>strings.map((part,i)=>part+(i<values.length?values[i]:'')).join(''),document:{querySelector:s=>els[s],getElementById:()=>null,addEventListener:(t,f)=>(events[t]||=[]).push(f),body:{classList:{toggle:()=>{}}}},window:{history:{pushState:()=>{}},innerWidth:1000,innerHeight:700},crypto:require('node:crypto').webcrypto,setTimeout:()=>1,clearTimeout:()=>{},URL,Date,Intl,console,structuredClone});
 for(const name of ['pathways.js','assistant.js','assistant-proposals.js','app.js'])vm.runInContext(fs.readFileSync(path.join(__dirname,'../web',name),'utf8').replace(/\binit\(\);\s*$/,''),ctx);
 const run=s=>vm.runInContext(s,ctx);
 (async()=>{

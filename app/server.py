@@ -9,6 +9,7 @@ from .workflows import ROOT,catalog
 from .providers import ProviderError,api_complete
 from .updater import UpdateManager
 from .workflows import VERSION
+from .i18n import LANGUAGES,tr
 import threading
 
 class LocalServer(ThreadingHTTPServer):
@@ -38,6 +39,9 @@ class Handler(BaseHTTPRequestHandler):
         pass
 
     def reply(self,body,status=200,mime='application/json; charset=utf-8',extra=None):
+        if status>=400 and isinstance(body,dict) and isinstance(body.get('error'),str):
+            locale=self.headers.get('X-Research-Language','zh-CN')
+            body={**body,'error':tr(body['error'],locale if locale in LANGUAGES else 'zh-CN')}
         if not isinstance(body,bytes):
             body=json.dumps(body,ensure_ascii=False).encode('utf-8')
         self.send_response(status)
@@ -76,7 +80,7 @@ class Handler(BaseHTTPRequestHandler):
                 if path=='/api/bootstrap':
                     return self.reply({'catalog':catalog(),'settings':service.store.get_settings(),
                          'projects':service.project_list(),'data_path':str(service.store.root),
-                         'onboarding':service.store.onboarding(),
+                         'onboarding':service.store.onboarding(),'language':service.store.language(),
                          'desktop_ready':bool(getattr(self.server.native,'_ready',False))})
                 if path=='/api/projects':
                     return self.reply(service.project_list())
@@ -90,6 +94,7 @@ class Handler(BaseHTTPRequestHandler):
         if self.headers.get('Host')!=f'127.0.0.1:{self.server.server_port}':
             return self.reply({'error':'Invalid host'},403)
         names={'/':'index.html','/ars':'index.html','/scientific':'index.html',
+               '/i18n.js':'i18n.js','/language.js':'language.js','/language.css':'language.css',
                '/app.js':'app.js','/pathways.js':'pathways.js','/appearance.js':'appearance.js','/updates.js':'updates.js',
                '/projects.js':'projects.js','/onboarding.js':'onboarding.js','/research.js':'research.js','/research.css':'research.css',
                '/assistant.js':'assistant.js','/assistant-proposals.js':'assistant-proposals.js','/assistant.css':'assistant.css',
@@ -98,6 +103,8 @@ class Handler(BaseHTTPRequestHandler):
                '/analysis.js':'analysis.js','/analysis.css':'analysis.css',
                '/paper.js':'paper.js','/paper.css':'paper.css',
                '/style.css':'style.css','/soft-ui.css':'soft-ui.css','/mark.svg':'mark.svg','/favicon.svg':'favicon.svg'}
+        if path=='/locales.js':
+            return self.reply(b'window.ResearchLocales='+ (ROOT/'resources/locales/messages.json').read_bytes()+b';',mime='application/javascript; charset=utf-8')
         if path not in names:
             return self.reply({'error':'Not found'},404)
         p=ROOT/'web'/names[path]
@@ -182,6 +189,8 @@ class Handler(BaseHTTPRequestHandler):
                 return self.reply(service.manage_projects(data))
             if path=='/api/preferences/onboarding':
                 return self.reply(service.store.save_onboarding(data))
+            if path=='/api/preferences/language':
+                return self.reply(service.store.save_language(data))
             if path=='/api/backups/create':
                 return self.reply(service.backups.create())
             if path=='/api/backups/settings':

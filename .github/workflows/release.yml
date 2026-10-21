@@ -50,6 +50,7 @@ jobs:
       - run: node tests/test_plotting.cjs
       - run: node tests/test_analysis.cjs
       - run: node tests/test_paper.cjs
+      - run: node tests/test_i18n.cjs
       - run: python tools/build_windows.py
       - name: Verify packaged statistical workers and exports
         run: python tools/verify_windows_analysis.py

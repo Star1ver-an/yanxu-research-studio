@@ -157,6 +157,10 @@ def followup(p):
         has = bool(outputs.get(sid))
         next_step = {'title': ('阅读并确认「' if has else '开始「') + STAGES[sid]['title'] + '」',
                      'detail': '核实成果后继续下一步。' if has else STAGES[sid]['subtitle'], 'target': target}
+    if stale and not running:
+        next_step.update(title_template='重核「{0}」',title_args=[STAGES[stale[0]]['title']])
+    elif not running and not completed and not (p['flow']=='scientific_data' and not tables):
+        next_step.update(title_template='阅读并确认「{0}」' if outputs.get(sid) else '开始「{0}」',title_args=[STAGES[sid]['title']])
     counts = {'stages_done': p['cursor'], 'stages_total': len(stages), 'materials': len(p['assets']),
               'tasks_done': sum(x.get('status') == 'done' for x in tasks), 'tasks_total': len(tasks),
               'issues_open': sum(x.get('status') != 'done' for x in w.get('issues', [])),
@@ -249,17 +253,21 @@ class AssistantFollowup:
                     'note': '已带回原问题；历史对话已关闭。新增材料需在参考范围中主动勾选。旧建议只作对比，不代表当前事实。'}
 
     def progress_export(self, data):
+        from .i18n import tr,format_text
         with self.service.lock:
             p = self._project(data.get('project', ''))
             if not p: raise ValueError('请先打开研究项目。')
             f = followup(p); c = f['counts']
-            lines = ['# ' + p['title'] + ' · 进度简报', '\n整理时间：' + now(),
+            locale=self.service.store.language()['ui_language']
+            t=lambda text:tr(text,locale)
+            lines = ['# ' + p['title'] + ' · '+t('进度简报'), '\n'+format_text('整理时间：{0}',locale,now()),
                      f"\n流程已推进 {c['stages_done']}/{c['stages_total']}；材料 {c['materials']} 份；"
                      f"任务完成 {c['tasks_done']}/{c['tasks_total']}；未处理意见 {c['issues_open']} 条。",
-                     '\n## 建议下一步\n' + f['next']['title'] + '\n' + f['next']['detail']]
-            lines += ['\n## 阶段进展'] + ['- ' + t['title'] + '：' + t['status'] for t in f['timeline']]
-            lines += ['\n## 待处理与暂缓事项'] + ['- ' + ('[已暂缓] ' if x['deferred'] else '') + x['title'] + '：' + x['detail'] for x in f['checks']]
-            if not f['checks']: lines.append('本次未发现已登记记录中的待处理项。')
-            lines += ['\n## 用户确认的项目记忆'] + ['- ' + x['title'] + '：' + x['text'] + ('（已停用）' if not x['enabled'] else '') for x in f['memory']['items']]
-            lines += ['\n' + f['meaning'], '本简报来自本机状态，不调用模型；流程确认与任务完成记录不等于科学结论得到验证。']
+                     '\n## '+t('建议下一步')+'\n' + (format_text(f['next']['title_template'],locale,*[t(x) for x in f['next']['title_args']]) if f['next'].get('title_template') else t(f['next']['title'])) + '\n' + t(f['next']['detail'])]
+            lines[2]=t(lines[2])
+            lines += ['\n## '+t('阶段进展')] + ['- ' + t(row['title']) + '：' + t(row['status']) for row in f['timeline']]
+            lines += ['\n## '+t('待处理与暂缓事项')] + ['- ' + (t('[已暂缓] ') if x['deferred'] else '') + t(x['title']) + '：' + t(x['detail']) for x in f['checks']]
+            if not f['checks']: lines.append(t('本次未发现已登记记录中的待处理项。'))
+            lines += ['\n## '+t('用户确认的项目记忆')] + ['- ' + x['title'] + '：' + x['text'] + (t('（已停用）') if not x['enabled'] else '') for x in f['memory']['items']]
+            lines += ['\n' + t(f['meaning']), t('本简报来自本机状态，不调用模型；流程确认与任务完成记录不等于科学结论得到验证。')]
             return '\n'.join(lines).encode()

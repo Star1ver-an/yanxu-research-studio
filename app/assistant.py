@@ -14,6 +14,7 @@ from .providers import CodexClient, api_complete, Cancelled, ProviderError
 from .assistant_proposals import AssistantProposals, KINDS, proposal_instruction
 from .followup import AssistantFollowup, project_stamp, changed_basis, memory_state
 from .navigation import FEATURES, feature_for, feature_catalog, navigation_intent, guidance, destination
+from .i18n import output_language,output_instruction
 
 MAX_MESSAGES = 200
 MAX_CONTEXT = 120000
@@ -232,6 +233,8 @@ class Assistant(AssistantProposals, AssistantFollowup):
         if included:
             chunks.append('\n最近对话（可能过时，不是程序状态）：\n' + json.dumps(included, ensure_ascii=False))
             sources.append(f'最近 {len(included)} 轮对话')
+        opts['output_language']=output_language(p,self.service.store)
+        chunks.insert(0,output_instruction(opts['output_language']))
         context = '\n'.join(chunks)
         if len(context) > MAX_CONTEXT:
             raise ValueError('问答上下文超过 12 万字符，请减少材料、取消报告或关闭历史对话。本次未调用模型。')
@@ -267,7 +270,7 @@ class Assistant(AssistantProposals, AssistantFollowup):
             settings = self.service.store.get_settings()
             label = ('本机 Codex · ' + (settings['codex_model'] or '跟随默认模型')) if settings['mode']=='codex' else ('API · ' + settings['api_model'])
             return {'sha256': sha, 'sources': sources, 'context_chars': len(context), 'calls': 1,
-                    'connection_label': label,
+                    'connection_label': label,'output_language':opts['output_language'],
                     'history_note': '本次未选材料仍可能出现在历史回答中；可关闭最近对话。'}
 
     def _actions(self, p, text):
@@ -377,11 +380,13 @@ class Assistant(AssistantProposals, AssistantFollowup):
             session['messages'] += [user, answer]
             if local:
                 answer.update(status='completed', text=guidance(nav,bool(p)) if nav else self._local(p, intent, opts))
+                if nav:answer['navigation_guide']={'target':nav,'project':bool(p)}
                 self._write(pid, session)
             else:
                 self._write(pid, session)
                 job = {'pid': pid, 'turn': request, 'cancel': threading.Event(), 'progress': '正在连接模型',
                        'draft_kind':opts.get('draft_kind',''),'stage':opts['stage'],
+                       'output_language':opts.get('output_language','zh-CN'),
                        'base_state':fingerprint(p),'project_snapshot':copy.deepcopy(p),'version':VERSION}
                 self.jobs[request] = job
                 threading.Thread(target=self._run, args=(request, settings, context, text.strip()), daemon=True).start()
@@ -399,9 +404,9 @@ class Assistant(AssistantProposals, AssistantFollowup):
                 workdir = self.service.store.root / 'assistant-invocations' / request
                 workdir.mkdir(parents=True, exist_ok=True)
                 with CodexClient(settings, str(workdir), job['cancel']) as client:
-                    text = client.complete(SYSTEM, prompt, settings.get('codex_model', ''), progress)
+                    text = client.complete(SYSTEM+output_instruction(job['output_language']), prompt, settings.get('codex_model', ''), progress)
             else:
-                text = api_complete(settings, settings.get('api_key', ''), SYSTEM, prompt, progress, job['cancel'])
+                text = api_complete(settings, settings.get('api_key', ''), SYSTEM+output_instruction(job['output_language']), prompt, progress, job['cancel'])
             if job['cancel'].is_set():
                 raise Cancelled('问答已停止，之前的对话与研究成果已保留。')
             if not isinstance(text, str) or not text.strip() or len(text) > 80000:
@@ -450,15 +455,17 @@ class Assistant(AssistantProposals, AssistantFollowup):
         return self.state(data)
 
     def export(self, data):
+        from .i18n import tr,format_text
         with self.service.lock:
             state = self.state(data)
-            lines = ['# 研序 AI 助手对话', '\n范围：' + state['title'], '\n导出时间：' + now()]
+            locale=self.service.store.language()['ui_language']
+            lines = ['# '+tr('研序 AI 助手对话',locale), '\n'+format_text('范围：{0}',locale,state['title']), '\n'+format_text('导出时间：{0}',locale,now())]
             for m in state['messages']:
-                lines += ['\n---\n\n## ' + ('用户' if m['role'] == 'user' else '助手') + ' · ' + m['status'], m['text']]
+                lines += ['\n---\n\n## ' + tr('用户' if m['role'] == 'user' else '助手',locale) + ' · ' + m['status'], m['text']]
                 if m.get('proposal'):
-                    lines += ['\n协助草稿与保存记录（不代表实验已执行）：', '```json\n'+json.dumps(m['proposal'],ensure_ascii=False,indent=2)+'\n```']
+                    lines += ['\n'+tr('协助草稿与保存记录（不代表实验已执行）：',locale), '```json\n'+json.dumps(m['proposal'],ensure_ascii=False,indent=2)+'\n```']
                 if m.get('sources'):
-                    lines.append('\n参考范围：' + '、'.join(m['sources']))
+                    lines.append('\n'+format_text('参考范围：{0}',locale,' · '.join(tr(s,locale) for s in m['sources'])))
             return '\n\n'.join(lines).encode('utf-8-sig')
 
     def close(self):

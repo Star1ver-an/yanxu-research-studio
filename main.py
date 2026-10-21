@@ -11,8 +11,9 @@ import subprocess
 import webbrowser
 
 from app.server import LocalServer
-from app.storage import data_directory
+from app.storage import data_directory,Store
 from app.desktop import DesktopInstance
+from app.i18n import tr
 
 class DesktopAPI:
     def __init__(self,service):
@@ -28,7 +29,7 @@ class DesktopAPI:
         import webview
         name,raw,_=self._service.export(pid,fmt,stage)
         result=self._window.create_file_dialog(webview.FileDialog.SAVE,save_filename=name,
-                                      file_types=(f'导出文件 (*.{fmt})',))
+                                      file_types=(tr('导出文件',self._service.store.language()['ui_language'])+f' (*.{fmt})',))
         if result:
             target=Path(result if isinstance(result,str) else result[0])
             target.write_bytes(raw)
@@ -43,7 +44,7 @@ class DesktopAPI:
         import webview
         name,raw,_=self._service.plot_export(pid,{'id':identity,'format':fmt})
         result=self._window.create_file_dialog(webview.FileDialog.SAVE,save_filename=name,
-                                             file_types=(f'绘图文件 (*.{fmt})',))
+                                             file_types=(tr('绘图文件',self._service.store.language()['ui_language'])+f' (*.{fmt})',))
         if result:
             target=Path(result if isinstance(result,str) else result[0])
             target.write_bytes(raw)
@@ -53,7 +54,7 @@ class DesktopAPI:
     def save_assistant_export(self, pid=''):
         import webview
         raw=self._service.assistant.export({'project':pid})
-        result=self._window.create_file_dialog(webview.FileDialog.SAVE,save_filename='研序-AI助手对话.md',
+        result=self._window.create_file_dialog(webview.FileDialog.SAVE,save_filename=tr('研序-AI助手对话',self._service.store.language()['ui_language'])+'.md',
                                               file_types=('Markdown (*.md)',))
         if result:
             target=Path(result if isinstance(result,str) else result[0])
@@ -74,7 +75,7 @@ class DesktopAPI:
     def save_progress_export(self, pid):
         import webview
         raw = self._service.assistant.progress_export({'project': pid})
-        result = self._window.create_file_dialog(webview.FileDialog.SAVE, save_filename='研序-项目进度简报.md',
+        result = self._window.create_file_dialog(webview.FileDialog.SAVE, save_filename=tr('研序-项目进度简报',self._service.store.language()['ui_language'])+'.md',
                                                  file_types=('Markdown (*.md)',))
         if result:
             target = Path(result if isinstance(result, str) else result[0])
@@ -119,6 +120,9 @@ class DesktopAPI:
         return False
 
 def message(text):
+    from app.i18n import tr
+    try:text=tr(text,Store(str(data_directory())).language()['ui_language'])
+    except Exception:pass
     if os.name=='nt':
         ctypes.windll.user32.MessageBoxW(None,text,'研序 Research Studio',0x40)
 

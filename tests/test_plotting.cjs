@@ -1,6 +1,6 @@
 const fs=require('node:fs'),vm=require('node:vm'),assert=require('node:assert/strict'),path=require('node:path');
 const listeners={},els={'meta[name="research-token"]':{content:'test'}};
-const ctx=vm.createContext({document:{querySelector:s=>els[s],querySelectorAll:()=>[],addEventListener:(name,fn)=>(listeners[name]||=[]).push(fn)},window:{addEventListener:()=>{}},localStorage:{getItem:()=>null,setItem:()=>{},removeItem:()=>{}},setTimeout:()=>1,clearTimeout:()=>{},queueMicrotask:()=>{},URL,Date,Intl,FormData:class{},navigator:{clipboard:{writeText:async()=>{}}},crypto:{randomUUID:()=> 'unique-request-id'},console});
+const ctx=vm.createContext({L:value=>value,H:(strings,...values)=>strings.map((part,i)=>part+(i<values.length?values[i]:'')).join(''),document:{querySelector:s=>els[s],querySelectorAll:()=>[],addEventListener:(name,fn)=>(listeners[name]||=[]).push(fn)},window:{addEventListener:()=>{}},localStorage:{getItem:()=>null,setItem:()=>{},removeItem:()=>{}},setTimeout:()=>1,clearTimeout:()=>{},queueMicrotask:()=>{},URL,Date,Intl,FormData:class{},navigator:{clipboard:{writeText:async()=>{}}},crypto:{randomUUID:()=> 'unique-request-id'},console});
 for(const file of ['pathways.js','research.js','plotting.js','app.js'])vm.runInContext(fs.readFileSync(path.join(__dirname,'../web',file),'utf8').replace(/\binit\(\);\s*$/,''),ctx);
 const run=code=>vm.runInContext(code,ctx);
 (async()=>{
