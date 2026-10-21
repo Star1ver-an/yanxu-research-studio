@@ -7,7 +7,7 @@ function start(stored,blocked=false){
  const button={setAttribute:(name,value)=>attributes[name]=value};
  const document={documentElement:{dataset:{}},querySelectorAll:()=>[button],addEventListener:(name,fn)=>handlers[name]=fn};
  const localStorage={getItem:()=>{if(blocked)throw Error('unavailable');return stored},setItem:(...args)=>{if(blocked)throw Error('unavailable');saved.push(args)}};
- const window={};vm.runInNewContext(code,{document,window,localStorage});
+ const window={};vm.runInNewContext(code,{document,window,localStorage,L:value=>value});
  return {document,window,attributes,saved,click:()=>handlers.click({target:{closest:()=>button}})};
 }
 let app=start(null);assert.equal(app.window.ResearchAppearance.current(),'light');

@@ -2,7 +2,7 @@ const fs=require('node:fs'),vm=require('node:vm'),assert=require('node:assert/st
 const id=n=>String(n).padStart(32,'0');
 const bar={innerHTML:''};let lastModal='',apiCalls=[],closed=0;
 const body={classList:{remove(){}},append(){}};
-const ctx=vm.createContext({document:{querySelector:s=>s==='#project-batch-bar'?bar:null,querySelectorAll:()=>[],addEventListener(){},body,createElement:()=>({dataset:{},remove(){}})},window:{addEventListener(){}},
+const ctx=vm.createContext({L:value=>value,H:(strings,...values)=>strings.map((part,i)=>part+(i<values.length?values[i]:'')).join(''),document:{querySelector:s=>s==='#project-batch-bar'?bar:null,querySelectorAll:()=>[],addEventListener(){},body,createElement:()=>({dataset:{},remove(){}})},window:{addEventListener(){}},
  S:{projects:[],catalog:{flows:{full:{name:'完整流程',color:'green',route:'ars'}},stages:{research:{title:'研究探索'}}},view:'projects',filter:'all',query:'',draft:null},
  e:s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])),
  icon:()=>'',button:(a,t,k='',i='',attrs='')=>`<button data-action="${a}" ${attrs}>${t}</button>`,

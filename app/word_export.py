@@ -89,7 +89,7 @@ def inline(paragraph, text, bold=None, italic=None):
                 run.font.size=Pt(10)
 
 
-def make_docx(md, figures=None):
+def make_docx(md, figures=None, locale='zh-CN'):
     """Render reports and trusted figures without resolving arbitrary image URLs.
 
     ``[figure:<id>]`` places a supplied figure in the text. Repeated markers are
@@ -97,6 +97,8 @@ def make_docx(md, figures=None):
     figures are appended in their supplied order, retaining stable numbering.
     """
     prepared_figures = _validated_figures(figures)
+    figure_label={'zh-CN':'图 ','zh-TW':'圖 ','en':'Figure ','ja':'図 ','ko':'그림 '}.get(locale,'Figure ')
+    east_font={'zh-CN':'宋体','zh-TW':'Microsoft JhengHei','en':'Calibri','ja':'Yu Gothic','ko':'Malgun Gothic'}.get(locale,'Calibri')
     document=Document()
     document.core_properties.author=''
     section=document.sections[0]
@@ -111,7 +113,8 @@ def make_docx(md, figures=None):
         style.font.italic=False
         style.font.bold=False
         style.font.size=Pt(11)
-        style._element.get_or_add_rPr().get_or_add_rFonts().set(qn('w:eastAsia'),'宋体')
+        style._element.get_or_add_rPr().get_or_add_rFonts().set(qn('w:eastAsia'),east_font)
+        lang=OxmlElement('w:lang');lang.set(qn('w:val'),locale);lang.set(qn('w:eastAsia'),locale);style._element.rPr.append(lang)
         for attr in ['asciiTheme','hAnsiTheme','eastAsiaTheme','cstheme']:
             style._element.rPr.rFonts.attrib.pop(qn('w:'+attr),None)
         for border in list(style._element.get_or_add_pPr().findall(qn('w:pBdr'))):
@@ -125,7 +128,7 @@ def make_docx(md, figures=None):
         style=document.styles[name]
         style.font.size=Pt(size)
         style.font.bold=True
-        style._element.rPr.rFonts.set(qn('w:eastAsia'),'黑体')
+        style._element.rPr.rFonts.set(qn('w:eastAsia'),'黑体' if locale=='zh-CN' else east_font)
         style.paragraph_format.space_before=Pt(12)
         style.paragraph_format.space_after=Pt(7)
         style.paragraph_format.keep_with_next=True
@@ -139,18 +142,20 @@ def make_docx(md, figures=None):
         figure=prepared_figures.get(identity)
         if figure is None:
             p=document.add_paragraph()
-            inline(p,'〔图表缺失：'+identity+'，请重新关联后导出〕')
+            missing={'zh-CN':'〔图表缺失：{id}，请重新关联后导出〕','zh-TW':'〔圖表缺失：{id}，請重新關聯後匯出〕','en':'[Missing figure: {id}. Relink it before exporting.]','ja':'［図表が見つかりません：{id}。関連付けを確認してからエクスポートしてください。］','ko':'[그림 누락: {id}. 다시 연결한 후 내보내세요.]'}
+            inline(p,missing.get(locale,missing['en']).format(id=identity))
             return
         if identity in placed_figures:
-            inline(document.add_paragraph(),'（见图 '+str(figure['number'])+'）')
+            references={'zh-CN':'（见图 {n}）','zh-TW':'（見圖 {n}）','en':'(See Figure {n})','ja':'（図 {n} 参照）','ko':'(그림 {n} 참조)'}
+            inline(document.add_paragraph(),references.get(locale,references['en']).format(n=figure['number']))
             return
         placed_figures.add(identity)
         caption_text=figure['caption']
         if caption_text.startswith(figure['title']) and (
                 len(caption_text)==len(figure['title']) or caption_text[len(figure['title'])] in '。.:：\n '):
-            caption='图 '+str(figure['number'])+'  '+caption_text
+            caption=figure_label+str(figure['number'])+'  '+caption_text
         else:
-            caption='图 '+str(figure['number'])+'  '+figure['title']
+            caption=figure_label+str(figure['number'])+'  '+figure['title']
             if caption_text:
                 caption+='。'+caption_text
         # Fit the complete figure and a reasonable caption on an A4 page. Only

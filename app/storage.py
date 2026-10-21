@@ -166,6 +166,18 @@ class Store:
             values=[json.loads(r[0]) for r in c.execute('SELECT body FROM projects')]
         return sorted(values,key=lambda p:p['updated'],reverse=True)
 
+    def language(self):
+        with self.connect() as connection:
+            row=connection.execute("SELECT body FROM preferences WHERE key='language_v1'").fetchone()
+        return {'ui_language':'zh-CN',**(json.loads(row[0]) if row else {})}
+
+    def save_language(self,data):
+        from .i18n import language
+        value={'ui_language':language(data.get('ui_language'))}
+        with self.lock,self.connect() as connection:
+            connection.execute('INSERT OR REPLACE INTO preferences VALUES(?,?)',('language_v1',json.dumps(value)))
+        return value
+
     def onboarding(self):
         with self.connect() as c:
             row=c.execute('SELECT body FROM preferences WHERE key=?',('onboarding_v1',)).fetchone()
@@ -194,6 +206,9 @@ class Store:
         return p
 
     def create(self,data):
+        from .i18n import language
+        output=data.get('output_language','auto')
+        if output!='auto':language(output)
         flow=data.get('flow','full')
         if flow not in FLOWS:
             raise ValueError('请选择有效的研究流程。')
@@ -225,7 +240,7 @@ class Store:
                routing_recommendation=recommendation,
                citation=str(data.get('citation','APA 7'))[:100],experiments=declaration,
                requirements=str(data.get('requirements',''))[:20000],created=now(),updated=now(),
-               cursor=0,assets=[],literature=[],runs=[],outputs={},confirmations=[],demo=False)
+               cursor=0,assets=[],literature=[],runs=[],outputs={},confirmations=[],demo=False,output_language=output)
         return self.put(p)
 
     def recover(self):

@@ -213,7 +213,7 @@ def _validate_panels(panels, required=False):
 def _fonts():
     from matplotlib import font_manager
     windir = Path(os.environ.get('WINDIR', 'C:/Windows'))
-    for name in ['msyh.ttc', 'msyh.ttf', 'simsun.ttc', 'simhei.ttf']:
+    for name in ['msyh.ttc', 'msyh.ttf', 'msjh.ttc', 'YuGothR.ttc', 'meiryo.ttc', 'malgun.ttf', 'simsun.ttc', 'simhei.ttf']:
         path = windir / 'Fonts' / name
         if path.is_file():
             try:
@@ -222,7 +222,7 @@ def _fonts():
             except (OSError, RuntimeError):
                 continue
     available = {f.name for f in font_manager.fontManager.ttflist}
-    for name in ['Noto Sans CJK SC', 'Noto Sans SC', 'WenQuanYi Micro Hei', 'Arial Unicode MS']:
+    for name in ['Noto Sans CJK SC','Noto Sans CJK TC','Noto Sans CJK JP','Noto Sans CJK KR','Noto Sans SC', 'WenQuanYi Micro Hei', 'Arial Unicode MS']:
         if name in available:
             return name
     return 'DejaVu Sans'
@@ -701,7 +701,10 @@ def render_figure(spec, sources, fmt='png'):
         from matplotlib.backends.backend_agg import FigureCanvasAgg
         font = _fonts()
         style = spec['style']
-        rc = {'font.family': font, 'font.size': style['font_size'], 'axes.unicode_minus': False,
+        from matplotlib import font_manager
+        available_fonts={item.name for item in font_manager.fontManager.ttflist}
+        font_family=[font]+[name for name in ['Microsoft JhengHei','Yu Gothic','Meiryo','Malgun Gothic','Noto Sans CJK JP','Noto Sans CJK KR','DejaVu Sans'] if name!=font and name in available_fonts]
+        rc = {'font.family': font_family, 'font.size': style['font_size'], 'axes.unicode_minus': False,
               'text.usetex': False, 'text.parse_math': False, 'figure.facecolor': 'white', 'axes.facecolor': 'white',
               'svg.fonttype': 'path', 'pdf.fonttype': 42, 'axes.spines.top': False, 'axes.spines.right': False,
               'axes.edgecolor': '#87939F', 'axes.labelcolor': '#293641', 'xtick.color': '#465461', 'ytick.color': '#465461',

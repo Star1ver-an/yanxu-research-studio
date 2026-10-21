@@ -23,6 +23,15 @@ FEATURES = {
 
 def feature_for(text):
     if not isinstance(text, str): return None
+    for target,pattern in [
+        ('paper',r'paper figures?|manuscript figures?|論文圖表|論文図表|論文の図表|논문.*도표|논문.*그림'),
+        ('analysis',r'data analysis|statistical analysis|資料分析|數據分析|データ分析|統計分析|데이터 분석|통계 분석'),
+        ('drawing',r'draw|plot|create.*figure|繪圖|作圖|図を|作図|グラフ|描画|그리기|그래프|그림'),
+        ('experiments',r'experiment(?:al)? (?:plan|design)|實驗方案|實驗設計|実験計画|実験設計|실험 설계|실험 계획'),
+        ('settings',r'connection settings|model settings|接続設定|モデル設定|연결 설정|모델 설정'),
+        ('backups',r'backup|バックアップ|백업'),('materials',r'upload|import materials|アップロード|資料の読|업로드|자료 가져'),
+    ]:
+        if re.search(pattern,text,re.I):return target
     for target, pattern in [
         ('paper', r'整篇.*图表|论文图表|图表交付|组合图|图形摘要'),
         ('analysis', r'数据分析|统计分析|原始数据.*出图'),
@@ -38,9 +47,10 @@ def feature_for(text):
 def navigation_intent(text):
     """Only explicit short entry questions bypass the model and context preview."""
     if not isinstance(text,str) or len(text)>250 or re.search(r'不要|不用|别|无需|not\b|don.t\b',text,re.I): return None
-    if not re.search(r'哪里|哪儿|入口|从哪|如何进入|怎么进入|怎么打开|如何打开|带我|跳转|打开.*(?:页|功能|绘图|分析|图表|方案|设置|备份|材料|记录)|进入.*(?:页|绘图|分析|图表|方案|设置|备份|材料|流程)',text): return None
+    if re.search(r"don.t|do not|without|하지 마|하지마|しない|不要|不用",text,re.I):return None
+    if not re.search(r'where|how (?:do|can|to).*?(?:open|access|find)|take me|open|どこ|開く|開いて|어디|열어|哪裡|從哪|進入|開啟|打開|哪里|哪儿|入口|从哪|如何进入|怎么进入|怎么打开|如何打开|带我|跳转|打开.*(?:页|功能|绘图|分析|图表|方案|设置|备份|材料|记录)|进入.*(?:页|绘图|分析|图表|方案|设置|备份|材料|流程)',text,re.I): return None
     # Questions also asking for analysis, evaluation or authored content remain AI questions.
-    if re.search(r'帮我(?:分析|设计|生成|计算|写)|如何(?:分析|设计|计算)|以及|并且|然后.*(?:分析|设计|计算)',text): return None
+    if re.search(r'帮我(?:分析|设计|生成|计算|写)|如何(?:分析|设计|计算)|以及|并且|然后.*(?:分析|设计|计算)|help me (?:analy[sz]e|design|calculate|write)|and (?:analy[sz]e|calculate)',text,re.I): return None
     return feature_for(text)
 
 

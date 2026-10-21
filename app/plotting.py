@@ -342,6 +342,8 @@ class Plotting:
         return summaries
 
     def _plot_ai_request(self,pid,data,kind,system,prompt,validate):
+        from .i18n import output_language,output_instruction
+        system+=output_instruction(output_language(self.store.get(pid),self.store))
         request_id=data.get('request_id')
         if not isinstance(request_id,str) or not re.fullmatch('[a-zA-Z0-9_-]{16,80}',request_id):
             raise ValueError('本次 AI 请求缺少有效编号，请重新点击生成。')

@@ -9,6 +9,7 @@ import threading
 import time
 import uuid
 import zipfile
+from .i18n import output_language
 from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
 
@@ -360,7 +361,8 @@ class PaperFigures:
             job = {'id': identity, 'pid': pid, 'kind': kind, 'status': 'queued', 'progress': '已排队',
                 'request_id':request,'fingerprint':fingerprint,
                 'cancel': threading.Event(), 'started': time.monotonic(), 'basis': basis,
-                'snapshot': copy.deepcopy(p), 'data': copy.deepcopy(data), 'candidates': candidates, 'skipped': skipped}
+                'snapshot': copy.deepcopy(p), 'data': copy.deepcopy(data), 'candidates': candidates, 'skipped': skipped,
+                'output_language':output_language(p,self.store)}
             self.paper_jobs[identity] = job
             self.paper_worker.submit(self._paper_run_job, job)
             return self.paper_job(pid, {'id': identity})
@@ -427,6 +429,8 @@ class PaperFigures:
     def _paper_delivery(self, job):
         from .word_export import make_docx
         from .workflows import VERSION, STAGES
+        from .i18n import tr
+        locale=job.get('output_language','zh-CN')
         p = job['snapshot']; record = plan_record(p); plan = record['plan']; audit = paper_audit(p)
         selected = [e for e in plan['entries'] if e['include']]; rows = {r['id']: r for r in figures(p)}
         output = io.BytesIO(); total_bytes = 0; images = []; manifest_rows = []; included_sources = {}
@@ -461,15 +465,16 @@ class PaperFigures:
                 if job['data'].get('include_sources'):
                     for source in self._plot_sources(p, row['spec']['source_ids']): included_sources[source['id']] = source
             self._paper_check_cancel(job)
-            parts = ['# 论文图表交付', plan['title'], '图表按本清单编号。本文与图注来自当前已保存版本，研究结论由作者核对。']
+            parts = ['# '+tr('论文图表交付',locale), plan['title'], tr('图表按本清单编号。本文与图注来自当前已保存版本，研究结论由作者核对。',locale)]
             for sid in plan['stages']:
                 text = p.get('outputs', {}).get(sid, {}).get('text', '')
-                if text: parts.extend(['## ' + STAGES.get(sid, {}).get('title', sid), text])
-            if not plan['stages']: parts.append('未选择稿件正文。以下附上已保存图表与图注。')
+                if text: parts.extend(['## ' + tr(STAGES.get(sid, {}).get('title', sid),locale), text])
+            if not plan['stages']: parts.append(tr('未选择稿件正文。以下附上已保存图表与图注。',locale))
             md = '\n\n'.join(parts)
-            docx = make_docx(md, images)
+            docx = make_docx(md, images,locale=locale)
             write(archive, '论文与图表.docx', docx); write(archive, '正文与插图标记.md', md)
-            write(archive, '图注清单.txt', '\n\n'.join(f"图 {i}  {r['title']}\n{r.get('caption','')}" for i, r in enumerate([rows[e['figure_id']] for e in selected], 1)))
+            figure_label={'zh-CN':'图','zh-TW':'圖','en':'Figure','ja':'図','ko':'그림'}[locale]
+            write(archive, '图注清单.txt', '\n\n'.join(f"{figure_label} {i}  {r['title']}\n{r.get('caption','')}" for i, r in enumerate([rows[e['figure_id']] for e in selected], 1)))
             write(archive, '检查报告.json', json.dumps(audit, ensure_ascii=False, indent=2))
             for key, raw in self.analysis_bundle({'plotting': {'figures': [rows[e['figure_id']] for e in selected]}, 'assets': p['assets'], 'id': p['id']}).items():
                 write(archive, 'analysis-results/' + key + '.json', raw)

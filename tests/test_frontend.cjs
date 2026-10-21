@@ -3,7 +3,7 @@ const vm=require('node:vm');
 const assert=require('node:assert/strict');
 const source=fs.readFileSync(require('node:path').join(__dirname,'../web/app.js'),'utf8').replace(/\binit\(\);\s*$/,'');
 const els={'meta[name="research-token"]':{content:'test'},'#file-input':{value:'selected'}};
-const ctx=vm.createContext({document:{querySelector:s=>els[s],addEventListener:()=>{}},window:{},setTimeout:()=>1,clearTimeout:()=>{},Uint8Array,btoa:s=>Buffer.from(s,'binary').toString('base64')});
+const ctx=vm.createContext({L:value=>value,H:(strings,...values)=>strings.map((part,i)=>part+(i<values.length?values[i]:'')).join(''),document:{querySelector:s=>els[s],addEventListener:()=>{}},window:{},setTimeout:()=>1,clearTimeout:()=>{},Uint8Array,btoa:s=>Buffer.from(s,'binary').toString('base64')});
 vm.runInContext(fs.readFileSync(require('node:path').join(__dirname,'../web/pathways.js'),'utf8'),ctx);
 vm.runInContext(source,ctx);
 const run=code=>vm.runInContext(code,ctx);

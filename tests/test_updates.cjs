@@ -3,7 +3,7 @@ const elements={'#update-ack':{checked:false},'#update-badge':{classList:{toggle
  '#update-settings-status':{},'#update-status':{classList:{toggle(){}}},'#update-details':{innerHTML:'',dataset:{}},
  '#update-auto':{},'#update-ack-label':{},'#update-actions':{innerHTML:'',dataset:{}}};
 let calls=[];
-const ctx=vm.createContext({document:{addEventListener(){}},$:s=>elements[s],
+const ctx=vm.createContext({L:value=>value,H:(strings,...values)=>strings.map((part,i)=>part+(i<values.length?values[i]:'')).join(''),document:{addEventListener(){}},$:s=>elements[s],
  S:{catalog:{version:'0.2.3'},draft:null},e:s=>String(s).replaceAll('<','&lt;').replaceAll('>','&gt;'),
  icon:()=>'',button:(action,label)=>`<button data-action="${action}">${label}</button>`,
  api:async(p,d)=>{calls.push([p,d]);return {}},setTimeout:()=>1,clearTimeout(){},toast(){},modal(){}});

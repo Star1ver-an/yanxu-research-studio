@@ -24,6 +24,7 @@ from .followup import followup
 from .plotting import Plotting
 from .analysis_jobs import AnalysisJobs
 from .paper_figures import PaperFigures
+from .i18n import output_language,output_instruction,language,tr
 
 class Service(ProjectManagement,ResearchTools,Plotting,AnalysisJobs,PaperFigures):
     def __init__(self,store=None):
@@ -201,6 +202,10 @@ class Service(ProjectManagement,ResearchTools,Plotting,AnalysisJobs,PaperFigures
         with self.lock:
             p=self.store.get(pid)
             self.assert_idle(p)
+            if 'output_language' in data:
+                value=data['output_language']
+                if value!='auto':language(value)
+                p['output_language']=value
             old_info={k:p[k] for k in ('title','topic','discipline','requirements','citation','experiments')}
             for k in ('title','topic','discipline','requirements','citation'):
                 if k in data:
@@ -277,7 +282,7 @@ class Service(ProjectManagement,ResearchTools,Plotting,AnalysisJobs,PaperFigures
         config={k:p[k] for k in ('title','topic','discipline','citation','requirements','experiments')}
         config.update(route=p.get('route','ars'),goal=p.get('goal','unsure'),data_kind=p.get('data_kind','unknown'),
                       selected_skill=p.get('selected_skill',''))
-        chunks=['作者声明与任务配置：\n'+json.dumps(config,ensure_ascii=False,indent=2)]
+        chunks=[output_instruction(output_language(p,self.store)),'作者声明与任务配置：\n'+json.dumps(config,ensure_ascii=False,indent=2)]
         chunks += ['\n作者本次要求：\n'+note]
         if p.get('research',{}).get('enabled'):
             chunks.append('\n研究工具记录（由作者整理，完成状态不是真实性认证；实验计划不得写成已执行结果）。如引用库中文献，请使用 [@完整文献ID] 标记，不得虚构ID；未核实的支持关系应保留待核实。书目核对不等于全文支持：\n'+json.dumps(p['research'],ensure_ascii=False))
@@ -328,6 +333,8 @@ class Service(ProjectManagement,ResearchTools,Plotting,AnalysisJobs,PaperFigures
                      provider=settings['provider'] if settings['mode']=='api' else None,
                      route=route,context_chars=len(context),source_commit=commit,selected_skill=p.get('selected_skill',''))
             run['note']=str(data.get('note',''))[:20000]
+            run['output_language']=output_language(p,self.store)
+            settings['output_language']=run['output_language']
             p['runs'].append(run)
             self.store.put(p)
             self.jobs[rid]={'cancel':threading.Event(),'progress':'正在准备本机计算' if STAGES[sid].get('local') else '正在连接模型','partial':''}
@@ -341,6 +348,7 @@ class Service(ProjectManagement,ResearchTools,Plotting,AnalysisJobs,PaperFigures
         def progress(label,partial=''):
             job.update(progress=label,partial=partial)
         def complete(system,prompt):
+            system+=output_instruction(settings.get('output_language','zh-CN'))
             if cancel.is_set():
                 raise Cancelled('任务已停止，已保存之前的成果。')
             if settings['mode']=='codex':
@@ -360,7 +368,7 @@ class Service(ProjectManagement,ResearchTools,Plotting,AnalysisJobs,PaperFigures
             if s.get('local'):
                 from .data_tools import table_report
                 progress('正在本机计算表格质控')
-                text,execution=table_report(project['assets'])
+                text,execution=table_report(project['assets'],settings.get('output_language','zh-CN'))
             elif scientific:
                 from .scientific import method_context
                 text=complete(system+method_context(s,project.get('selected_skill','')),context)
@@ -372,7 +380,7 @@ class Service(ProjectManagement,ResearchTools,Plotting,AnalysisJobs,PaperFigures
                 for i,(label,agent) in enumerate(roles):
                     progress(f'审阅视角 {i+1}/5：{label}')
                     result=complete(system+role_context(s,agent)+'\n本次只从“'+label+'”视角审阅。',context)
-                    reports.append('## '+label+'\n\n'+result)
+                    reports.append('## '+tr(label,settings.get('output_language','zh-CN'))+'\n\n'+result)
                     job['partial']='\n\n---\n\n'.join(reports)
                 progress('正在汇总修改路线')
                 synthesis=complete(system+'\n依据五份模拟审阅报告，合并重复问题，保留分歧，输出按重要性排序的修改路线。不得给出正式录用承诺。',
@@ -396,7 +404,7 @@ class Service(ProjectManagement,ResearchTools,Plotting,AnalysisJobs,PaperFigures
                 snapshot(p,sid,'重新生成报告前')
                 self.invalidate(p,FLOWS[p['flow']]['stages'].index(sid))
                 p['outputs'][sid]=dict(text=text,approved=False,stale=False,run=rid,created=now(),
-                                      verification='human_review_required')
+                                      verification='human_review_required',output_language=settings.get('output_language','zh-CN'))
                 r=next(r for r in p['runs'] if r['id']==rid)
                 r.update(status='completed',finished=now(),output_chars=len(text))
                 if provider_details:
@@ -436,29 +444,30 @@ class Service(ProjectManagement,ResearchTools,Plotting,AnalysisJobs,PaperFigures
 
     def export(self,pid,fmt='md',sid=''):
         p=self.store.get(pid)
+        locale=self.store.language()['ui_language']
         name=re.sub(r'[<>:"/\\|?*\x00-\x1f]','_',p['title']).rstrip(' .')[:90] or '研究项目'
         stages=FLOWS[p['flow']]['stages']
         route=FLOWS[p['flow']]['route']
         from .routing import ROUTES
-        source_note='研究路径：'+ROUTES[route]['name']+' · '+ROUTES[route]['source']
+        source_note=tr('研究路径：',locale)+tr(ROUTES[route]['name'],locale)+' · '+ROUTES[route]['source']
         if route=='scientific':
             from .scientific import manifest
             source_note+=' · '+manifest()['version']+' · '+manifest()['commit']
         chosen=[sid] if sid in stages else stages
-        parts=['# '+p['title'],'> 研序 Research Studio 导出 · '+now()+'\n> '+source_note+'\n> AI 辅助内容须由作者核实。']
+        parts=['# '+p['title'],'> '+tr('研序 Research Studio 导出',locale)+' · '+now()+'\n> '+source_note+'\n> '+tr('AI 辅助内容须由作者核实。',locale)]
         for key in chosen:
             if key in p['outputs']:
                 o=p['outputs'][key]
                 state='已过期，需重新运行' if o.get('stale') else ('成果已确认' if o.get('approved') else '待确认')
-                parts+=['\n---\n\n# '+STAGES[key]['title']+'\n\n> '+state+'\n\n'+o['text']]
+                parts+=['\n---\n\n# '+tr(STAGES[key]['title'],locale)+'\n\n> '+tr(state,locale)+'\n\n'+o['text']]
         if len(parts)==2:
-            parts.append('\n尚无阶段报告。\n\n研究目标：'+p['topic'])
+            parts.append('\n'+tr('尚无阶段报告。',locale)+'\n\n'+tr('研究目标：',locale)+p['topic'])
         md='\n\n'.join(parts)
         md=bibliography(p,md)
         if fmt=='md':
             return name+'.md',md.encode('utf-8-sig'),'text/markdown'
         if fmt=='docx':
-            return name+'.docx',make_docx(md,self.plot_word_figures(pid,sid if sid in stages else '')),'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
+            return name+'.docx',make_docx(md,self.plot_word_figures(pid,sid if sid in stages else ''),locale=locale),'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
         if fmt=='json':
             return name+'.json',json.dumps({'format':'yanxu-project-v1','project':p},ensure_ascii=False,indent=2).encode('utf-8'),'application/json'
         if fmt=='zip':
@@ -478,6 +487,6 @@ class Service(ProjectManagement,ResearchTools,Plotting,AnalysisJobs,PaperFigures
         raise ValueError('不支持的导出格式。')
 
 
-def make_docx(md,figures=None):
+def make_docx(md,figures=None,locale='zh-CN'):
     from .word_export import make_docx as build
-    return build(md,figures=figures)
+    return build(md,figures=figures,locale=locale)

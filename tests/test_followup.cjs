@@ -1,6 +1,6 @@
 const fs=require('node:fs'),vm=require('node:vm'),assert=require('node:assert/strict'),path=require('node:path');
 const els={'meta[name="research-token"]':{content:'test'}},events={};
-const ctx=vm.createContext({document:{querySelector:s=>els[s],getElementById:()=>null,addEventListener:(type,fn)=>(events[type]||=[]).push(fn),body:{classList:{toggle(){}}}},
+const ctx=vm.createContext({L:value=>value,H:(strings,...values)=>strings.map((part,i)=>part+(i<values.length?values[i]:'')).join(''),document:{querySelector:s=>els[s],getElementById:()=>null,addEventListener:(type,fn)=>(events[type]||=[]).push(fn),body:{classList:{toggle(){}}}},
  window:{history:{pushState(){}},scrollTo(){},addEventListener(){}},crypto:require('node:crypto').webcrypto,setTimeout:()=>1,clearTimeout(){},URL,Date,Intl,Set,Map,structuredClone,console});
 for(const file of ['research.js','assistant.js','assistant-proposals.js','followup.js','app.js'])vm.runInContext(fs.readFileSync(path.join(__dirname,'../web',file),'utf8').replace(/\binit\(\);\s*$/,''),ctx);
 const run=code=>vm.runInContext(code,ctx);

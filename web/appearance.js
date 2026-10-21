@@ -8,8 +8,8 @@
   document.documentElement.dataset.theme=theme;
   document.querySelectorAll('[data-action="toggle-theme"]').forEach(button=>{
    button.setAttribute('aria-pressed',String(theme==='dark'));
-   button.setAttribute('aria-label',theme==='dark'?'切换为浅色主题':'切换为深色主题');
-   button.title=theme==='dark'?'切换为浅色主题':'切换为深色主题';
+   button.setAttribute('aria-label',theme==='dark'?L('切换为浅色主题'):L('切换为深色主题'));
+   button.title=theme==='dark'?L('切换为浅色主题'):L('切换为深色主题');
   });
  }
  apply(theme);

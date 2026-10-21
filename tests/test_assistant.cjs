@@ -1,6 +1,6 @@
 const fs=require('node:fs'),vm=require('node:vm'),assert=require('node:assert/strict'),path=require('node:path');
 const events={},els={'meta[name="research-token"]':{content:'test'}};
-const ctx=vm.createContext({document:{querySelector:s=>els[s],getElementById:()=>null,addEventListener:(type,fn)=>(events[type]||=[]).push(fn),body:{classList:{toggle:()=>{}}}},window:{history:{pushState:()=>{}}},crypto:require('node:crypto').webcrypto,setTimeout:()=>1,clearTimeout:()=>{},URL,Date,Intl,Set,console});
+const ctx=vm.createContext({L:value=>value,H:(strings,...values)=>strings.map((part,i)=>part+(i<values.length?values[i]:'')).join(''),document:{querySelector:s=>els[s],getElementById:()=>null,addEventListener:(type,fn)=>(events[type]||=[]).push(fn),body:{classList:{toggle:()=>{}}}},window:{history:{pushState:()=>{}}},crypto:require('node:crypto').webcrypto,setTimeout:()=>1,clearTimeout:()=>{},URL,Date,Intl,Set,console});
 for(const file of ['assistant.js','app.js'])vm.runInContext(fs.readFileSync(path.join(__dirname,'../web',file),'utf8').replace(/\binit\(\);\s*$/,''),ctx);
 const run=code=>vm.runInContext(code,ctx);
 (async()=>{

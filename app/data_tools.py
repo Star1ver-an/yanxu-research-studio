@@ -60,35 +60,37 @@ def profile_csv(name,text):
         sha256=hashlib.sha256(text.encode('utf-8')).hexdigest(),fields=columns)
 
 
-def table_report(assets):
+def table_report(assets,locale='zh-CN'):
+    from .i18n import tr,format_text
+    def t(source,*args):return format_text(source,locale,*args) if args else tr(source,locale)
     tables=[a for a in assets if a.get('enabled',True) and a['name'].lower().endswith(('.csv','.tsv'))]
     if not tables:raise ValueError('请先在“文献与材料”导入并启用真实 CSV/TSV 表格，再运行本机质控。')
     profiles=[profile_csv(a['name'],a['text']) for a in tables]
     def cell(text):return str(text).replace('|','\\|').replace('\n',' ').replace('\r',' ')
     def number(n):return '—' if n is None else format(n,'.6g')
-    body=['# 本机表格数据质控','> 以下数字由应用在本机实际计算；未调用 AI 模型。未运行假设检验、差异表达或因果分析。']
+    body=[t('# 本机表格数据质控'),t('> 以下数字由应用在本机实际计算；未调用 AI 模型。未运行假设检验、差异表达或因果分析。')]
     for p in profiles:
-        body += ['\n## '+cell(p['name']),f"数据行：{p['rows']}；列数：{p['columns']}；完全重复的额外行：{p['duplicate_rows']}。",
-            '完全重复不等于错误样本，请结合样本 ID 和采集记录判断。',
-            '| 列名 | 类型 | 缺失 | 非数值 | 非有限数 | 非空唯一值 |','|---|---|---:|---:|---:|---:|']
+        body += ['\n## '+cell(p['name']),t('数据行：{0}；列数：{1}；完全重复的额外行：{2}。',p['rows'],p['columns'],p['duplicate_rows']),
+            t('完全重复不等于错误样本，请结合样本 ID 和采集记录判断。'),
+            t('| 列名 | 类型 | 缺失 | 非数值 | 非有限数 | 非空唯一值 |'),'|---|---|---:|---:|---:|---:|']
         for f in p['fields']:
-            body.append(f"| {cell(f['name'])} | {dict(numeric='数值',mixed='混合',text='文本')[f['kind']]} | {f['missing']} | {f['nonnumeric']} | {f['nonfinite']} | {f['unique']} |")
-        body += ['\n### 待核对位置','数据行从 1 开始，不包含列名行；多行引用字段按一条数据记录计数。每类最多展示前 20 个位置；全部数量见上表。文本列的非数值通常是正常文本，混合列需结合字段含义核对。']
+            body.append(f"| {cell(f['name'])} | {dict(numeric=t('数值'),mixed=t('混合'),text=t('文本'))[f['kind']]} | {f['missing']} | {f['nonnumeric']} | {f['nonfinite']} | {f['unique']} |")
+        body += [t('\n### 待核对位置'),t('数据行从 1 开始，不包含列名行；多行引用字段按一条数据记录计数。每类最多展示前 20 个位置；全部数量见上表。文本列的非数值通常是正常文本，混合列需结合字段含义核对。')]
         locations=[]
         for f in p['fields']:
-            for kind,label in [('missing','缺失'),('nonnumeric','非数值'),('nonfinite','非有限数')]:
+            for kind,label in [('missing',t('缺失')),('nonnumeric',t('非数值')),('nonfinite',t('非有限数'))]:
                 if kind=='nonnumeric' and f['kind']=='text':continue
-                if f['locations'][kind]:locations.append(f"- {cell(f['name'])} · {label}：数据行 "+'、'.join(map(str,f['locations'][kind])))
+                if f['locations'][kind]:locations.append(t('- {0} · {1}：数据行 ',cell(f['name']),label)+'、'.join(map(str,f['locations'][kind])))
         for item in p['duplicate_examples']:
-            locations.append(f"- 完全重复：数据行 {item['row']} 与数据行 {item['first_row']} 相同。")
-        body += locations or ['未发现上述待核对位置。']
+            locations.append(t('- 完全重复：数据行 {0} 与数据行 {1} 相同。',item['row'],item['first_row']))
+        body += locations or [t('未发现上述待核对位置。')]
         numeric=[f for f in p['fields'] if f['kind']=='numeric']
         if numeric:
-            body += ['\n### 数值列描述统计','标准差采用样本标准差（分母 n-1）；n=1 时不计算。这里只按列汇总，不比较处理组。','| 列名 | n | 均值 | 中位数 | 标准差 | 最小值 | 最大值 |','|---|---:|---:|---:|---:|---:|---:|']
+            body += [t('\n### 数值列描述统计'),t('标准差采用样本标准差（分母 n-1）；n=1 时不计算。这里只按列汇总，不比较处理组。'),t('| 列名 | n | 均值 | 中位数 | 标准差 | 最小值 | 最大值 |'),'|---|---:|---:|---:|---:|---:|---:|']
             for f in numeric:
                 body.append('| '+' | '.join([cell(f['name']),str(f['n'])]+[number(f[k]) for k in ['mean','median','sd','minimum','maximum']])+' |')
-        body += ['\n输入文本 SHA-256：`'+p['sha256']+'`。']
-    body += ['\n## 待研究者确认','确认样本/实验单位、列含义、分组、缺失值编码和重复记录处理。本步骤仅检查通用表格结构，不替代特定分析工具的输入验证。',
-             '\n## 证据与局限','空白、NA、N/A、null、none 视为缺失；NaN/Inf 记为非有限数。混合列不自动计算数值统计。均值和标准差不代表组间效应或显著性；当前计算不验证数据真实性。']
+        body += [t('\n输入文本 SHA-256：`')+p['sha256']+'`。']
+    body += [t('\n## 待研究者确认'),t('确认样本/实验单位、列含义、分组、缺失值编码和重复记录处理。本步骤仅检查通用表格结构，不替代特定分析工具的输入验证。'),
+             t('\n## 证据与局限'),t('空白、NA、N/A、null、none 视为缺失；NaN/Inf 记为非有限数。混合列不自动计算数值统计。均值和标准差不代表组间效应或显著性；当前计算不验证数据真实性。')]
     return '\n'.join(body),dict(tool='local-csv-profile-v2',status='completed',profiles=profiles,
         network=False,model_called=False)

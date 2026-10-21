@@ -1,6 +1,6 @@
 const fs=require('node:fs'),vm=require('node:vm'),assert=require('node:assert/strict'),path=require('node:path');
 const store=new Map(),els={'meta[name="research-token"]':{content:'test'}};
-const ctx=vm.createContext({document:{querySelector:s=>els[s],querySelectorAll:()=>[],addEventListener:()=>{}},window:{addEventListener:()=>{}},localStorage:{getItem:k=>store.get(k)||null,setItem:(k,v)=>store.set(k,v),removeItem:k=>store.delete(k)},setTimeout:()=>1,clearTimeout:()=>{},queueMicrotask:()=>{},URL,Date,Intl,FormData:class{},navigator:{clipboard:{writeText:async()=>{}}}});
+const ctx=vm.createContext({L:value=>value,H:(strings,...values)=>strings.map((part,i)=>part+(i<values.length?values[i]:'')).join(''),document:{querySelector:s=>els[s],querySelectorAll:()=>[],addEventListener:()=>{}},window:{addEventListener:()=>{}},localStorage:{getItem:k=>store.get(k)||null,setItem:(k,v)=>store.set(k,v),removeItem:k=>store.delete(k)},setTimeout:()=>1,clearTimeout:()=>{},queueMicrotask:()=>{},URL,Date,Intl,FormData:class{},navigator:{clipboard:{writeText:async()=>{}}}});
 for(const file of ['pathways.js','research.js','app.js'])vm.runInContext(fs.readFileSync(path.join(__dirname,'../web',file),'utf8').replace(/\binit\(\);\s*$/,''),ctx);
 const run=code=>vm.runInContext(code,ctx);
 (async()=>{
