@@ -142,7 +142,8 @@ class Handler(BaseHTTPRequestHandler):
                     return self.reply(service.assistant.export(data),mime='text/markdown; charset=utf-8')
                 if action=='progress-export':
                     return self.reply(service.assistant.progress_export(data),mime='text/markdown; charset=utf-8')
-                operations={'state':service.assistant.state,'preview':service.assistant.preview,
+                operations={'catalog':service.assistant.catalog,'navigate':service.assistant.navigate,
+                            'state':service.assistant.state,'preview':service.assistant.preview,
                             'send':service.assistant.send,'stop':service.assistant.stop,'clear':service.assistant.clear,
                             'proposal-preview':service.assistant.proposal_preview,
                             'proposal-apply':service.assistant.proposal_apply,

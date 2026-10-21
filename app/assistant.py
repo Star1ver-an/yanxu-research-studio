@@ -13,6 +13,7 @@ from .project_management import lifecycle
 from .providers import CodexClient, api_complete, Cancelled, ProviderError
 from .assistant_proposals import AssistantProposals, KINDS, proposal_instruction
 from .followup import AssistantFollowup, project_stamp, changed_basis, memory_state
+from .navigation import FEATURES, feature_for, feature_catalog, navigation_intent, guidance, destination
 
 MAX_MESSAGES = 200
 MAX_CONTEXT = 120000
@@ -33,14 +34,16 @@ KNOWLEDGE = """研序软件指南（与当前版本一起维护）
 流程：先运行当前阶段，阅读成果，再由用户确认后推进；核验阶段需要勾选已阅读声明。实验来源“未决定”会阻止确认，须在项目概况明确。确认只是操作记录，不认证科研真实性。修改前序报告、材料、研究目标或已启用的研究工具记录会使后续成果需要重核。历史成果不会被抹去，可到研究工具的版本恢复比较。
 上传：在项目的文献与材料中导入 PDF、DOCX、TXT、MD、CSV、TSV、XLSX、PNG、JPG、RIS、NBIB、BibTeX、JSON，单文件20MB，项目最多80份。扫描PDF需先OCR；没有内置OCR。检索可用Crossref或PubMed，Crossref适合计算机相关文献；结果默认待筛，用户勾选后才加入研究。限定词用逗号、分号、换行分隔，保留英文短语。元数据和摘要不等于全文证据。
 研究工具：证据摘录须对应材料原文；实验方案记录基线、控制变量、数据划分、指标、独立统计单位、种子、重复和算力。它不自动训练模型或执行任意代码。本机CSV/TSV质控只计算结构、缺失、非数值、非有限值、重复位置和按列描述统计；不自动去重填补、不进行组间检验，不代表真实模型性能。
-科研绘图：项目→研究工具→图表与绘图，或材料卡“用于绘图”。CSV/TSV/XLSX和PNG/JPG图片支持20MB单文件；Excel仅首表且公式需先转数值。先选材料描述用途，本机推荐不消耗模型；也可无数据画可编辑技术路线。17种图型覆盖折线、散点、柱形、箱线、小提琴、直方、热图、混淆矩阵、火山、MA、森林、ROC、PR、生存曲线、富集点图、技术路线及原图拼版。专业曲线导入已有分析结果；不拟合生存、计算AUC、Meta合并效应或运行组学分析，不生成显著性/误差线。柱图默认逐行，均值汇总需显式选择并保留原始点。框图属于示意或假说，不是实验结果。拼版保留原图，不能生成实验图或虚构比例尺。
+科研绘图：项目→研究工具→图表与绘图，分为绘图与结果重绘、数据分析→出图、整篇论文图表三个工作方式。已有数据重绘包括通用/AI曲线、已有统计结果、技术路线及原图拼版，不凭空补实验。数据分析提供20个方法入口，包含生存/竞争风险/Cox、预测评估/逻辑回归、Meta、组学、单细胞/空间、变异与流式等；按原始数据类型明确选方法、字段、研究条件，预检后才计算。高级组件依赖按需安装，缺少时以实际环境检测为准。整篇论文图表支持清单排序、固定子图组合、统一样式、来源替换、正文变更定位、可编辑图形摘要及Word交付。分析换数据需重算并重新确认研究条件；普通样式修改复用冻结结果。组合SVG保留矢量，组合PNG/TIFF/PDF为栅格并附单图矢量。技术检查不代表科学验证或期刊认可。
 AI改图：仅点击AI选图或生成修改方案才调用当前连接，默认发送用途、列名类型计数和配方，不发预览数据行或原图像素。AI返回有限结构配方，先检查逐项改动，再应用到草稿并保存；不会执行任意模型代码。同一请求复用回执，失败不自动重试。标题、颜色、字体、撤销、重绘与导出在本机完成。图表保留来源SHA-256、10份历史及实验/阶段/稿件位置；复制项目和完整ZIP备份恢复后仍可编辑。图表来源与关联实验变化须复核。导出PNG/SVG/PDF/TIFF或配方来源包；Word自动附保存图，正文[figure:图表完整ID]可定位，重复标记显示交叉引用。Word图注仍须作者核对。单图配方包含原始材料，分享前注意授权；恢复可编辑项目使用项目ZIP或整库备份。
 连接：本机Codex复用正常ChatGPT登录，不会自动切到API。找不到入口时在模型与连接检测或指定路径，未登录时由用户在Codex中登录。API支持Chat Completions兼容与Anthropic Messages；用户在设置保存协议、地址、模型和密钥后测试连接。401检查密钥，403检查权限，404检查端点和模型，429检查额度并稍后重试，超时检查网络。不能凭错误提示断言服务商故障；助手不会读取或展示密钥。
 导出：项目右上角导出Markdown、Word DOCX、JSON、含原始材料的ZIP。JSON不是完整备份。Word是通用引用格式，不是完整CSL，也没有Zotero动态域。整篇报告暂不导出PDF，不提供LaTeX排版或一键投稿；单图可在图表与绘图中导出PDF。备份与恢复先预览，再恢复为独立副本，报告需重新确认。
 管理：研究项目列表可批量重命名、置顶、归档、创建副本、移入回收站及恢复；永久删除另需确认。归档和回收站项目须恢复后才能编辑。运行中的研究任务需先等待或停止。
 持续跟进：项目默认打开“继续研究”，汇总下一步、跨阶段检查、过期建议与进度简报。检查已登记的引用、材料关联、实验缺项与任务状态，不认证科学结论。提醒可以稍后处理，同一依据不重复提醒，内容变化会重新出现。用户可以添加、编辑或停用项目记忆，仅供本项目助手参考，不自动写成事实或改写报告。启用记忆随提问发送，可在参考范围取消。旧建议可按最新内容复核，先恢复原问题并检查参考范围，新增材料需主动勾选。进度简报可复制或保存。
-AI助手：本机指导不调用模型；自由问答使用当前已保存的连接，每次一次请求。普通问答不写入研究内容；用户可明确选择研究待办、实验方案、修改意见或报告修改草稿。生成后先编辑核对，再预览影响并确认保存。不会执行实验、运行阶段或替用户确认成果。只有应用提供的保存预览可以写入。实验草稿固定研究计划，意见固定AI建议、未处理。报告修改保留原快照并使受影响成果重核；本机计算报告不能替换。项目对话各自保存，工作区对话不读取任何项目内容。项目聊天包含在项目JSON/ZIP和整库备份；复制或恢复项目会从空白对话开始。工作区聊天仅保存在本机，不在项目备份中。每个对话最多200条消息，可清空重新开始。历史上下文可选最近6轮；本轮不选材料不代表历史回答中没有材料信息，可关闭历史。
+AI助手：本机指导不调用模型；自由问答使用当前已保存的连接，每次一次请求。普通问答不写入研究内容；用户可明确选择研究待办、实验方案、修改意见或报告修改草稿。生成后先编辑核对，再预览影响并确认保存。不会执行实验、运行阶段或替用户确认成果。只有应用提供的保存预览可以写入。实验草稿固定研究计划，意见固定AI建议、未处理。报告修改保留原快照并使受影响成果重核；本机计算报告不能替换。会话与页面独立选择；页面跳转保留当前会话，顶部可切换工作区或其他项目。项目对话各自保存，工作区对话不读取任何项目内容。项目聊天包含在项目JSON/ZIP和整库备份；复制或恢复项目会从空白对话开始。工作区聊天仅保存在本机，不在项目备份中。每个对话最多200条消息，可清空重新开始。历史上下文可选最近6轮；本轮不选材料不代表历史回答中没有材料信息，可关闭历史。
 """
+
+KNOWLEDGE += '\n可直接导航的功能目录：' + '；'.join(x['name'] for x in feature_catalog()) + '。导航按钮和项目列表由本机提供，不额外调用模型。\n'
 
 SYSTEM = """你是研序AI助手，帮助用户使用软件并根据项目阶段解决研究卡点。
 以简洁中文回答，先给判断，再给1至3个可操作步骤，缺少关键条件时最多问2个问题。
@@ -114,6 +117,22 @@ class Assistant(AssistantProposals, AssistantFollowup):
 
     def busy(self, pid=None):
         return any(pid is None or j['pid'] == pid for j in self.jobs.values())
+
+    def catalog(self, data=None):
+        with self.service.lock:
+            scopes=[]
+            for p in [None,*self.service.store.list()]:
+                if p and lifecycle(p)=='trash': continue
+                pid=p['id'] if p else ''
+                session=self._read(pid)
+                latest=next((m['id'] for m in reversed(session['messages']) if m['role']=='assistant' and m.get('status')!='running'),'')
+                scopes.append({'id':pid,'title':p['title'] if p else '工作区帮助','lifecycle':lifecycle(p) if p else 'active',
+                    'route':p.get('route','ars') if p else '', 'latest':latest})
+            return {'features':feature_catalog(),'scopes':scopes,
+                'jobs':[{'project':j['pid'],'id':key,'progress':j['progress']} for key,j in self.jobs.items()]}
+
+    def navigate(self, data):
+        with self.service.lock: return destination(self.service.store,data)
 
     def _options(self, p, data):
         view = data.get('view', 'home')
@@ -227,7 +246,7 @@ class Assistant(AssistantProposals, AssistantFollowup):
             session = self._read(pid)
             mark = fingerprint(p)
             messages = [dict(m, outdated=m.get('role') == 'assistant' and m.get('status') == 'completed'
-                             and (m.get('state') != mark or m.get('version') != VERSION)) for m in session['messages']]
+                             and ((not m.get('navigation_target') and m.get('state') != mark) or m.get('version') != VERSION)) for m in session['messages']]
             job = next((dict(id=k, progress=v['progress']) for k, v in self.jobs.items() if v['pid'] == pid), None)
             stage = self._options(p, data)['stage']
             return {'project': pid, 'title': p['title'] if p else '工作区帮助', 'messages': messages, 'job': job,
@@ -239,6 +258,11 @@ class Assistant(AssistantProposals, AssistantFollowup):
 
     def preview(self, data):
         with self.service.lock:
+            target=navigation_intent(data.get('text')) if not data.get('draft_kind') and not data.get('review_of') else None
+            if target:
+                self._options(self._project(data.get('project','')),data)
+                return {'local':True,'target':target,'sha256':'','sources':[f'软件指南 v{VERSION}'],
+                    'context_chars':0,'calls':0,'connection_label':'本机入口指导'}
             context, sources, sha, p, opts = self._context(data.get('project', ''), data)
             settings = self.service.store.get_settings()
             label = ('本机 Codex · ' + (settings['codex_model'] or '跟随默认模型')) if settings['mode']=='codex' else ('API · ' + settings['api_model'])
@@ -247,6 +271,9 @@ class Assistant(AssistantProposals, AssistantFollowup):
                     'history_note': '本次未选材料仍可能出现在历史回答中；可关闭最近对话。'}
 
     def _actions(self, p, text):
+        target=feature_for(text)
+        if target:
+            return [{'id':target,'label':FEATURES[target]['label'],'project':p['id'] if p and FEATURES[target]['project'] else ''}]
         if not p:
             keys = ['settings', 'help'] if re.search('连接|模型|密钥|额度|API|Codex', text, re.I) else ['pathways', 'projects', 'help']
         elif re.search('材料|导入|文献|上传|检索|证据', text):
@@ -312,6 +339,8 @@ class Assistant(AssistantProposals, AssistantFollowup):
         text = QUESTIONS[intent] if intent else data.get('text', '')
         if not isinstance(text, str) or not 1 <= len(text.strip()) <= 6000:
             raise ValueError('问题请填写 1–6000 个字符。')
+        nav=navigation_intent(text) if not intent and not data.get('draft_kind') and not data.get('review_of') else None
+        local=bool(intent or nav)
         request = data.get('request_id')
         if not isinstance(request, str) or not re.fullmatch('[0-9a-f]{32}', request):
             raise ValueError('问答请求标识无效。')
@@ -321,11 +350,11 @@ class Assistant(AssistantProposals, AssistantFollowup):
             session = self._read(pid)
             if any(m['turn'] == request for m in session['messages']):
                 return self.state(data)  # Safe double-click/retry after a lost HTTP reply.
-            if self.busy():
+            if not local and self.busy():
                 raise ValueError('AI 助手正在回答，请等待完成或停止后再提问。')
             if len(session['messages']) >= MAX_MESSAGES:
                 raise ValueError('对话已达 200 条消息，请先保存对话，再清空开始新对话。')
-            if intent:
+            if local:
                 p = self._project(pid)
                 opts = self._options(p, data)
                 context, sources, sha = '', [f'软件指南 v{VERSION}', '当前项目状态' if p else '当前页面'], ''
@@ -338,15 +367,16 @@ class Assistant(AssistantProposals, AssistantFollowup):
                 settings = self.service.store.get_settings(secret=True)
             user = {'id': uuid.uuid4().hex, 'turn': request, 'role': 'user', 'text': safe_error(text) if intent == 'error' else text.strip(), 'created': now(), 'status': 'completed'}
             answer = {'id': uuid.uuid4().hex, 'turn': request, 'role': 'assistant', 'text': '',
-                      'created': now(), 'status': 'running', 'mode': 'local' if intent else self.service.store.get_settings()['mode'],
+                      'created': now(), 'status': 'running', 'mode': 'local' if local else self.service.store.get_settings()['mode'],
                       'sources': sources, 'state': fingerprint(p), 'version': VERSION,
                       'actions': self._actions(p, text + ' ' + opts['error']), 'context_chars': len(context)}
             answer['draft_kind']=opts.get('draft_kind','')
+            if nav:answer['navigation_target']=nav
             answer.update(stage=opts['stage'], options=copy.deepcopy(opts['options']),
                           basis=changed_basis(p) if p else {}, review_of=opts.get('review_of', ''))
             session['messages'] += [user, answer]
-            if intent:
-                answer.update(status='completed', text=self._local(p, intent, opts))
+            if local:
+                answer.update(status='completed', text=guidance(nav,bool(p)) if nav else self._local(p, intent, opts))
                 self._write(pid, session)
             else:
                 self._write(pid, session)

@@ -4,7 +4,7 @@ const guideSteps=[
  {title:'连接你准备使用的模型',view:'settings',target:'.mode-options',icon:'settings',body:'在这里选择本机 Codex 或自定义 API，保存后再测试连接。两条研究路径共用这份设置；本机 Codex 需先登录，API 由对应服务商单独计费。引导本身不会检测连接或调用模型。',cta:'现在配置连接',action:'settings'},
  {title:'从一个课题开始，接着做下一步',view:'projects',target:'#guide-create',icon:'plus',body:'只填课题也能创建，应用会在本机推荐路径；可以展开更多设置自行选择。打开项目先看“继续研究”，查看下一步、待核对事项与进度简报。“项目记忆”可保存设备条件、目标和约定，供助手参考。',cta:'现在创建项目',action:'create'},
  {title:'先整理真实材料，再开始研究',view:'project',target:'.project-tabs',icon:'upload',body:'打开项目的“文献与材料”，导入有权使用的论文、笔记或数据。检索结果需要你勾选后才用于分析。扫描 PDF 需先 OCR。项目内“研究工具”可阅读材料、建立证据卡片和引用库。',cta:'打开材料页',action:'materials'},
- {title:'运行、阅读、确认，再推进下一步',view:'project',target:'.stage-panel',icon:'check',body:'点击“开始这一步”，阅读并核实报告，再确认进入下一阶段。遇到卡点可打开“AI 助手”或“解释这一步”。材料或前序内容改变后，“继续研究”会提示哪些成果和建议需要复核。复核会沿用原问题，发送前仍可检查参考范围。操作确认不等于实验真实性认证。',cta:'前往研究流程',action:'work'},
+ {title:'运行、阅读、确认，再推进下一步',view:'project',target:'.stage-panel',icon:'check',body:'点击“开始这一步”，阅读并核实报告，再确认进入下一阶段。右下角悬浮 AI 助手可以回答入口问题并直接跳转；顶部可切换工作区或项目对话，无需离开页面。材料或前序内容改变后，“继续研究”会提示哪些成果和建议需要复核。复核沿用原问题，发送前仍可检查参考范围。操作确认不等于实验真实性认证。',cta:'前往研究流程',action:'work'},
  {title:'把项目管理得清楚、有序',view:'projects',target:'#project-batch-bar',icon:'folder',body:'勾选项目即可批量改名、置顶、归档或创建独立副本。删除先进入回收站，可以恢复；永久删除另需输入确认。侧栏“备份与恢复”可保存整库并预览恢复副本。运行中的项目暂不能管理。以后可在“使用指南”或侧栏重新查看这份引导。'}
 ];
 async function saveGuide(status,step=Guide.state.step){Guide.state=await api('preferences/onboarding',{status,step});paintGuideResume()}

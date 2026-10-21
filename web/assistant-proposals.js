@@ -10,7 +10,7 @@ function assistantProposalCard(m){
 function proposalField(key,value,index){
  const label=rtLabels[key]||key,attrs=`data-proposal-index="${index}" data-proposal-field="${key}"`;
  let input;
- if(key==='stage')input=`<select ${attrs}>${flow(S.project).stages.map(s=>`<option value="${s}" ${s===value?'selected':''}>${e(S.catalog.stages[s].title)}</option>`).join('')}</select>`;
+ if(key==='stage')input=`<select ${attrs}>${flow(AS.review?.project||assistantProject()||S.project).stages.map(s=>`<option value="${s}" ${s===value?'selected':''}>${e(S.catalog.stages[s].title)}</option>`).join('')}</select>`;
  else if(key==='priority')input=`<select ${attrs}>${[['high','高'],['medium','中'],['low','低']].map(([id,n])=>`<option value="${id}" ${id===value?'selected':''}>${n}</option>`).join('')}</select>`;
  else if(['title','due'].includes(key))input=`<input ${attrs} type="${key==='due'?'date':'text'}" value="${e(value)}" ${key==='title'?'required maxlength="500"':''}>`;
  else input=`<textarea ${attrs} rows="3" maxlength="6000">${e(value)}</textarea>`;
@@ -29,7 +29,7 @@ function cacheAssistantProposal(){
 function assistantReviewForm(){
  const r=AS.review;if(!r)return;
  const body=r.kind==='report'?`<label class="field"><span>修改后的完整报告</span><textarea id="as-report-draft" rows="20" maxlength="80000" required>${e(r.draft.text)}</textarea></label>`:r.draft.records.map((record,index)=>`<section class="as-record-editor"><label class="ack"><input type="checkbox" data-proposal-selected="${index}" ${r.selected.includes(index)?'checked':''}>保存第 ${index+1} 条${r.kind==='experiments'?'研究计划':''}</label><div class="as-proposal-grid">${asProposalFields[r.kind].map(key=>proposalField(key,record[key]||'',index)).join('')}</div></section>`).join('');
- modal(`<h2>核对${e(asKinds[r.kind])}草稿</h2><p>项目：${e(S.project?.title||'')} · 草稿尚未写入研究内容。</p><form id="as-proposal-form"><div class="as-proposal-scroll">${r.kind==='experiments'?'<p class="notice">保存状态固定为“研究计划”，不会标记实验已执行。</p>':r.kind==='issues'?'<p class="notice">来源固定为“AI 建议（待研究者核对）”，保存后为未处理。</p>':''}${body}<p id="as-proposal-error" class="as-error" role="alert"></p></div><div class="modal-footer"><small>先查看保存预览与影响范围；取消会保留本窗口中的编辑。</small><div class="rt-actions">${button('close-modal','稍后处理','secondary')}${button('noop','预览保存','primary','', 'type="submit"')}</div></div></form>`,true);
+ modal(`<h2>核对${e(asKinds[r.kind])}草稿</h2><p>项目：${e(r.project?.title||assistantProject()?.title||'')} · 草稿尚未写入研究内容。</p><form id="as-proposal-form"><div class="as-proposal-scroll">${r.kind==='experiments'?'<p class="notice">保存状态固定为“研究计划”，不会标记实验已执行。</p>':r.kind==='issues'?'<p class="notice">来源固定为“AI 建议（待研究者核对）”，保存后为未处理。</p>':''}${body}<p id="as-proposal-error" class="as-error" role="alert"></p></div><div class="modal-footer"><small>先查看保存预览与影响范围；取消会保留本窗口中的编辑。</small><div class="rt-actions">${button('close-modal','稍后处理','secondary')}${button('noop','预览保存','primary','', 'type="submit"')}</div></div></form>`,true);
  $('.modal').classList.add('as-proposal-modal');
 }
 async function assistantProposalSubmit(){
@@ -45,15 +45,16 @@ async function assistantProposalSubmit(){
 }
 function assistantProposalPreviewView(){
  const r=AS.review,p=r.preview;
- modal(`<h2>确认保存${e(asKinds[r.kind])}</h2><p>以下操作只保存你核对后的草稿，不执行实验，也不确认阶段成果。</p><div class="as-proposal-scroll"><dl><dt>保存内容</dt><dd>${r.kind==='report'?'替换当前阶段报告，保留修改前快照':`新增 ${p.count} 条${e(asKinds[r.kind])}`}</dd><dt>需要重新核对的成果</dt><dd>${p.affected.map(s=>e(S.catalog.stages[s].title)).join('、')||'无'}</dd><dt>流程位置</dt><dd>${p.cursor_before} → ${p.cursor_after}${p.cursor_before!==p.cursor_after?'（回到需核对阶段）':'（不推进阶段）'}</dd></dl>${p.warnings.map(w=>`<p class="notice">${e(w)}</p>`).join('')}${r.kind==='report'?`<h3>报告差异</h3><pre class="as-report-diff">${e(p.diff)}</pre>`:`<h3>将创建的条目</h3><ol>${p.draft.records.map(x=>`<li>${e(x.title)}</li>`).join('')}</ol>`}<p id="as-proposal-error" class="as-error" role="alert"></p></div><div class="modal-footer"><small>保存前会再次校验草稿与项目是否变化。</small><div class="rt-actions">${button('as-proposal-back','返回编辑','secondary')}${button('as-proposal-apply','确认保存','primary','check')}</div></div>`,true);
+ modal(`<h2>确认保存${e(asKinds[r.kind])}</h2><p>保存到项目：${e(r.project?.title||assistantProject()?.title||r.pid)}。仅保存已核对草稿，不执行实验或确认阶段成果。</p><div class="as-proposal-scroll"><dl><dt>保存内容</dt><dd>${r.kind==='report'?'替换当前阶段报告，保留修改前快照':`新增 ${p.count} 条${e(asKinds[r.kind])}`}</dd><dt>需要重新核对的成果</dt><dd>${p.affected.map(s=>e(S.catalog.stages[s].title)).join('、')||'无'}</dd><dt>流程位置</dt><dd>${p.cursor_before} → ${p.cursor_after}${p.cursor_before!==p.cursor_after?'（回到需核对阶段）':'（不推进阶段）'}</dd></dl>${p.warnings.map(w=>`<p class="notice">${e(w)}</p>`).join('')}${r.kind==='report'?`<h3>报告差异</h3><pre class="as-report-diff">${e(p.diff)}</pre>`:`<h3>将创建的条目</h3><ol>${p.draft.records.map(x=>`<li>${e(x.title)}</li>`).join('')}</ol>`}<p id="as-proposal-error" class="as-error" role="alert"></p></div><div class="modal-footer"><small>保存前会再次校验草稿与项目是否变化。</small><div class="rt-actions">${button('as-proposal-back','返回编辑','secondary')}${button('as-proposal-apply','确认保存','primary','check')}</div></div>`,true);
  $('.modal').classList.add('as-proposal-modal');
 }
 async function assistantProposalAction(action,el){
  if(action==='as-proposal-review'){
   const m=AS.state?.messages.find(m=>m.id===el.dataset.message&&m.proposal?.status==='draft');if(!m||!AS.scope)return;
   if(S.draft!==null)await saveOutput(true);
-  const saved=asProposalEdits.get(AS.scope+':'+m.id),draft=structuredClone(saved?.draft||m.proposal.draft);
-  AS.review={pid:AS.scope,message:m.id,kind:m.proposal.kind,stage:m.proposal.stage,draft,selected:saved?.selected||draft.records?.map((_,i)=>i)||[]};
+  const pid=AS.scope,epoch=AS.epoch,project=await api('project/'+pid);if(pid!==AS.scope||epoch!==AS.epoch)return;
+  const saved=asProposalEdits.get(pid+':'+m.id),draft=structuredClone(saved?.draft||m.proposal.draft);
+  AS.review={pid,project,message:m.id,kind:m.proposal.kind,stage:m.proposal.stage,draft,selected:saved?.selected||draft.records?.map((_,i)=>i)||[]};
   assistantReviewForm();return;
  }
  if(action==='as-proposal-back'){assistantReviewForm();return}
@@ -61,7 +62,7 @@ async function assistantProposalAction(action,el){
   const r=AS.review;if(!r?.preview||r.saving)return;r.saving=true;el.disabled=true;
   try{
    const result=await api('assistant/proposal-apply',{...r.data,acknowledge:true,preview_sha256:r.preview.sha256});
-   if(AS.scope===r.pid)AS.state=result.state;
+   if(AS.scope===r.pid){AS.state=result.state;AS.project=result.project;}
    if(S.project?.id===r.pid){S.project=result.project;S.activeStage=step(S.project);S.outputTab='preview'}
    S.projects=await api('projects');asProposalEdits.delete(r.pid+':'+r.message);closeModal();AS.review=null;render();
    toast(r.kind==='report'?'报告修改已保存，原版本可在版本恢复查看。':`${result.receipt.count} 条${asKinds[r.kind]}已保存，可以在研究工具中查看。`);
@@ -76,7 +77,7 @@ async function assistantProposalAction(action,el){
  }
  if(action==='as-proposal-result'){
   const m=AS.state?.messages.find(m=>m.id===el.dataset.message&&m.proposal?.status==='saved');if(!m)return;
-  const p=m.proposal;if(p.kind==='report'){await assistantJump('work');S.activeStage=p.stage;render()}else{RT.tab=p.kind==='tasks'?'navigator':p.kind;await assistantJump('research')}
+  const p=m.proposal,pid=AS.scope;await assistantNavigate(p.kind==='report'?'work':p.kind==='experiments'?'experiments':'research',pid);if(S.project?.id===pid){if(p.kind==='report')S.activeStage=p.stage;else RT.tab=p.kind==='tasks'?'navigator':p.kind;render();}
  }
 }
 document.addEventListener('change',ev=>{if(ev.target.id==='as-kind'){AS.kinds[AS.scope]=ev.target.value;const starter=k=>'请结合当前课题生成'+k+'草稿，未知条件保留待确认。',draft=AS.drafts[AS.scope]||'',automatic=Object.values(asKinds).some(k=>draft===starter(k));if(ev.target.value&&(!draft.trim()||automatic))AS.drafts[AS.scope]=starter(asKinds[ev.target.value]);else if(!ev.target.value&&automatic)AS.drafts[AS.scope]='';if(ev.target.value==='report'&&AS.state?.report_available)assistantOptions().report=true;AS.preview=null;assistantPaint()}});
