@@ -1,14 +1,12 @@
 from http.server import BaseHTTPRequestHandler,ThreadingHTTPServer
 import json
-from pathlib import Path
 import secrets
-from urllib.parse import urlparse,parse_qs,unquote
+from urllib.parse import urlparse,parse_qs,quote
 
 from .service import Service
-from .workflows import ROOT,catalog
+from .workflows import ROOT,VERSION,catalog
 from .providers import ProviderError,api_complete
 from .updater import UpdateManager
-from .workflows import VERSION
 from .i18n import LANGUAGES,tr
 import threading
 
@@ -134,142 +132,162 @@ class Handler(BaseHTTPRequestHandler):
             data=json.loads(self.rfile.read(length) or '{}')
             if not isinstance(data,dict):
                 raise ValueError('请求格式无效。')
-            service=self.server.service
-            path=urlparse(self.path).path
-            if path.startswith('/api/analysis/'):
-                action=path.rsplit('/',1)[-1]
-                operations={'runtime':service.analysis_runtime.status,'runtime-check':service.analysis_runtime.check,
-                            'runtime-install':service.analysis_runtime.install,'cache-clean':service.analysis_clean_cache}
-                if action not in operations: raise ValueError('不支持的分析环境操作。')
-                if action!='runtime' and (service.updating or service.plotting_busy()): raise ValueError('任务或更新进行中，请稍后操作分析环境。')
-                return self.reply(operations[action](data))
-            if path.startswith('/api/assistant/'):
-                action=path.rsplit('/',1)[-1]
-                if action=='export':
-                    return self.reply(service.assistant.export(data),mime='text/markdown; charset=utf-8')
-                if action=='progress-export':
-                    return self.reply(service.assistant.progress_export(data),mime='text/markdown; charset=utf-8')
-                operations={'catalog':service.assistant.catalog,'navigate':service.assistant.navigate,
-                            'state':service.assistant.state,'preview':service.assistant.preview,
-                            'send':service.assistant.send,'stop':service.assistant.stop,'clear':service.assistant.clear,
-                            'proposal-preview':service.assistant.proposal_preview,
-                            'proposal-apply':service.assistant.proposal_apply,
-                            'proposal-discard':service.assistant.proposal_discard,
-                            'followup':service.assistant.followup_state,
-                            'defer':service.assistant.followup_defer,
-                            'memory-save':service.assistant.memory_save,
-                            'recheck':service.assistant.recheck}
-                if action not in operations:
-                    raise ValueError('不支持的助手操作。')
-                return self.reply(operations[action](data))
-            if path.startswith('/api/updates/'):
-                action=path.rsplit('/',1)[-1]
-                if action=='check':
-                    self.server.updates.check()
-                elif action=='auto':
-                    self.server.updates.set_auto(data.get('enabled'))
-                elif action=='download':
-                    if not self.server.update_status()['installable']:
-                        raise ValueError('请在 Windows 桌面版中下载更新，开发模式可通过仓库更新源码。')
-                    self.server.updates.download()
-                elif action=='install':
-                    if data.get('acknowledge') is not True or not self.server.update_status()['installable']:
-                        raise ValueError('请保存工作，并在 Windows 桌面版确认安装。')
-                    self.server.native._install_update()
-                else:
-                    return self.reply({'error':'未找到此更新操作。'},404)
-                return self.reply(self.server.update_status())
-            if path=='/api/project':
-                with service.lock:
-                    if service.updating:raise ValueError('软件正在更新，请稍后创建项目。')
-                    return self.reply(service.store.create(data))
-            if path=='/api/research/demo':
-                return self.reply(service.research_demo())
-            if path=='/api/projects/manage':
-                return self.reply(service.manage_projects(data))
-            if path=='/api/preferences/onboarding':
-                return self.reply(service.store.save_onboarding(data))
-            if path=='/api/preferences/language':
-                return self.reply(service.store.save_language(data))
-            if path=='/api/backups/create':
-                return self.reply(service.backups.create())
-            if path=='/api/backups/settings':
-                return self.reply(service.backups.configure(data))
-            if path=='/api/backups/download':
-                return self.reply(service.backups.path(data.get('id')).read_bytes(),mime='application/zip')
-            if path=='/api/backups/restore':
-                if not data.get('preview') and data.get('acknowledge') is not True:
-                    raise ValueError('请确认恢复为独立副本。')
-                return self.reply(service.backups.restore(service.backups.path(data.get('id')).read_bytes(),preview=bool(data.get('preview'))))
-            if path=='/api/recommend':
-                from .routing import recommend
-                return self.reply(recommend(data))
-            if path=='/api/scientific/skill':
-                from .scientific import skill_detail
-                return self.reply(skill_detail(str(data.get('id',''))))
-            if path=='/api/settings':
-                return self.reply(service.store.save_settings(data))
-            if path=='/api/codex/inspect':
-                return self.reply(service.inspect_codex())
-            if path=='/api/connection/test':
-                settings=service.store.get_settings(secret=True)
-                if settings['mode']=='codex':
-                    return self.reply(service.inspect_codex())
-                result=api_complete(settings,settings.pop('api_key',''),
-                         'You are a connection test. Reply OK only.','Reply OK.',lambda *a:None,threading.Event())
-                return self.reply({'ok':True,'message':result[:200]})
-            if path.startswith('/api/project/'):
-                pieces=path.strip('/').split('/')
-                pid,action=pieces[2],pieces[3]
-                functions={'upload':service.upload,'toggle':service.toggle_asset,'edit':service.edit,
-                           'confirm':service.confirm,'run':service.start,'info':service.update_info,
-                           'literature-toggle':service.toggle_literature}
-                functions.update({'research-save':service.research_save,'research-delete':service.research_delete,
-                    'research-seed':service.research_seed,'research-style':service.research_style,
-                    'material-page':service.material_page,'version-compare':service.version_compare,
-                    'version-restore':service.version_restore,'issues-import':service.issues_import,
-                    'reference-import':service.reference_import,'reference-verify':service.reference_verify})
-                functions.update({'run-preview':service.run_preview,'research-context':service.research_context})
-                functions.update({'plot-inspect':service.plot_inspect,'plot-catalog':service.plot_catalog,
-                    'plot-recommend':service.plot_recommend,'plot-render':service.plot_render,
-                    'plot-save':service.plot_save,'plot-delete':service.plot_delete,
-                    'plot-duplicate':service.plot_duplicate,'plot-restore':service.plot_restore,'plot-ai':service.plot_ai})
-                functions.update({'analysis-catalog':service.analysis_catalog,'analysis-preview':service.analysis_preview,
-                    'analysis-inspect':service.analysis_inspect,
-                    'analysis-start':service.analysis_start,'analysis-job':service.analysis_job,
-                    'analysis-cancel':service.analysis_cancel,'plot-analysis-result':service.plot_analysis_result})
-                functions.update({'paper-state':service.paper_state,'paper-save':service.paper_save,
-                    'paper-review':service.paper_review,'paper-compose':service.paper_compose,'paper-abstract':service.paper_abstract,
-                    'paper-batch-preview':service.paper_batch_preview,'paper-batch-start':service.paper_batch_start,
-                    'paper-source-draft':service.paper_source_draft,'paper-export-start':service.paper_export_start,
-                    'paper-job':service.paper_job,'paper-cancel':service.paper_cancel,'paper-clean':service.paper_clean_deliveries})
-                if action=='paper-download':
-                    name,raw,mime=service.paper_download(pid,data)
-                    return self.reply(raw,mime=mime,extra={'Content-Disposition':"attachment; filename*=UTF-8''"+__import__('urllib.parse',fromlist=['quote']).quote(name)})
-                if action=='analysis-table':
-                    raw,mime=service.analysis_table(pid,data)
-                    return self.reply(raw,mime=mime,extra={'Content-Disposition':'attachment; filename="analysis-table.'+('json' if data.get('format')=='json' else 'csv')+'"'})
-                if action=='plot-export':
-                    name,raw,mime=service.plot_export(pid,data)
-                    return self.reply(raw,mime=mime,extra={'Content-Disposition':"attachment; filename*=UTF-8''"+__import__('urllib.parse',fromlist=['quote']).quote(name)})
-                if action in functions:
-                    return self.reply(functions[action](pid,data))
-                if action=='stop':
-                    return self.reply(service.stop(pid))
-                if action=='material-raw':
-                    raw,mime=service.material_bytes(pid,data.get('id'))
-                    return self.reply(raw,mime=mime)
-                if action=='research-export':
-                    name,raw,mime=service.research_export(pid,data.get('kind'))
-                    return self.reply(raw,mime=mime)
-                if action=='search':
-                    return self.reply(service.search(pid,str(data.get('query','')),data.get('required_terms'),bool(data.get('journal_only',True)),data.get('source','crossref')))
-                if action=='export':
-                    name,raw,mime=service.export(pid,data.get('format','md'),data.get('stage',''))
-                    return self.reply(raw,mime=mime,extra={'Content-Disposition':"attachment; filename*=UTF-8''"+__import__('urllib.parse',fromlist=['quote']).quote(name)})
-            return self.reply({'error':'未找到此功能。'},404)
+            return self._dispatch_post(path,data)
         except (ValueError,KeyError,TypeError,IndexError,ProviderError) as e:
             message=str(e) if isinstance(e,(ValueError,ProviderError)) else '请求信息不完整。'
             return self.reply({'error':message},400)
         except Exception:
             return self.reply({'error':'操作未完成，请重试。已有项目已保留。'},500)
+
+    def _dispatch_post(self,path,data):
+        service=self.server.service
+        if path.startswith('/api/analysis/'):
+            return self._post_analysis(path,data)
+        if path.startswith('/api/assistant/'):
+            return self._post_assistant(path,data)
+        if path.startswith('/api/updates/'):
+            return self._post_updates(path,data)
+        if path.startswith('/api/project/'):
+            return self._post_project(path,data)
+        if path=='/api/project':
+            with service.lock:
+                if service.updating:raise ValueError('软件正在更新，请稍后创建项目。')
+                return self.reply(service.store.create(data))
+        if path=='/api/research/demo':
+            return self.reply(service.research_demo())
+        if path=='/api/projects/manage':
+            return self.reply(service.manage_projects(data))
+        if path=='/api/preferences/onboarding':
+            return self.reply(service.store.save_onboarding(data))
+        if path=='/api/preferences/language':
+            return self.reply(service.store.save_language(data))
+        if path=='/api/backups/create':
+            return self.reply(service.backups.create())
+        if path=='/api/backups/settings':
+            return self.reply(service.backups.configure(data))
+        if path=='/api/backups/download':
+            return self.reply(service.backups.path(data.get('id')).read_bytes(),mime='application/zip')
+        if path=='/api/backups/restore':
+            if not data.get('preview') and data.get('acknowledge') is not True:
+                raise ValueError('请确认恢复为独立副本。')
+            return self.reply(service.backups.restore(service.backups.path(data.get('id')).read_bytes(),preview=bool(data.get('preview'))))
+        if path=='/api/recommend':
+            from .routing import recommend
+            return self.reply(recommend(data))
+        if path=='/api/scientific/skill':
+            from .scientific import skill_detail
+            return self.reply(skill_detail(str(data.get('id',''))))
+        if path=='/api/settings':
+            return self.reply(service.store.save_settings(data))
+        if path=='/api/codex/inspect':
+            return self.reply(service.inspect_codex())
+        if path=='/api/connection/test':
+            settings=service.store.get_settings(secret=True)
+            if settings['mode']=='codex':
+                return self.reply(service.inspect_codex())
+            result=api_complete(settings,settings.pop('api_key',''),
+                     'You are a connection test. Reply OK only.','Reply OK.',lambda *a:None,threading.Event())
+            return self.reply({'ok':True,'message':result[:200]})
+        return self.reply({'error':'未找到此功能。'},404)
+
+    def _post_analysis(self,path,data):
+        service=self.server.service
+        action=path.rsplit('/',1)[-1]
+        operations={'runtime':service.analysis_runtime.status,'runtime-check':service.analysis_runtime.check,
+                    'runtime-install':service.analysis_runtime.install,'cache-clean':service.analysis_clean_cache}
+        if action not in operations:
+            raise ValueError('不支持的分析环境操作。')
+        if action!='runtime' and (service.updating or service.plotting_busy()):
+            raise ValueError('任务或更新进行中，请稍后操作分析环境。')
+        return self.reply(operations[action](data))
+
+    def _post_assistant(self,path,data):
+        service=self.server.service
+        action=path.rsplit('/',1)[-1]
+        if action=='export':
+            return self.reply(service.assistant.export(data),mime='text/markdown; charset=utf-8')
+        if action=='progress-export':
+            return self.reply(service.assistant.progress_export(data),mime='text/markdown; charset=utf-8')
+        operations={'catalog':service.assistant.catalog,'navigate':service.assistant.navigate,
+                    'state':service.assistant.state,'preview':service.assistant.preview,
+                    'send':service.assistant.send,'stop':service.assistant.stop,'clear':service.assistant.clear,
+                    'proposal-preview':service.assistant.proposal_preview,
+                    'proposal-apply':service.assistant.proposal_apply,
+                    'proposal-discard':service.assistant.proposal_discard,
+                    'followup':service.assistant.followup_state,
+                    'defer':service.assistant.followup_defer,
+                    'memory-save':service.assistant.memory_save,
+                    'recheck':service.assistant.recheck}
+        if action not in operations:
+            raise ValueError('不支持的助手操作。')
+        return self.reply(operations[action](data))
+
+    def _post_updates(self,path,data):
+        action=path.rsplit('/',1)[-1]
+        if action=='check':
+            self.server.updates.check()
+        elif action=='auto':
+            self.server.updates.set_auto(data.get('enabled'))
+        elif action=='download':
+            if not self.server.update_status()['installable']:
+                raise ValueError('请在 Windows 桌面版中下载更新，开发模式可通过仓库更新源码。')
+            self.server.updates.download()
+        elif action=='install':
+            if data.get('acknowledge') is not True or not self.server.update_status()['installable']:
+                raise ValueError('请保存工作，并在 Windows 桌面版确认安装。')
+            self.server.native._install_update()
+        else:
+            return self.reply({'error':'未找到此更新操作。'},404)
+        return self.reply(self.server.update_status())
+
+    def _post_project(self,path,data):
+        service=self.server.service
+        pieces=path.strip('/').split('/')
+        pid,action=pieces[2],pieces[3]
+        operations={'upload':service.upload,'toggle':service.toggle_asset,'edit':service.edit,
+                   'confirm':service.confirm,'run':service.start,'info':service.update_info,
+                   'literature-toggle':service.toggle_literature,
+            'research-save':service.research_save,'research-delete':service.research_delete,
+            'research-seed':service.research_seed,'research-style':service.research_style,
+            'material-page':service.material_page,'version-compare':service.version_compare,
+            'version-restore':service.version_restore,'issues-import':service.issues_import,
+            'reference-import':service.reference_import,'reference-verify':service.reference_verify,
+            'run-preview':service.run_preview,'research-context':service.research_context,
+            'plot-inspect':service.plot_inspect,'plot-catalog':service.plot_catalog,
+            'plot-recommend':service.plot_recommend,'plot-render':service.plot_render,
+            'plot-save':service.plot_save,'plot-delete':service.plot_delete,
+            'plot-duplicate':service.plot_duplicate,'plot-restore':service.plot_restore,'plot-ai':service.plot_ai,
+            'analysis-catalog':service.analysis_catalog,'analysis-preview':service.analysis_preview,
+            'analysis-inspect':service.analysis_inspect,
+            'analysis-start':service.analysis_start,'analysis-job':service.analysis_job,
+            'analysis-cancel':service.analysis_cancel,'plot-analysis-result':service.plot_analysis_result,
+            'paper-state':service.paper_state,'paper-save':service.paper_save,
+            'paper-review':service.paper_review,'paper-compose':service.paper_compose,'paper-abstract':service.paper_abstract,
+            'paper-batch-preview':service.paper_batch_preview,'paper-batch-start':service.paper_batch_start,
+            'paper-source-draft':service.paper_source_draft,'paper-export-start':service.paper_export_start,
+            'paper-job':service.paper_job,'paper-cancel':service.paper_cancel,'paper-clean':service.paper_clean_deliveries}
+        if action=='paper-download':
+            return self._reply_attachment(*service.paper_download(pid,data))
+        if action=='analysis-table':
+            raw,mime=service.analysis_table(pid,data)
+            return self.reply(raw,mime=mime,extra={'Content-Disposition':'attachment; filename="analysis-table.'+('json' if data.get('format')=='json' else 'csv')+'"'})
+        if action=='plot-export':
+            return self._reply_attachment(*service.plot_export(pid,data))
+        if action in operations:
+            return self.reply(operations[action](pid,data))
+        if action=='stop':
+            return self.reply(service.stop(pid))
+        if action=='material-raw':
+            raw,mime=service.material_bytes(pid,data.get('id'))
+            return self.reply(raw,mime=mime)
+        if action=='research-export':
+            name,raw,mime=service.research_export(pid,data.get('kind'))
+            return self.reply(raw,mime=mime)
+        if action=='search':
+            return self.reply(service.search(pid,str(data.get('query','')),data.get('required_terms'),bool(data.get('journal_only',True)),data.get('source','crossref')))
+        if action=='export':
+            return self._reply_attachment(*service.export(pid,data.get('format','md'),data.get('stage','')))
+        return self.reply({'error':'未找到此功能。'},404)
+
+    def _reply_attachment(self,name,raw,mime):
+        return self.reply(raw,mime=mime,extra={'Content-Disposition':"attachment; filename*=UTF-8''"+quote(name)})

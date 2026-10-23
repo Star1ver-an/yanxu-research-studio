@@ -1,5 +1,9 @@
 # 研序 Research Studio
 
+## v0.12.2 稳定性维护
+
+整理 HTTP 请求分派、项目管理和 CSL JSON / RIS 书目导入代码，保持现有界面与工作流。补充下载文件名、内容类型和原始字节、接口错误与请求校验、无效书目整批回滚与批内去重，以及项目菜单、状态与空列表的回归检查。中文及含特殊字符的附件名继续使用 UTF-8 下载头；无效导入不会留下部分书目。
+
 ## v0.12.1 语言菜单样式修复
 
 顶部语言选择器改为与工作台一致的新拟态按钮和浮层菜单，支持深浅主题、凹陷选中态、勾选标记及窄屏边界定位。可用方向键、Home/End、Enter/空格操作，Escape 关闭并返回按钮，点击外部或 Tab 离开时收起。切换语言继续保留当前表单和研究内容。
@@ -91,7 +95,7 @@ v0.8.1 修复 Windows 在 Codex 中启动与从桌面启动时的数据目录重
 
 **[下载 Windows 版](https://github.com/Star1ver-an/yanxu-research-studio/releases/latest)** · [项目主页](https://github.com/Star1ver-an/yanxu-research-studio)
 
-下载最新 Release 中的 `YanxuResearchStudio-Windows-v0.11.0.zip`，解压后双击 `YanxuResearchStudio.exe`。GitHub 的“Code → Download ZIP”下载的是源码，需要开发环境才能运行。
+下载最新 Release 中名称为 `YanxuResearchStudio-Windows-v版本号.zip` 的压缩包，解压后双击 `YanxuResearchStudio.exe`，无需安装。GitHub 的“Code → Download ZIP”下载的是源码，需要开发环境才能运行。
 
 ## 持续跟进与易用性（v0.7.0 第三期）
 

@@ -3,31 +3,96 @@ let managementPollTimer;
 const projectState=p=>p.lifecycle||'active';
 const activeProjects=()=>S.projects.filter(p=>projectState(p)==='active').sort((a,b)=>Number(!!b.pinned)-Number(!!a.pinned));
 function visibleProjects(){
- const q=S.query.trim().toLowerCase();
- const list=S.projects.filter(p=>projectState(p)===PM.state&&(PM.route==='all'||projectRoute(p)===PM.route)&&(S.filter==='all'||p.flow===S.filter)&&(p.title+' '+p.topic).toLowerCase().includes(q));
- return list.sort((a,b)=>(PM.state==='active'?Number(!!b.pinned)-Number(!!a.pinned):0)||(PM.sort==='title'?a.title.localeCompare(b.title,window.ResearchI18n?.current()||'zh-CN'):String(b[PM.sort]).localeCompare(String(a[PM.sort]))));
+ const query=S.query.trim().toLowerCase();
+ const projects=S.projects.filter(project=>{
+  if(projectState(project)!==PM.state)return false;
+  if(PM.route!=='all'&&projectRoute(project)!==PM.route)return false;
+  if(S.filter!=='all'&&project.flow!==S.filter)return false;
+  return (project.title+' '+project.topic).toLowerCase().includes(query);
+ });
+ return projects.sort((left,right)=>{
+  if(PM.state==='active'){
+   const pinnedOrder=Number(!!right.pinned)-Number(!!left.pinned);
+   if(pinnedOrder)return pinnedOrder;
+  }
+  if(PM.sort==='title')return left.title.localeCompare(right.title,window.ResearchI18n?.current()||'zh-CN');
+  return String(right[PM.sort]).localeCompare(String(left[PM.sort]));
+ });
 }
-function projectMenu(p){
- const state=projectState(p),id=`data-id="${p.id}"`,disabled=p.running?'disabled':'';
- const item=(a,t,i)=>button('pm-'+a,t,'text',i,`${id} ${disabled}`);
- return H`<details class="project-menu"><summary class="icon-btn" aria-label="管理项目 ${e(p.title)}">${icon('more',18)}</summary><div class="project-menu-items">${state==='trash'?item('restore',L('恢复项目'),'restore')+item('purge',L('永久删除'),'trash'):item('rename',L('修改名称'),'edit')+item('duplicate',L('创建副本'),'copy')+(state==='active'?item(p.pinned?'unpin':'pin',p.pinned?L('取消置顶'):L('置顶项目'),'pin')+item('archive',L('归档项目'),'archive'):item('restore',L('取消归档'),'restore'))+item('trash',L('移入回收站'),'trash')}</div></details>`;
+function projectMenu(project){
+ const state=projectState(project),id=`data-id="${project.id}"`,disabled=project.running?'disabled':'';
+ function item(action,label,iconName){return button('pm-'+action,label,'text',iconName,`${id} ${disabled}`)}
+ const items=[];
+ if(state==='trash'){
+  items.push(item('restore',L('恢复项目'),'restore'),item('purge',L('永久删除'),'trash'));
+ }else{
+  items.push(item('rename',L('修改名称'),'edit'),item('duplicate',L('创建副本'),'copy'));
+  if(state==='active'){
+   items.push(item(project.pinned?'unpin':'pin',project.pinned?L('取消置顶'):L('置顶项目'),'pin'),item('archive',L('归档项目'),'archive'));
+  }else{
+   items.push(item('restore',L('取消归档'),'restore'));
+  }
+  items.push(item('trash',L('移入回收站'),'trash'));
+ }
+ return H`<details class="project-menu"><summary class="icon-btn" aria-label="管理项目 ${e(project.title)}">${icon('more',18)}</summary><div class="project-menu-items">${items.join('')}</div></details>`;
 }
-function managedProjectCard(p){
- const complete=progress(p)===100,select=S.view==='projects',state=projectState(p);
- return H`<article class="project-card managed-card ${PM.selected.has(p.id)&&select?'is-selected':''}"><div class="card-top">${select?H`<label class="project-select"><input type="checkbox" data-project-check="${p.id}" aria-label="选择项目 ${e(p.title)}" ${PM.selected.has(p.id)?'checked':''} ${p.running?'disabled':''}></label>`:''}<span class="type-label ${flow(p).color}">${e(routeName(p))} · ${e(flow(p).name)}</span>${p.pinned&&state==='active'?H`<span class="pinned-mark" title="已置顶">${icon('pin',13)}</span>`:''}${projectMenu(p)}</div><button class="project-card-open" data-action="open" data-id="${p.id}" aria-label="打开项目 ${e(p.title)}"><h3>${e(p.title)}</h3><p class="card-topic">${e(p.topic||L('尚未添加研究目标'))}</p><div class="card-stage"><span class="dot ${complete?'complete':''}"></span>${p.running?L('任务运行中'):state==='trash'?L('已移入回收站'):state==='archived'?L('已归档 · 可查看与导出'):complete?L('流程已完成'):e(S.catalog.stages[step(p)].title)}<b>${progress(p)}%</b></div><div class="progress"><i style="width:${progress(p)}%"></i></div><div class="card-bottom"><span>${icon('file',13)} ${p.asset_count} 份材料</span><span>${date(p.updated)}</span></div></button></article>`;
+function managedProjectCard(project){
+ const completion=progress(project),complete=completion===100,select=S.view==='projects',state=projectState(project);
+ let status;
+ if(project.running)status=L('任务运行中');
+ else if(state==='trash')status=L('已移入回收站');
+ else if(state==='archived')status=L('已归档 · 可查看与导出');
+ else if(complete)status=L('流程已完成');
+ else status=e(S.catalog.stages[step(project)].title);
+ return H`<article class="project-card managed-card ${PM.selected.has(project.id)&&select?'is-selected':''}"><div class="card-top">${select?H`<label class="project-select"><input type="checkbox" data-project-check="${project.id}" aria-label="选择项目 ${e(project.title)}" ${PM.selected.has(project.id)?'checked':''} ${project.running?'disabled':''}></label>`:''}<span class="type-label ${flow(project).color}">${e(routeName(project))} · ${e(flow(project).name)}</span>${project.pinned&&state==='active'?H`<span class="pinned-mark" title="已置顶">${icon('pin',13)}</span>`:''}${projectMenu(project)}</div><button class="project-card-open" data-action="open" data-id="${project.id}" aria-label="打开项目 ${e(project.title)}"><h3>${e(project.title)}</h3><p class="card-topic">${e(project.topic||L('尚未添加研究目标'))}</p><div class="card-stage"><span class="dot ${complete?'complete':''}"></span>${status}<b>${completion}%</b></div><div class="progress"><i style="width:${completion}%"></i></div><div class="card-bottom"><span>${icon('file',13)} ${project.asset_count} 份材料</span><span>${date(project.updated)}</span></div></button></article>`;
 }
 function projectManagerView(){
  return H`<div class="page-heading heading-row"><div><div class="eyebrow">RESEARCH PROJECTS</div><h1>管理你的每一项研究</h1><p>选择项目批量整理；归档保留成果，删除后可从回收站恢复。</p></div>${button('create',L('新建研究项目'),'primary','plus','id="guide-create"')}</div><div class="management-tabs" role="tablist" aria-label="项目状态">${[['active',L('工作项目')],['archived',L('已归档')],['trash',L('回收站')]].map(([k,n])=>`<button role="tab" aria-selected="${PM.state===k}" class="${PM.state===k?'selected':''}" data-action="pm-state" data-state="${k}">${n}<span>${S.projects.filter(p=>projectState(p)===k).length}</span></button>`).join('')}</div><div class="manager-filters"><label class="search-field">${icon('search',17)}<input id="project-search" placeholder="搜索名称或研究目标" aria-label="搜索研究项目" value="${e(S.query)}"></label><select id="project-route" aria-label="筛选研究路径">${[['all',L('全部路径')],['ars',L('开题与写作')],['scientific',L('科研工具与分析')]].map(([k,n])=>`<option value="${k}" ${PM.route===k?'selected':''}>${n}</option>`).join('')}</select><select id="project-flow" aria-label="筛选工作流"><option value="all">全部工作流</option>${Object.entries(S.catalog.flows).map(([k,f])=>`<option value="${k}" ${S.filter===k?'selected':''}>${e(f.name)}</option>`).join('')}</select><select id="project-sort" aria-label="项目排序">${[['updated',L('最近更新')],['created',L('最近创建')],['title',L('名称顺序')]].map(([k,n])=>`<option value="${k}" ${PM.sort===k?'selected':''}>${n}</option>`).join('')}</select></div><div id="project-batch-bar" class="project-batch-bar"></div><div id="project-list" class="project-grid">${projectResults()}</div><p class="manager-note">${PM.state==='trash'?L('回收站不会自动清空。永久删除会移除所选项目及其本机材料，操作前请先导出备份。'):L('运行中的项目暂不能选中或管理；每批最多选择 50 个。归档项目恢复后可继续编辑与运行。')}</p>`;
 }
-function projectResults(){const list=visibleProjects();return list.map(managedProjectCard).join('')||`<div class="manager-empty"><span>${icon(PM.state==='trash'?'trash':'folder',30)}</span><h3>${S.query||PM.route!=='all'||S.filter!=='all'?L('没有符合筛选条件的项目'):PM.state==='trash'?L('回收站是空的'):PM.state==='archived'?L('还没有归档项目'):L('从第一个研究项目开始')}</h3><p>${PM.state==='active'?L('写下研究问题，或调整筛选条件。'):L('项目整理后会出现在这里。')}</p>${S.query||PM.route!=='all'||S.filter!=='all'?button('pm-clear-filters',L('清除筛选'),'secondary','refresh'):PM.state==='active'?button('create',L('新建研究项目'),'primary','plus'):''}</div>`}
+function projectResults(){
+ const projects=visibleProjects();
+ if(projects.length)return projects.map(managedProjectCard).join('');
+ const filtered=S.query||PM.route!=='all'||S.filter!=='all';
+ let title,action='';
+ if(filtered){
+  title=L('没有符合筛选条件的项目');
+  action=button('pm-clear-filters',L('清除筛选'),'secondary','refresh');
+ }else if(PM.state==='trash'){
+  title=L('回收站是空的');
+ }else if(PM.state==='archived'){
+  title=L('还没有归档项目');
+ }else{
+  title=L('从第一个研究项目开始');
+ }
+ if(!filtered&&PM.state==='active')action=button('create',L('新建研究项目'),'primary','plus');
+ return `<div class="manager-empty"><span>${icon(PM.state==='trash'?'trash':'folder',30)}</span><h3>${title}</h3><p>${PM.state==='active'?L('写下研究问题，或调整筛选条件。'):L('项目整理后会出现在这里。')}</p>${action}</div>`;
+}
 function paintProjectSelection(){
- const bar=$('#project-batch-bar');if(!bar)return;
- const list=visibleProjects().filter(p=>!p.running),ids=new Set(list.map(p=>p.id));
+ const bar=$('#project-batch-bar');
+ if(!bar)return;
+ const projects=visibleProjects().filter(project=>!project.running),ids=new Set(projects.map(project=>project.id));
  PM.selected=new Set([...PM.selected].filter(id=>ids.has(id)));
  const count=PM.selected.size,disabled=!count||PM.busy?'disabled':'';
- bar.innerHTML=H`<label class="batch-check"><input id="project-select-all" type="checkbox" ${count&&count===list.length?'checked':''} ${!list.length||PM.busy?'disabled':''}>选择当前结果</label><span class="selection-count" role="status">已选择 ${count} 项</span><div class="batch-actions">${PM.state==='trash'?button('pm-restore',L('恢复'),'secondary','restore',disabled)+button('pm-purge',L('永久删除'),'danger','trash',disabled):button('pm-rename',L('批量改名'),'secondary','edit',disabled)+button('pm-duplicate',L('创建副本'),'secondary','copy',disabled)+(PM.state==='active'?button('pm-pin',L('置顶'),'secondary','pin',disabled)+button('pm-archive',L('归档'),'secondary','archive',disabled):button('pm-restore',L('取消归档'),'secondary','restore',disabled))+button('pm-trash',L('删除'),'danger','trash',disabled)}${count?button('pm-clear',L('取消选择'),'text','',PM.busy?'disabled':''):''}</div>`;
- const all=$('#project-select-all');if(all)all.indeterminate=count>0&&count<list.length;
- document.querySelectorAll('[data-project-check]').forEach(input=>{input.checked=PM.selected.has(input.dataset.projectCheck);input.closest('.managed-card')?.classList.toggle('is-selected',input.checked)});
+ const actions=[];
+ if(PM.state==='trash'){
+  actions.push(button('pm-restore',L('恢复'),'secondary','restore',disabled),button('pm-purge',L('永久删除'),'danger','trash',disabled));
+ }else{
+  actions.push(button('pm-rename',L('批量改名'),'secondary','edit',disabled),button('pm-duplicate',L('创建副本'),'secondary','copy',disabled));
+  if(PM.state==='active'){
+   actions.push(button('pm-pin',L('置顶'),'secondary','pin',disabled),button('pm-archive',L('归档'),'secondary','archive',disabled));
+  }else{
+   actions.push(button('pm-restore',L('取消归档'),'secondary','restore',disabled));
+  }
+  actions.push(button('pm-trash',L('删除'),'danger','trash',disabled));
+ }
+ if(count)actions.push(button('pm-clear',L('取消选择'),'text','',PM.busy?'disabled':''));
+ bar.innerHTML=H`<label class="batch-check"><input id="project-select-all" type="checkbox" ${count&&count===projects.length?'checked':''} ${!projects.length||PM.busy?'disabled':''}>选择当前结果</label><span class="selection-count" role="status">已选择 ${count} 项</span><div class="batch-actions">${actions.join('')}</div>`;
+ const selectAll=$('#project-select-all');
+ if(selectAll)selectAll.indeterminate=count>0&&count<projects.length;
+ document.querySelectorAll('[data-project-check]').forEach(input=>{
+  input.checked=PM.selected.has(input.dataset.projectCheck);
+  input.closest('.managed-card')?.classList.toggle('is-selected',input.checked);
+ });
 }
 function refreshProjectResults(clear=true){if(clear)PM.selected.clear();const el=$('#project-list');if(el)el.innerHTML=projectResults();paintProjectSelection()}
 function scheduleManagementPoll(){

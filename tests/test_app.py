@@ -11,6 +11,7 @@ import unittest
 from unittest.mock import patch
 from urllib.request import Request,urlopen
 from urllib.error import HTTPError
+from urllib.parse import quote
 import zipfile
 
 from app.storage import Store,extract_file,protect
@@ -21,12 +22,11 @@ from app.server import LocalServer
 class ApplicationTests(unittest.TestCase):
     def setUp(self):
         self.temp=tempfile.TemporaryDirectory()
+        self.addCleanup(self.temp.cleanup)
         self.store=Store(self.temp.name)
         self.service=Service(self.store)
         self.project=self.store.create({'title':'验证项目','flow':'full','experiments':'none'})
         self.pid=self.project['id']
-    def tearDown(self):
-        self.temp.cleanup()
     def output(self,sid,text='可检查的报告'):
         p=self.store.get(self.pid)
         p['outputs'][sid]={'text':text,'approved':False,'stale':False}
@@ -173,6 +173,60 @@ class ApplicationTests(unittest.TestCase):
             with self.assertRaises(HTTPError):urlopen(Request(base,headers={'Host':'evil.example'}))
         finally:
             server.shutdown();server.server_close()
+    def test_local_server_preserves_attachment_names_types_and_bytes(self):
+        server=LocalServer(self.service)
+        threading.Thread(target=server.serve_forever,daemon=True).start()
+        self.addCleanup(server.server_close)
+        self.addCleanup(server.shutdown)
+        base=f'http://127.0.0.1:{server.server_port}/api/project/{self.pid}/'
+        payload={'format':'pdf'}
+        for action,method in [('export','export'),('plot-export','plot_export'),('paper-download','paper_download')]:
+            with self.subTest(action=action):
+                name='研究 图表 #1.pdf'
+                raw=b'%PDF-test\x00\xff'
+                request=Request(base+action,data=json.dumps(payload).encode(),
+                    headers={'X-Research-Token':server.token,'Content-Type':'application/json'})
+                with patch.object(self.service,method,return_value=(name,raw,'application/pdf')) as download:
+                    with urlopen(request) as response:
+                        self.assertEqual(response.read(),raw)
+                        self.assertEqual(response.headers['Content-Type'],'application/pdf')
+                        self.assertEqual(response.headers['Content-Disposition'],"attachment; filename*=UTF-8''"+quote(name))
+                if action=='export':
+                    download.assert_called_once_with(self.pid,'pdf','')
+                else:
+                    download.assert_called_once_with(self.pid,payload)
+
+    def test_local_server_preserves_route_errors_and_request_validation(self):
+        server=LocalServer(self.service)
+        threading.Thread(target=server.serve_forever,daemon=True).start()
+        self.addCleanup(server.server_close)
+        self.addCleanup(server.shutdown)
+        base=f'http://127.0.0.1:{server.server_port}'
+        cases=[
+            ('/api/unknown',b'{}',404,'未找到此功能。'),
+            ('/api/analysis/unknown',b'{}',400,'不支持的分析环境操作。'),
+            ('/api/assistant/unknown',b'{}',400,'不支持的助手操作。'),
+            ('/api/updates/unknown',b'{}',404,'未找到此更新操作。'),
+            (f'/api/project/{self.pid}/unknown',b'{}',404,'未找到此功能。'),
+            (f'/api/project/{self.pid}',b'{}',400,'请求信息不完整。'),
+            ('/api/projects/manage',b'[]',400,'请求格式无效。'),
+        ]
+        for path,raw,status,message in cases:
+            with self.subTest(path=path):
+                request=Request(base+path,data=raw,headers={'X-Research-Token':server.token})
+                with self.assertRaises(HTTPError) as error:
+                    urlopen(request)
+                with error.exception as response:
+                    self.assertEqual(response.code,status)
+                    self.assertEqual(json.load(response)['error'],message)
+        with patch.object(self.service,'manage_projects',side_effect=RuntimeError('private detail')):
+            request=Request(base+'/api/projects/manage',data=b'{}',headers={'X-Research-Token':server.token})
+            with self.assertRaises(HTTPError) as error:
+                urlopen(request)
+            with error.exception as response:
+                self.assertEqual(response.code,500)
+                self.assertEqual(json.load(response)['error'],'操作未完成，请重试。已有项目已保留。')
+
     def test_supported_document_parsers(self):
         from docx import Document
         d=Document();d.add_paragraph('真实稿件文本');raw=io.BytesIO();d.save(raw)
