@@ -14,6 +14,8 @@ from .storage import now
 from .workflows import FLOWS, STAGES
 
 COLLECTIONS = {
+    'searches': ('title', 'query', 'database', 'source_date', 'url', 'criteria', 'reason', 'task_id', 'brief_section'),
+    'sources': ('title', 'asset_id', 'reference_id', 'url', 'source_date', 'coverage', 'license', 'version', 'language', 'decision', 'reason', 'domain_notes', 'task_id', 'brief_section'),
     'tasks': ('title', 'purpose', 'materials', 'criterion', 'status', 'depends_on', 'due', 'stage'),
     'references': ('title', 'authors', 'year', 'venue', 'doi', 'url', 'kind', 'asset_id'),
     'evidence': ('title', 'asset_id', 'page', 'quote', 'finding', 'method', 'limitations', 'level', 'reference_id'),
@@ -25,6 +27,8 @@ COLLECTIONS = {
     'checklist': ('title', 'category', 'status', 'evidence', 'location', 'source_url', 'source_date'),
 }
 ENUMS = {
+    ('sources', 'coverage'): ('metadata', 'abstract', 'excerpt', 'fulltext'),
+    ('sources', 'decision'): ('pending', 'included', 'excluded'),
     ('tasks', 'status'): ('todo', 'doing', 'done'),
     ('evidence', 'level'): ('direct', 'indirect', 'hypothesis'),
     ('claims', 'assessment'): ('unknown', 'supports', 'partial', 'contradicts'),
@@ -49,6 +53,11 @@ FIELD_LABELS=dict(zip(
     'purpose materials criterion status depends_on due stage authors year venue doi url kind asset_id page quote finding method limitations level reference_id evidence_id location assessment reason hypothesis baseline variables controls dataset split metric unit seeds sample_reason analysis compute license experiment_id procedure environment caption source priority response category evidence source_url source_date'.split(),
     '目的 所需材料 完成标准 状态 前置任务 计划日期 关联阶段 作者 年份 发表来源 DOI 来源链接 文献类型 关联材料 页码 原文摘录 主要发现 方法条件 局限 证据类别 关联文献 关联证据 具体位置 支持关系 判断理由 待检验假说 比较基线 改变的变量 控制条件 数据来源 数据划分 评价指标 统计单位 随机种子及重复 次数依据 分析计划 计算资源 数据许可 关联实验 处理步骤 生成环境 图注 意见来源 优先级 逐条回复 类别 完成依据 官方来源 核对日期'.split()))
 STATE_LABELS={'todo':'待处理','doing':'进行中','done':'已完成（人工记录）','na':'不适用','planned':'研究计划','running':'执行中（作者声明）','completed':'已执行（作者声明）','draft':'待核对','reviewed':'已人工核对','direct':'直接证据','indirect':'间接证据','hypothesis':'待检验假说','unknown':'尚未判断','supports':'支持','partial':'部分支持','contradicts':'存在矛盾','high':'高','medium':'中','low':'低'}
+FIELD_LABELS.update(query='检索式', database='检索平台', criteria='纳入与排除标准', task_id='关联研究任务',
+                    brief_section='关联简报部分', coverage='可用内容层级', license='使用条件与许可出处',
+                    version='材料版本', language='原文语言', decision='筛选决定', domain_notes='领域条件与不可外推之处')
+STATE_LABELS.update(metadata='仅书目', abstract='仅摘要', excerpt='节选', fulltext='全文（登记声明）',
+                    pending='待筛选', included='纳入', excluded='排除')
 
 
 def workspace(p):
@@ -297,12 +306,15 @@ class ResearchTools:
                 raise ValueError('来源链接须为 http 或 https 地址。')
         if record.get('stage') and record['stage'] not in FLOWS[p['flow']]['stages']:
             raise ValueError('请选择当前项目的阶段。')
-        links = {'reference_id': 'references', 'evidence_id': 'evidence', 'experiment_id': 'experiments', 'depends_on': 'tasks'}
+        links = {'reference_id': 'references', 'evidence_id': 'evidence', 'experiment_id': 'experiments', 'depends_on': 'tasks', 'task_id': 'tasks'}
         for field, target in links.items():
             if record.get(field) and not any(r['id'] == record[field] for r in w[target]):
                 raise ValueError('关联记录不存在。')
         if record.get('asset_id') and not any(a['id'] == record['asset_id'] for a in p['assets']):
             raise ValueError('关联材料不存在。')
+        if group in ('sources', 'searches'):
+            from .source_workflow import validate_source_record
+            validate_source_record(p, group, record)
         if group == 'tasks':
             node = record.get('depends_on')
             seen = {record['id']}
@@ -340,6 +352,12 @@ class ResearchTools:
                 raise ValueError('原文摘录未在指定页找到，请从材料文字中选择并核对。')
             record['source_sha256'] = asset['sha256']
             record['quote_matched'] = True
+            ref = next((r for r in w['references'] if r['id'] == record['reference_id']), None)
+            if ref and ref.get('asset_id') and ref['asset_id'] != asset['id']:
+                raise ValueError('证据材料与关联文献的材料不一致。')
+            source = next((r for r in w['sources'] if r.get('asset_id') == asset['id']), None)
+            if source and record['level'] == 'direct' and source['coverage'] != 'fulltext':
+                raise ValueError('此来源尚未登记全文，请保留证据边界，不能标记为直接证据。')
         if group == 'claims' and record['assessment'] != 'unknown' and (not record['evidence_id'] or not record['reason']):
             raise ValueError('判断支持关系时，请关联证据并填写理由。')
         if group == 'experiments' and record['status'] == 'completed' and not record['asset_id']:
@@ -362,7 +380,7 @@ class ResearchTools:
             rows[rows.index(previous)] = record
         else:
             rows.append(record)
-        if w.get('enabled') and group in ('references', 'evidence', 'claims', 'experiments', 'figures'):
+        if w.get('enabled') and group in ('references', 'evidence', 'claims', 'experiments', 'figures', 'sources', 'searches'):
             self.invalidate_inputs(p)
         return record
 
@@ -390,7 +408,7 @@ class ResearchTools:
             if not any(r['id'] == rid for r in w[group]):
                 raise ValueError('记录不存在。')
             for rows in (w[key] for key in COLLECTIONS):
-                if any(any(item.get(k) == rid for k in ('reference_id', 'evidence_id', 'experiment_id', 'depends_on')) for item in rows):
+                if any(any(item.get(k) == rid for k in ('reference_id', 'evidence_id', 'experiment_id', 'depends_on', 'task_id')) for item in rows):
                     raise ValueError('其他记录仍有关联，请先修改关联。')
             if group == 'references' and any(rid in citation_ids(o.get('text', '')) for o in p['outputs'].values()):
                 raise ValueError('稿件中仍有此引用，请先修改正文。')
@@ -583,7 +601,7 @@ class ResearchTools:
         keys = ('issues',) if kind == 'responses' else ('checklist',) if kind == 'checklist' else tuple(COLLECTIONS)
         out = ['# ' + p['title'], '> 用户整理的研究记录，完成状态不构成真实性认证。']
         for key in keys:
-            out.append('\n## ' + {'tasks': '研究任务', 'references': '引用文献', 'evidence': '证据卡片', 'claims': '论点与证据', 'experiments': '实验设计', 'figures': '图表台账', 'issues': '意见与回复', 'checklist': '写作与投稿检查'}[key])
+            out.append('\n## ' + {'searches': '检索台账', 'sources': '来源与筛选', 'tasks': '研究任务', 'references': '引用文献', 'evidence': '证据卡片', 'claims': '论点与证据', 'experiments': '实验设计', 'figures': '图表台账', 'issues': '意见与回复', 'checklist': '写作与投稿检查'}[key])
             for row in w[key]:
                 out.append('\n### ' + row['title'])
                 for field in COLLECTIONS[key]:
@@ -591,9 +609,9 @@ class ResearchTools:
                     value=row[field]
                     if field=='stage':value=STAGES.get(value,{}).get('title',value)
                     elif field=='asset_id':value=next((a['name'] for a in p['assets'] if a['id']==value),'来源材料缺失')
-                    elif field in ('status','assessment','level','priority'):value=STATE_LABELS.get(value,value)
-                    elif field in ('reference_id','evidence_id','experiment_id','depends_on'):
-                        target={'reference_id':'references','evidence_id':'evidence','experiment_id':'experiments','depends_on':'tasks'}[field]
+                    elif field in ('status','assessment','level','priority','coverage','decision'):value=STATE_LABELS.get(value,value)
+                    elif field in ('reference_id','evidence_id','experiment_id','depends_on','task_id'):
+                        target={'reference_id':'references','evidence_id':'evidence','experiment_id':'experiments','depends_on':'tasks','task_id':'tasks'}[field]
                         value=next((r['title'] for r in w[target] if r['id']==value),'关联记录缺失')
                     out.append(f'- {FIELD_LABELS.get(field,field)}: {value}')
         return kind + '.md', '\n'.join(out).encode('utf-8-sig'), 'text/markdown'

@@ -82,6 +82,9 @@ class Handler(BaseHTTPRequestHandler):
                          'desktop_ready':bool(getattr(self.server.native,'_ready',False))})
                 if path=='/api/projects':
                     return self.reply(service.project_list())
+                if path=='/api/studies':
+                    from .studies import blueprints
+                    return self.reply({'blueprints':blueprints()})
                 if path=='/api/backups':
                     return self.reply(service.backups.status())
                 if path.startswith('/api/project/'):
@@ -94,12 +97,13 @@ class Handler(BaseHTTPRequestHandler):
         names={'/':'index.html','/ars':'index.html','/scientific':'index.html',
                '/i18n.js':'i18n.js','/language.js':'language.js','/language.css':'language.css',
                '/app.js':'app.js','/pathways.js':'pathways.js','/appearance.js':'appearance.js','/updates.js':'updates.js',
-               '/projects.js':'projects.js','/onboarding.js':'onboarding.js','/research.js':'research.js','/research.css':'research.css',
+               '/projects.js':'projects.js','/onboarding.js':'onboarding.js','/sources.js':'sources.js','/research.js':'research.js','/research.css':'research.css',
                '/assistant.js':'assistant.js','/assistant-proposals.js':'assistant-proposals.js','/assistant.css':'assistant.css',
                '/followup.js':'followup.js','/followup.css':'followup.css',
                '/plotting.js':'plotting.js','/plotting.css':'plotting.css',
                '/analysis.js':'analysis.js','/analysis.css':'analysis.css',
                '/paper.js':'paper.js','/paper.css':'paper.css',
+               '/studio.js':'studio.js','/studio.css':'studio.css',
                '/style.css':'style.css','/soft-ui.css':'soft-ui.css','/mark.svg':'mark.svg','/favicon.svg':'favicon.svg'}
         if path=='/locales.js':
             return self.reply(b'window.ResearchLocales='+ (ROOT/'resources/locales/messages.json').read_bytes()+b';',mime='application/javascript; charset=utf-8')
@@ -153,6 +157,8 @@ class Handler(BaseHTTPRequestHandler):
             with service.lock:
                 if service.updating:raise ValueError('软件正在更新，请稍后创建项目。')
                 return self.reply(service.store.create(data))
+        if path=='/api/studies/create':
+            return self.reply(service.study_create(data))
         if path=='/api/research/demo':
             return self.reply(service.research_demo())
         if path=='/api/projects/manage':
@@ -245,11 +251,13 @@ class Handler(BaseHTTPRequestHandler):
         pieces=path.strip('/').split('/')
         pid,action=pieces[2],pieces[3]
         operations={'upload':service.upload,'toggle':service.toggle_asset,'edit':service.edit,
+                   'study-save':service.study_save,
                    'confirm':service.confirm,'run':service.start,'info':service.update_info,
                    'literature-toggle':service.toggle_literature,
             'research-save':service.research_save,'research-delete':service.research_delete,
             'research-seed':service.research_seed,'research-style':service.research_style,
             'material-page':service.material_page,'version-compare':service.version_compare,
+            'material-search':service.material_search,'source-audit':service.source_audit,
             'version-restore':service.version_restore,'issues-import':service.issues_import,
             'reference-import':service.reference_import,'reference-verify':service.reference_verify,
             'run-preview':service.run_preview,'research-context':service.research_context,
@@ -275,6 +283,10 @@ class Handler(BaseHTTPRequestHandler):
             return self._reply_attachment(*service.plot_export(pid,data))
         if action in operations:
             return self.reply(operations[action](pid,data))
+        if action=='study-export':
+            return self._reply_attachment(*service.study_export(pid,data))
+        if action=='source-export':
+            return self._reply_attachment(*service.source_export(pid,data))
         if action=='stop':
             return self.reply(service.stop(pid))
         if action=='material-raw':

@@ -208,6 +208,9 @@ class Backups:
                         value=original.get(key,'unsure' if key=='goal' else 'unknown')
                         if not isinstance(value,str) or len(value)>30:raise ValueError('备份任务目标无效。')
                         p[key]=value
+                    if 'study_brief' in original:
+                        from .studies import restored_brief
+                        p['study_brief']=restored_brief(original['study_brief'])
                     skill = str(original.get('selected_skill', ''))
                     if skill:
                         from .scientific import skill_text
@@ -323,8 +326,16 @@ class Backups:
                             w[key].append(row)
                     for rows in (w[key] for key in COLLECTIONS):
                         for row in rows:
-                            for field,target in {'reference_id':'references','evidence_id':'evidence','experiment_id':'experiments','depends_on':'tasks'}.items():
+                            for field,target in {'reference_id':'references','evidence_id':'evidence','experiment_id':'experiments','depends_on':'tasks','task_id':'tasks'}.items():
                                 if row.get(field) and not any(item['id']==row[field] for item in w[target]):raise ValueError('备份含缺失的关联记录。')
+                    from .source_workflow import validate_source_record
+                    for group in ('sources','searches'):
+                        for row in w[group]:
+                            for field in ('source_date',):
+                                if row.get(field):
+                                    from datetime import date
+                                    date.fromisoformat(row[field])
+                            validate_source_record(p,group,row)
                     tasks={task['id']:task for task in w['tasks']}
                     for task in tasks.values():
                         seen={task['id']};node=task.get('depends_on')

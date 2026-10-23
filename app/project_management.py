@@ -40,6 +40,9 @@ class ProjectManagement:
 
     def _copy_project(self,original,mode,title,created_folders):
         result=copy.deepcopy(original)
+        from .studies import reset_brief
+        reset_brief(result)
+        result.pop('study_origin',None)
         result.update(id=uuid.uuid4().hex,title=title,created=now(),updated=now(),lifecycle='active',pinned=False,
                       runs=[],confirmations=[],cursor=0,
                       copied_from={'id':original['id'],'title':original['title'],'time':now(),'mode':mode})

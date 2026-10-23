@@ -4,6 +4,7 @@ import re
 from .project_management import lifecycle
 
 FEATURES = {
+    'brief': dict(label='打开研究简报', name='研究简报', project=True, tab='brief'),
     'drawing': dict(label='打开绘图', name='绘图与结果重绘', project=True, tab='research', tool='figures', mode='draw'),
     'analysis': dict(label='打开数据分析', name='数据分析 → 出图', project=True, tab='research', tool='figures', mode='analysis'),
     'paper': dict(label='打开论文图表', name='整篇论文图表', project=True, tab='research', tool='figures', mode='paper'),
@@ -33,6 +34,7 @@ def feature_for(text):
     ]:
         if re.search(pattern,text,re.I):return target
     for target, pattern in [
+        ('brief', r'研究简报|study brief|研究簡報|研究ブリーフ|연구 개요'),
         ('paper', r'整篇.*图表|论文图表|图表交付|组合图|图形摘要'),
         ('analysis', r'数据分析|统计分析|原始数据.*出图'),
         ('drawing', r'绘图|画图|作图|图表与绘图'),

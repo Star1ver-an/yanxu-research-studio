@@ -1,6 +1,6 @@
 const Guide={state:{status:'not_started',step:0},active:false,busy:false};
 const guideSteps=[
- {title:L('先选适合当前任务的路径'),view:'home',target:'.route-cards',icon:'connection',body:L('开题与写作适合形成开题报告、论文或审阅意见；科研工具与分析适合文献证据、实验方案和表格质控。新建项目时，也可以输入目标和材料，请应用给出推荐。')},
+ {title:L('从当前要完成的任务开始'),view:'home',target:'.studio-tasks',icon:'connection',body:L('选择整理文献、分析数据或推进稿件，再进入对应项目。课题起步方案可以先建立研究简报，明确问题、材料缺口和完成标准；专业路径仍可展开查看。')},
  {title:L('连接你准备使用的模型'),view:'settings',target:'.mode-options',icon:'settings',body:L('在这里选择本机 Codex 或自定义 API，保存后再测试连接。两条研究路径共用这份设置；本机 Codex 需先登录，API 由对应服务商单独计费。引导本身不会检测连接或调用模型。'),cta:L('现在配置连接'),action:'settings'},
  {title:L('从一个课题开始，接着做下一步'),view:'projects',target:'#guide-create',icon:'plus',body:L('只填课题也能创建，应用会在本机推荐路径；可以展开更多设置自行选择。打开项目先看“继续研究”，查看下一步、待核对事项与进度简报。“项目记忆”可保存设备条件、目标和约定，供助手参考。'),cta:L('现在创建项目'),action:'create'},
  {title:L('先整理真实材料，再开始研究'),view:'project',target:'.project-tabs',icon:'upload',body:L('打开项目的“文献与材料”，导入有权使用的论文、笔记或数据。检索结果需要你勾选后才用于分析。扫描 PDF 需先 OCR。项目内“研究工具”可阅读材料、建立证据卡片和引用库。'),cta:L('打开材料页'),action:'materials'},

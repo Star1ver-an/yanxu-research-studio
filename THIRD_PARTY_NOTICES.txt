@@ -1,4 +1,4 @@
-研序 Research Studio 0.3.0
+研序 Research Studio 0.14.1
 Unofficial, noncommercial graphical adaptation of Academic Research Skills.
 
 Academic Research Skills
@@ -20,6 +20,8 @@ PyInstaller distribution where provided:
 - pywebview: BSD 3-Clause
 - pythonnet / clr-loader: MIT
 - pypdf: BSD 3-Clause
+- cryptography: Apache License 2.0 or BSD 3-Clause; upstream notices and
+  bundled dependency notices are retained by the PyInstaller collection.
 - python-docx: MIT
 - lxml: BSD 3-Clause (includes libxml2/libxslt notices)
 - PyInstaller bootloader: GPL with the documented distribution exception

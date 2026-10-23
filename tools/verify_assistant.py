@@ -31,7 +31,11 @@ def execute(client):
     state=client.request('assistant/send',global_data)
     assert state['messages'][-1]['actions'][0]['project']==''
     catalog=client.request('assistant/catalog',{})
-    assert len(catalog['features'])==14 and any(s['id']=='' for s in catalog['scopes'])
+    expected={'brief','drawing','analysis','paper','experiments','work','materials','research',
+              'overview','history','settings','backups','help','pathways','projects'}
+    assert {f['id'] for f in catalog['features']}==expected and any(s['id']=='' for s in catalog['scopes'])
+    destination=client.request('assistant/navigate',{'target':'brief','project':pid})
+    assert destination['project_id']==pid and destination['tab']=='brief'
     assert all('topic' not in s and 'messages' not in s for s in catalog['scopes'])
     try:client.request('assistant/navigate',{'target':'https://untrusted.invalid'})
     except ValueError:pass
