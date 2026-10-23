@@ -23,6 +23,37 @@ ctx.S.projects=[{id:id(1),title:'Alpha <img>',topic:'gene',flow:'full',route:'ar
  assert.equal(run('PM.selected.size'),1);assert.equal(run('PM.selected.has("'+id(1)+'")'),true);
  assert.match(run('managedProjectCard(S.projects[0])'),/Alpha &lt;img&gt;/);
  assert.ok(!run('managedProjectCard(S.projects[0])').includes('<img>'));
+ for(const [lifecycle,actions] of [
+  ['active',['rename','duplicate','pin','archive','trash']],
+  ['archived',['rename','duplicate','restore','trash']],
+  ['trash',['restore','purge']]
+ ]){
+  ctx.menuProject={...ctx.S.projects[0],lifecycle};
+  const menu=run('projectMenu(menuProject)');
+  assert.deepEqual([...menu.matchAll(/data-action="pm-([^"]+)"/g)].map(match=>match[1]),actions);
+  ctx.menuProject.running=true;
+  assert.ok([...run('projectMenu(menuProject)').matchAll(/<button[^>]+>/g)].every(match=>match[0].includes('disabled')));
+ }
+ ctx.menuProject={...ctx.S.projects[0],pinned:true};
+ assert.match(run('projectMenu(menuProject)'),/data-action="pm-unpin"/);
+ const originalProgress=ctx.progress;ctx.progress=()=>100;
+ for(const [lifecycle,running,status] of [
+  ['trash',true,'任务运行中'],['trash',false,'已移入回收站'],
+  ['archived',false,'已归档 · 可查看与导出'],['active',false,'流程已完成']
+ ]){
+  ctx.menuProject={...ctx.S.projects[0],lifecycle,running};
+  assert.ok(run('managedProjectCard(menuProject)').includes(status));
+ }
+ ctx.progress=originalProgress;
+ const originalProjects=ctx.S.projects;ctx.S.projects=[];
+ for(const [state,title] of [['active','从第一个研究项目开始'],['archived','还没有归档项目'],['trash','回收站是空的']]){
+  ctx.emptyState=state;run("PM.state=emptyState;S.query=''");
+  const empty=run('projectResults()');assert.ok(empty.includes(title));
+  assert.equal(empty.includes('data-action="create"'),state==='active');
+  run("S.query='missing'");
+  assert.match(run('projectResults()'),/data-action="pm-clear-filters"/);
+ }
+ ctx.S.projects=originalProjects;run("PM.state='active';S.query='gene'");
  run(`managementModal('purge',['${id(4)}'])`);assert.match(lastModal,/请输入“永久删除”确认/);assert.match(lastModal,/无法在软件内撤销/);
  run(`managementModal('duplicate',['${id(1)}'])`);assert.match(lastModal,/待核实/);assert.match(lastModal,/name="mode" value="materials" checked/);
  const apiOriginal=ctx.api;ctx.api=async()=>{throw Error('保存失败')};

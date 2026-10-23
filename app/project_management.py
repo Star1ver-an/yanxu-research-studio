@@ -76,14 +76,39 @@ class ProjectManagement:
             from .plotting import remap_plotting
             result['plotting']=remap_plotting(result['plotting'],asset_mapping)
         if 'research' in result:
-            for key,value in result['research'].items():
-                if isinstance(value,list):
-                    for record in value:
-                        if record.get('asset_id') in asset_mapping:record['asset_id']=asset_mapping[record['asset_id']]
-                        if key=='claims':record['assessment']='unknown'
-                        if key=='figures':record['status']='draft'
-                        if key=='checklist':record['status']='todo'
+            for collection,records in result['research'].items():
+                if not isinstance(records,list):
+                    continue
+                for record in records:
+                    if record.get('asset_id') in asset_mapping:
+                        record['asset_id']=asset_mapping[record['asset_id']]
+                    if collection=='claims':
+                        record['assessment']='unknown'
+                    elif collection=='figures':
+                        record['status']='draft'
+                    elif collection=='checklist':
+                        record['status']='todo'
         return result
+
+    def _duplicate_projects(self,projects,data,created_folders):
+        mode=data.get('mode','materials')
+        if mode not in ('materials','reports'):
+            raise ValueError('请选择有效的副本内容。')
+        used_titles={project['title'] for project in self.store.list()}
+        copies=[]
+        for project in projects:
+            if len(projects)==1 and data.get('title') is not None:
+                title=project_title(data['title'])
+            else:
+                base=project['title'][:126]
+                title=base+' 副本'
+                number=2
+                while title in used_titles:
+                    title=f'{base} 副本 {number}'
+                    number+=1
+            used_titles.add(title)
+            copies.append(self._copy_project(project,mode,title,created_folders))
+        return copies
 
     def _purge_projects(self,projects):
         # Stage only validated owned folders; roll back moves if SQLite cannot commit.
@@ -142,7 +167,7 @@ class ProjectManagement:
                 return {'ids':ids,'created_ids':[],'action':action,'warnings':warnings,'count':len(ids)}
             if action=='restore' and any(lifecycle(p) not in ('archived','trash') for p in projects):
                 raise ValueError('请选择归档或回收站中的项目进行恢复。')
-            if action not in ('restore',) and any(lifecycle(p)=='trash' for p in projects):
+            if action!='restore' and any(lifecycle(p)=='trash' for p in projects):
                 raise ValueError('请先从回收站恢复项目。')
             if action=='trash' and data.get('acknowledge') is not True:
                 raise ValueError('请确认将所选项目移入回收站。')
@@ -150,33 +175,31 @@ class ProjectManagement:
             if action=='rename':
                 if not isinstance(titles,dict) or set(titles)!=set(ids):raise ValueError('请为每个所选项目提供新名称。')
                 titles={pid:project_title(value) for pid,value in titles.items()}
-            copies=[];created_folders=[]
+            copies=[]
+            created_folders=[]
             try:
-                used={p['title'] for p in self.store.list()}
-                for p in projects:
-                    if action=='duplicate':
-                        mode=data.get('mode','materials')
-                        if mode not in ('materials','reports'):raise ValueError('请选择有效的副本内容。')
-                        if len(projects)==1 and data.get('title') is not None:
-                            name=project_title(data['title'])
-                        else:
-                            base=p['title'][:126];name=base+' 副本';number=2
-                            while name in used:name=f'{base} 副本 {number}';number+=1
-                        used.add(name)
-                        copies.append(self._copy_project(p,mode,name,created_folders))
-                    elif action=='rename':p['title']=titles[p['id']]
-                    elif action=='archive':p['lifecycle']='archived'
-                    elif action=='trash':p.update(trash_from=lifecycle(p),lifecycle='trash',trashed_at=now())
-                    elif action=='restore':
-                        p['lifecycle']=p.pop('trash_from','active') if lifecycle(p)=='trash' else 'active'
-                        if p['lifecycle'] not in ('active','archived'):p['lifecycle']='active'
-                        p.pop('trashed_at',None)
-                    elif action in ('pin','unpin'):p['pinned']=action=='pin'
+                if action=='duplicate':
+                    copies=self._duplicate_projects(projects,data,created_folders)
+                else:
+                    for project in projects:
+                        if action=='rename':
+                            project['title']=titles[project['id']]
+                        elif action=='archive':
+                            project['lifecycle']='archived'
+                        elif action=='trash':
+                            project.update(trash_from=lifecycle(project),lifecycle='trash',trashed_at=now())
+                        elif action=='restore':
+                            project['lifecycle']=project.pop('trash_from','active') if lifecycle(project)=='trash' else 'active'
+                            if project['lifecycle'] not in ('active','archived'):
+                                project['lifecycle']='active'
+                            project.pop('trashed_at',None)
+                        elif action in ('pin','unpin'):
+                            project['pinned']=action=='pin'
                 changed=copies if action=='duplicate' else projects
                 with self.store.connect() as connection:
-                    for p in changed:
-                        p['updated']=now()
-                        connection.execute('INSERT OR REPLACE INTO projects VALUES(?,?)',(p['id'],json.dumps(p,ensure_ascii=False)))
+                    for project in changed:
+                        project['updated']=now()
+                        connection.execute('INSERT OR REPLACE INTO projects VALUES(?,?)',(project['id'],json.dumps(project,ensure_ascii=False)))
             except Exception:
                 self._remove_owned(created_folders)
                 raise

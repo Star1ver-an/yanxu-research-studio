@@ -1,5 +1,4 @@
 """Local, structured research records. No model calls or experiment execution."""
-import copy
 import base64
 import difflib
 import hashlib
@@ -123,6 +122,57 @@ def bibliography(p, text):
         return '['+(', ' if style=='numeric' else '; ').join(labels)+']'
     text=CITATIONS.sub(render,text)
     return text + ('\n\n# 参考文献\n\n' + '\n\n'.join(lines) if lines else '')
+
+
+def _parse_csl_references(text):
+    try:
+        entries = json.loads(text)
+        if not isinstance(entries, list):
+            raise ValueError()
+        records = []
+        for entry in entries:
+            authors = []
+            for author in entry.get('author', []):
+                parts = [author.get('given'), author.get('family'), author.get('literal')]
+                authors.append(' '.join(filter(None, parts)))
+            date_parts = entry.get('issued', {}).get('date-parts', [[]])
+            year = str(date_parts[0][0]) if date_parts and date_parts[0] else ''
+            records.append({
+                'title': entry.get('title', ''), 'authors': '; '.join(authors), 'year': year,
+                'venue': entry.get('container-title', ''), 'doi': entry.get('DOI', ''),
+                'url': entry.get('URL', ''), 'kind': entry.get('type', ''),
+            })
+        return records
+    except (ValueError, TypeError, KeyError, AttributeError, IndexError):
+        raise ValueError('请导入 Zotero 导出的 CSL JSON 数组。') from None
+
+
+def _parse_ris_references(text):
+    fields = {'TI': 'title', 'T1': 'title', 'JO': 'venue', 'JF': 'venue', 'T2': 'venue',
+              'PY': 'year', 'Y1': 'year', 'DO': 'doi', 'UR': 'url'}
+    records = []
+    entry = {}
+    authors = []
+    for line in text.splitlines():
+        match = re.match(r'^([A-Z0-9]{2})  - ?(.*)$', line)
+        if not match:
+            continue
+        key, value = match.groups()
+        if key == 'TY':
+            entry = {'kind': value}
+            authors = []
+        elif key in ('AU', 'A1'):
+            authors.append(value)
+        elif key == 'ER':
+            records.append({**entry, 'authors': '; '.join(authors)})
+            entry = {}
+            authors = []
+        elif key in fields:
+            target = fields[key]
+            entry[target] = value.split('/')[0] if target == 'year' else value
+    if entry.get('title'):
+        raise ValueError('RIS 缺少 ER 结束标记，请重新导出。')
+    return records
 
 
 class ResearchTools:
@@ -446,67 +496,45 @@ class ResearchTools:
         text = data.get('text', '')
         if not isinstance(text, str) or len(text) > 2000000:
             raise ValueError('书目文件请控制在 200 万字符内。')
-        records = []
         if data.get('format') == 'csl':
-            try:
-                entries = json.loads(text)
-                if not isinstance(entries, list):
-                    raise ValueError()
-                for x in entries:
-                    authors = '; '.join(' '.join(filter(None, [a.get('given'), a.get('family'), a.get('literal')])) for a in x.get('author', []))
-                    parts = x.get('issued', {}).get('date-parts', [[]])
-                    records.append({'title': x.get('title', ''), 'authors': authors, 'year': str(parts[0][0]) if parts and parts[0] else '', 'venue': x.get('container-title', ''), 'doi': x.get('DOI', ''), 'url': x.get('URL', ''), 'kind': x.get('type', '')})
-            except (ValueError, TypeError, KeyError, AttributeError, IndexError):
-                raise ValueError('请导入 Zotero 导出的 CSL JSON 数组。') from None
+            records = _parse_csl_references(text)
         elif data.get('format') == 'ris':
-            entry = {}; authors = []
-            for line in text.splitlines():
-                match = re.match(r'^([A-Z0-9]{2})  - ?(.*)$', line)
-                if not match:
-                    continue
-                key, value = match.groups()
-                if key == 'TY':
-                    entry = {'kind': value}; authors = []
-                elif key in ('AU', 'A1'):
-                    authors.append(value)
-                elif key == 'ER':
-                    records.append({**entry, 'authors': '; '.join(authors)}); entry = {}; authors = []
-                else:
-                    target = {'TI': 'title', 'T1': 'title', 'JO': 'venue', 'JF': 'venue', 'T2': 'venue', 'PY': 'year', 'Y1': 'year', 'DO': 'doi', 'UR': 'url'}.get(key)
-                    if target:
-                        entry[target] = value.split('/')[0] if target == 'year' else value
-            if entry.get('title'):
-                raise ValueError('RIS 缺少 ER 结束标记，请重新导出。')
+            records = _parse_ris_references(text)
         else:
             raise ValueError('支持 Zotero CSL JSON 或 RIS 书目文件。')
         if not records or len(records) > 200:
             raise ValueError('一次导入 1–200 条书目。')
         with self.lock:
-            original = self.store.get(pid)
-            self.assert_idle(original)
-            # Validate all records against a temporary project before committing any changes.
-            trial = copy.deepcopy(original)
-            rows = workspace(trial)['references']
+            project = self.store.get(pid)
+            self.assert_idle(project)
+            # Store.get returns a detached project; validate the whole batch before saving.
+            rows = workspace(project)['references']
             added = skipped = 0
             for item in records:
                 if any(not isinstance(v, str) or len(v) > 6000 for v in item.values()) or not item.get('title', '').strip():
                     raise ValueError('书目含缺失标题或无效字段，未导入。')
                 item = {k: v.strip() for k, v in item.items()}
-                if len(item['title'])>500 or item.get('year') and not re.fullmatch(r'\d{4}',item['year']):
+                if len(item['title']) > 500 or (item.get('year') and not re.fullmatch(r'\d{4}', item['year'])):
                     raise ValueError('书目题名过长或年份无效，未导入本批。')
                 item['doi'] = doi(item.get('doi', ''))
                 if item.get('url') and not re.match(r'^https?://[^\s<>"\x00-\x1f]+$', item['url']):
                     raise ValueError('书目来源链接无效。')
-                if any((item['doi'] and r.get('doi') == item['doi']) or (normalize(r['title']) == normalize(item['title']) and r.get('year', '') == item.get('year', '')) for r in rows):
+                duplicate = any(
+                    (item['doi'] and reference.get('doi') == item['doi']) or
+                    (normalize(reference['title']) == normalize(item['title']) and
+                     reference.get('year', '') == item.get('year', ''))
+                    for reference in rows
+                )
+                if duplicate:
                     skipped += 1
                     continue
                 if len(rows) >= 200:
                     raise ValueError('引用库最多 200 条，未导入本批。')
                 rows.append({**item, 'id': uuid.uuid4().hex, 'created': now(), 'updated': now()})
                 added += 1
-            if workspace(trial).get('enabled'):
-                self.invalidate_inputs(trial)
-            self.store.put(trial)
+            if workspace(project).get('enabled'):
+                self.invalidate_inputs(project)
+            self.store.put(project)
         return {'project': self.public_project(pid), 'added': added, 'skipped': skipped}
 
     def reference_verify(self, pid, data):

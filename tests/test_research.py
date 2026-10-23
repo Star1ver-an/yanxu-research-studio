@@ -125,6 +125,34 @@ class ResearchTests(unittest.TestCase):
         with self.assertRaises(ValueError):self.service.reference_import(self.pid,{'format':'csl','text':json.dumps([{'title':'Valid first'},{'title':'Invalid','DOI':'not doi'}])})
         self.assertEqual(self.store.get(self.pid),before)
 
+    def test_reference_import_invalid_batches_preserve_all_project_data(self):
+        before=self.store.get(self.pid)
+        invalid_csl=[{},[None],[{'title':'Valid'},{'title':'Bad author','author':[None]}],
+            [{'title':'Valid'},{'title':'Bad year','issued':{'date-parts':[[20261]]}}]]
+        batches=[('csl',json.dumps(records)) for records in invalid_csl]
+        batches.append(('ris','TY  - JOUR\nTI  - Complete\nER  - \nTY  - JOUR\nTI  - Unfinished\n'))
+        for format_name,text in batches:
+            with self.subTest(format=format_name,text=text):
+                with self.assertRaises(ValueError):
+                    self.service.reference_import(self.pid,{'format':format_name,'text':text})
+                self.assertEqual(self.store.get(self.pid),before)
+
+    def test_reference_import_deduplicates_within_batch_and_preserves_metadata(self):
+        records=[{'title':'Benchmark','author':[{'given':'Ada','family':'Example'},{'literal':'Research Team'}],
+            'issued':{'date-parts':[[2026,10,22]]},'DOI':'https://doi.org/10.1234/BENCHMARK',
+            'URL':'https://example.org/paper','container-title':'Conference','type':'paper-conference'},
+            {'title':'Different title','DOI':'10.1234/benchmark'},
+            {'title':' Benchmark ','issued':{'date-parts':[[2026]]}}]
+        result=self.service.reference_import(self.pid,{'format':'csl','text':json.dumps(records)})
+        self.assertEqual((result['added'],result['skipped']),(1,2))
+        reference=self.store.get(self.pid)['research']['references'][0]
+        self.assertEqual(reference['authors'],'Ada Example; Research Team')
+        self.assertEqual(reference['year'],'2026')
+        self.assertEqual(reference['doi'],'10.1234/benchmark')
+        self.assertEqual(reference['venue'],'Conference')
+        self.assertEqual(reference['kind'],'paper-conference')
+        self.assertEqual(reference['url'],'https://example.org/paper')
+
     def test_verification_is_metadata_only_and_failure_does_not_verify(self):
         ref=self.save('references',title='RAG Reference',doi='10.1234/rag')
         response=io.BytesIO(json.dumps({'message':{'title':['RAG Reference'],'update-to':[]}}).encode())
