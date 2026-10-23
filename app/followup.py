@@ -68,6 +68,9 @@ def followup(p):
                        'signature': mark, 'deferred': deferred.get(key) == mark})
 
     stale = [s for s in stages if outputs.get(s, {}).get('stale')]
+    if p.get('study_brief', {}).get('status') == 'draft':
+        add('study-brief', '核对课题范围与材料缺口', '研究简报仍为草稿，请先核对名称、研究对象、已有材料和完成标准。',
+            {'tab': 'brief'}, p['study_brief'], 'review')
     if stale:
         add('stale-reports', f'{len(stale)} 个阶段成果需要重核',
             '先重新运行最早受影响的阶段，再逐步核对后续成果。', {'tab': 'work', 'stage': stale[0]},
@@ -147,6 +150,8 @@ def followup(p):
     target = {'tab': 'work', 'stage': sid}
     if running:
         next_step = {'title': '查看正在生成的阶段', 'detail': '可以离开页面，完成后会保存在项目中。', 'target': target}
+    elif p.get('study_brief', {}).get('status') == 'draft':
+        next_step = {'title': '核对研究简报与材料缺口', 'detail': '先确定研究范围，再整理材料和推进任务。', 'target': {'tab': 'brief'}}
     elif stale:
         next_step = {'title': '重核「' + STAGES[stale[0]]['title'] + '」', 'detail': '前序输入发生变化，从这里继续。', 'target': {'tab': 'work', 'stage': stale[0]}}
     elif p['flow'] == 'scientific_data' and not tables:
@@ -157,7 +162,9 @@ def followup(p):
         has = bool(outputs.get(sid))
         next_step = {'title': ('阅读并确认「' if has else '开始「') + STAGES[sid]['title'] + '」',
                      'detail': '核实成果后继续下一步。' if has else STAGES[sid]['subtitle'], 'target': target}
-    if stale and not running:
+    if p.get('study_brief', {}).get('status') == 'draft' and not running:
+        pass
+    elif stale and not running:
         next_step.update(title_template='重核「{0}」',title_args=[STAGES[stale[0]]['title']])
     elif not running and not completed and not (p['flow']=='scientific_data' and not tables):
         next_step.update(title_template='阅读并确认「{0}」' if outputs.get(sid) else '开始「{0}」',title_args=[STAGES[sid]['title']])

@@ -25,7 +25,7 @@ async function fuNavigate(target){
  if(target.action==='project-info'){infoModal();return}
  if(target.action==='export'){exportModal();return}
  if(target.action==='recheck'){await fuRecheck(target.message);return}
- if(!['work','materials','research','history','overview'].includes(target.tab))return;
+ if(!['brief','work','materials','research','history','overview'].includes(target.tab))return;
  if(target.tab==='overview'){const pid=S.project.id;const fresh=await api('project/'+pid);if(S.project?.id!==pid)return;S.project=fresh}
  S.tab=target.tab;
  if(target.tab==='work'){

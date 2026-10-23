@@ -205,7 +205,7 @@ class Store:
             c.execute('INSERT OR REPLACE INTO projects VALUES(?,?)',(p['id'],json.dumps(p,ensure_ascii=False)))
         return p
 
-    def create(self,data):
+    def create(self,data,*,persist=True):
         from .i18n import language
         output=data.get('output_language','auto')
         if output!='auto':language(output)
@@ -241,7 +241,7 @@ class Store:
                citation=str(data.get('citation','APA 7'))[:100],experiments=declaration,
                requirements=str(data.get('requirements',''))[:20000],created=now(),updated=now(),
                cursor=0,assets=[],literature=[],runs=[],outputs={},confirmations=[],demo=False,output_language=output)
-        return self.put(p)
+        return self.put(p) if persist else p
 
     def recover(self):
         for p in self.list():

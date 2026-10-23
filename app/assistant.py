@@ -30,7 +30,7 @@ QUESTIONS = {'next': '我接下来应该做什么？', 'blocked': '为什么不�
 # Shipped with the application, independent of user materials and model output.
 KNOWLEDGE = """研序软件指南（与当前版本一起维护）
 入口：工作台、研究路径、研究项目、文献与材料、工作流模板、备份与恢复、模型与连接、使用指南。
-项目页：研究流程、研究工具、文献与材料、运行记录。研究工具包含导航任务、阅读与证据、论点关联、文献引用、实验设计、图表与绘图、修改意见、写作检查、版本恢复。
+项目页：继续研究、研究简报、研究流程、研究工具、文献与材料、运行记录。研究简报记录原始构思、规范名称、问题、范围、材料、方法和交付标准，核对范围不等于验证结果。简报默认不额外加入模型参考，启用后仍预览；项目名称和目标按原流程使用。首页可以直接选择文献证据、数据图表或稿件任务，再选择项目；专业路径折叠保留。研究工具包含导航任务、阅读与证据、论点关联、文献引用、实验设计、图表与绘图、修改意见、写作检查、版本恢复。
 路径：开题与写作适合开题、提纲、论文写作和审阅返修；科研工具与分析适合证据梳理、实验方案、本机表格质控。研究路径页面和新建项目可查看推荐。没有实验数据时先做问题与方案，不虚构实验结果。
 流程：先运行当前阶段，阅读成果，再由用户确认后推进；核验阶段需要勾选已阅读声明。实验来源“未决定”会阻止确认，须在项目概况明确。确认只是操作记录，不认证科研真实性。修改前序报告、材料、研究目标或已启用的研究工具记录会使后续成果需要重核。历史成果不会被抹去，可到研究工具的版本恢复比较。
 上传：在项目的文献与材料中导入 PDF、DOCX、TXT、MD、CSV、TSV、XLSX、PNG、JPG、RIS、NBIB、BibTeX、JSON，单文件20MB，项目最多80份。扫描PDF需先OCR；没有内置OCR。检索可用Crossref或PubMed，Crossref适合计算机相关文献；结果默认待筛，用户勾选后才加入研究。限定词用逗号、分号、换行分隔，保留英文短语。元数据和摘要不等于全文证据。
@@ -197,6 +197,12 @@ class Assistant(AssistantProposals, AssistantFollowup):
         session = self._read(pid)
         sources = [f'软件指南 v{VERSION}', '项目目标与流程状态' if p else '当前页面']
         chunks = [KNOWLEDGE, '\n当前程序状态（以此为准）：\n' + json.dumps(self._snapshot(p, opts), ensure_ascii=False)]
+        if p and p.get('study_brief'):
+            from .studies import brief_context
+            chunks.append(brief_context(p))
+            sources.append('研究领域解释边界')
+            if p['study_brief'].get('context_enabled'):
+                sources.append('研究简报（方案草稿或已核对范围；不是研究结果）')
         if p and opts['options']['memory']:
             memories = [{'名称': x['title'], '内容': x['text']} for x in memory_state(p)['items'] if x['enabled']]
             if memories:

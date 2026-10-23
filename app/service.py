@@ -25,8 +25,10 @@ from .plotting import Plotting
 from .analysis_jobs import AnalysisJobs
 from .paper_figures import PaperFigures
 from .i18n import output_language,output_instruction,language,tr
+from .studies import Studies, brief_context
+from .source_workflow import SourceWorkflow
 
-class Service(ProjectManagement,ResearchTools,Plotting,AnalysisJobs,PaperFigures):
+class Service(ProjectManagement,ResearchTools,Plotting,AnalysisJobs,PaperFigures,Studies,SourceWorkflow):
     def __init__(self,store=None):
         self.store=store or Store()
         self.lock=self.store.lock
@@ -37,8 +39,9 @@ class Service(ProjectManagement,ResearchTools,Plotting,AnalysisJobs,PaperFigures
         self.assistant=Assistant(self)
 
     def project_list(self):
-        return [{k:v for k,v in p.items() if k not in ('runs','outputs','assets','literature','confirmations','research','versions','assistant_chat','assistant_followup','assistant_memory','plotting')} |
+        return [{k:v for k,v in p.items() if k not in ('runs','outputs','assets','literature','confirmations','research','versions','assistant_chat','assistant_followup','assistant_memory','plotting','study_brief','study_brief_history')} |
                 {'asset_count':len(p['assets']),'output_count':len(p['outputs']),
+                 'study_status':p.get('study_brief',{}).get('status',''),
                  'followup_next':followup(p)['next'],
                  'research_status':self.research_status(p),
                  'running':any(r['status']=='running' for r in p['runs'])} for p in self.store.list()]
@@ -49,6 +52,7 @@ class Service(ProjectManagement,ResearchTools,Plotting,AnalysisJobs,PaperFigures
         p['plotting']=self.plot_public(p)
         p.pop('assistant_followup',None)
         p.pop('assistant_chat',None)
+        p.pop('study_brief_history',None)
         p['research_status']=self.research_status(p)
         p['versions']=[{k:v for k,v in item.items() if k!='text'} for item in p.get('versions',[])]
         for a in p['assets']:
@@ -283,7 +287,7 @@ class Service(ProjectManagement,ResearchTools,Plotting,AnalysisJobs,PaperFigures
         config.update(route=p.get('route','ars'),goal=p.get('goal','unsure'),data_kind=p.get('data_kind','unknown'),
                       selected_skill=p.get('selected_skill',''))
         chunks=[output_instruction(output_language(p,self.store)),'作者声明与任务配置：\n'+json.dumps(config,ensure_ascii=False,indent=2)]
-        chunks += ['\n作者本次要求：\n'+note]
+        chunks += ['\n作者本次要求：\n'+note, brief_context(p)]
         if p.get('research',{}).get('enabled'):
             chunks.append('\n研究工具记录（由作者整理，完成状态不是真实性认证；实验计划不得写成已执行结果）。如引用库中文献，请使用 [@完整文献ID] 标记，不得虚构ID；未核实的支持关系应保留待核实。书目核对不等于全文支持：\n'+json.dumps(p['research'],ensure_ascii=False))
         selected=[l for l in p['literature'] if l.get('enabled',True)]

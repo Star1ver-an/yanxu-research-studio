@@ -22,6 +22,7 @@ command=[sys.executable,'-m','PyInstaller','--noconfirm','--clean','--onefile','
  '--collect-data','matplotlib','--hidden-import','matplotlib.backends.backend_agg',
  '--collect-all','lifelines','--collect-all','formulaic','--collect-all','statsmodels',
  '--collect-all','sklearn','--collect-all','flowio',
+ '--collect-all','cryptography',
  '--copy-metadata','numpy','--copy-metadata','pandas','--copy-metadata','scipy',
  '--copy-metadata','lifelines','--copy-metadata','statsmodels','--copy-metadata','scikit-learn',
  '--copy-metadata','flowio','--copy-metadata','formulaic',
@@ -33,12 +34,13 @@ command=[sys.executable,'-m','PyInstaller','--noconfirm','--clean','--onefile','
  '--distpath',str(dist),'--workpath',str(Path(args.work_dir).resolve()),str(root/'main.py')]
 subprocess.run(command,cwd=root,check=True)
 shutil.copy2(root/'README.md',dist/'使用说明.md')
+shutil.copy2(root/'PRODUCTIZATION.md',dist/'PRODUCTIZATION.md')
 shutil.copy2(root/'THIRD_PARTY_NOTICES.txt',dist/'来源与许可.txt')
 shutil.copy2(root/'LICENSE',dist/'LICENSE.txt')
 shutil.copy2(root/'resources'/'ars'/'LICENSE',dist/'ARS-LICENSE.txt')
 shutil.copy2(root/'resources'/'scientific'/'LICENSE.md',dist/'Scientific-Agent-Skills-LICENSE.txt')
 archive=dist/'研序-ResearchStudio-Windows.zip'
 with zipfile.ZipFile(archive,'w',zipfile.ZIP_DEFLATED,compresslevel=6) as z:
-    for name in ['YanxuResearchStudio.exe','使用说明.md','来源与许可.txt','LICENSE.txt','ARS-LICENSE.txt','Scientific-Agent-Skills-LICENSE.txt']:
+    for name in ['YanxuResearchStudio.exe','使用说明.md','PRODUCTIZATION.md','来源与许可.txt','LICENSE.txt','ARS-LICENSE.txt','Scientific-Agent-Skills-LICENSE.txt']:
         z.write(dist/name,'研序 Research Studio/'+name)
 print('BUILD_COMPLETE',str(archive),flush=True)

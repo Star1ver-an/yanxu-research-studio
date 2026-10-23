@@ -40,7 +40,7 @@ def main():
                     if response.status==200:break
             except OSError: time.sleep(.4)
         else: raise RuntimeError('冻结程序未在 120 秒内启动。')
-        for asset in ['paper.js','paper.css','plotting.js','analysis.js','assistant.js','assistant.css','assistant-proposals.js','app.js','followup.js','onboarding.js','i18n.js','language.js','language.css']:
+        for asset in ['paper.js','paper.css','plotting.js','analysis.js','assistant.js','assistant.css','assistant-proposals.js','app.js','followup.js','followup.css','onboarding.js','i18n.js','language.js','language.css','projects.js','research.js','research.css','sources.js','studio.js','studio.css','soft-ui.css']:
             with urlopen(base+'/'+asset,timeout=15) as response:
                 if response.read() != (ROOT/'web'/asset).read_bytes():
                     raise RuntimeError('冻结界面文件与当前源码不一致：'+asset)
@@ -58,8 +58,11 @@ def main():
         assistant=subprocess.run([sys.executable,str(ROOT/'tools/verify_assistant.py'),'--base-url',base,
             '--output',str(output/'assistant-acceptance')],cwd=ROOT,env=dict(os.environ,PYTHONUTF8='1'),timeout=120,**hidden())
         if assistant.returncode:return assistant.returncode
-        return subprocess.run([sys.executable,str(ROOT/'tools/verify_i18n.py'),'--base-url',base,
-            '--output',str(output/'i18n-acceptance')],cwd=ROOT,env=dict(os.environ,PYTHONUTF8='1'),timeout=120,**hidden()).returncode
+        i18n=subprocess.run([sys.executable,str(ROOT/'tools/verify_i18n.py'),'--base-url',base,
+            '--output',str(output/'i18n-acceptance')],cwd=ROOT,env=dict(os.environ,PYTHONUTF8='1'),timeout=120,**hidden())
+        if i18n.returncode:return i18n.returncode
+        return subprocess.run([sys.executable,str(ROOT/'tools/verify_studies_sources.py'),'--base-url',base,
+            '--output',str(output/'study-source-acceptance')],cwd=ROOT,env=dict(os.environ,PYTHONUTF8='1'),timeout=120,**hidden()).returncode
     finally:
         stop_process(process)
         process.wait(timeout=30)

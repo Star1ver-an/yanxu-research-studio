@@ -4,9 +4,9 @@ const AS={open:false,scope:null,state:null,project:null,loading:false,sending:fa
  contextOpen:false,scopeOpen:false,scopeQuery:'',pick:null,epoch:0,navEpoch:0,timer:null,opener:null,
  catalog:null,catalogLoading:false,catalogError:'',pageKey:'',arrival:null,wide:false,position:null,dragging:null};
 const asQuick=[['next',L('下一步做什么')],['blocked',L('排查流程卡点')],['stage',L('解释当前阶段')],['connection',L('连接故障')]];
-const asTargets=new Set(['drawing','analysis','paper','experiments','overview','work','materials','research','history','settings','help','pathways','backups','projects']);
-const asProjectTargets=new Set(['drawing','analysis','paper','experiments','overview','work','materials','research','history']);
-const asNavNames={drawing:L('绘图'),analysis:L('数据分析'),paper:L('论文图表'),experiments:L('实验方案'),overview:L('项目进展与记忆'),work:L('研究流程'),materials:L('文献与材料'),research:L('研究工具'),history:L('运行记录'),settings:L('模型与连接'),help:L('使用指南'),pathways:L('研究路径'),backups:L('备份与恢复'),projects:L('研究项目')};
+const asTargets=new Set(['brief','drawing','analysis','paper','experiments','overview','work','materials','research','history','settings','help','pathways','backups','projects']);
+const asProjectTargets=new Set(['brief','drawing','analysis','paper','experiments','overview','work','materials','research','history']);
+const asNavNames={brief:L('研究简报'),drawing:L('绘图'),analysis:L('数据分析'),paper:L('论文图表'),experiments:L('实验方案'),overview:L('项目进展与记忆'),work:L('研究流程'),materials:L('文献与材料'),research:L('研究工具'),history:L('运行记录'),settings:L('模型与连接'),help:L('使用指南'),pathways:L('研究路径'),backups:L('备份与恢复'),projects:L('研究项目')};
 try{const saved=JSON.parse(localStorage.getItem('yanxu-assistant-window-v1')||'null');if(saved){AS.wide=saved.wide===true;if(Number.isFinite(saved.position?.x)&&Number.isFinite(saved.position?.y))AS.position=saved.position;}}catch{}
 function assistantScope(){return S.view==='project'&&S.project?S.project.id:''}
 function assistantLocation(){return S.view==='project'?({work:'project',materials:'materials',research:'research',history:'history'}[S.tab]||'project'):S.view}
