@@ -1,242 +1,1082 @@
-const $ = (s, root=document) => root.querySelector(s);
-const e = value => String(value ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const $ = (s, root = document) => root.querySelector(s);
+const e = (value) =>
+  String(value ?? '').replace(
+    /[&<>"']/g,
+    (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c],
+  );
 const paths = {
- home:'M3 10 12 3l9 7v10a1 1 0 0 1-1 1h-5v-7H9v7H4a1 1 0 0 1-1-1z',
- folder:'M3 7a2 2 0 0 1 2-2h5l2 2h7a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z',
- book:'M3 4h6a3 3 0 0 1 3 3v14a4 4 0 0 0-4-2H3z M21 4h-6a3 3 0 0 0-3 3v14a4 4 0 0 1 4-2h5z',
- spark:'m12 3 2.6 6.4L21 12l-6.4 2.6L12 21l-2.6-6.4L3 12l6.4-2.6z',
- search:'M21 21l-5-5 M18 10a8 8 0 1 1-16 0 8 8 0 0 1 16 0',
- plus:'M12 5v14 M5 12h14',arrow:'M5 12h14 M13 6l6 6-6 6',chevron:'m9 5 7 7-7 7',expand:'M8 3H3v5 M16 3h5v5 M3 16v5h5 M21 16v5h-5',
- settings:'M12 8a4 4 0 1 0 0 8 4 4 0 0 0 0-8 M9 3h6l1 3 3 1 2 5-2 5-3 1-1 3H9l-1-3-3-1-2-5 2-5 3-1z',
- help:'M9 9a3 3 0 0 1 6 0c0 2-3 2-3 4 M12 17h.01 M22 12A10 10 0 1 1 2 12a10 10 0 0 1 20 0',
- check:'m5 12 4 4L19 6',clock:'M12 7v5l3 2 M22 12A10 10 0 1 1 2 12a10 10 0 0 1 20 0',
- file:'M14 2H5a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V9z M14 2v7h7 M7 13h10 M7 17h7',
- shield:'M12 3 3 7v6c0 4 5 7 9 9 4-2 9-5 9-9V7z m-4 9 3 3 5-6',
- upload:'M12 16V3 M7 8l5-5 5 5 M4 15v5a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1v-5',
- download:'M12 3v13 M7 11l5 5 5-5 M4 17v3a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1v-3',
- play:'m8 4 12 8-12 8z',stop:'M5 5h14v14H5z',close:'m6 6 12 12 M18 6 6 18',
- external:'M14 3h7v7 M10 14 11-11 M21 14v6a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1h6',
- layers:'m12 3 10 5-10 5L2 8z M2 12l10 5 10-5 M2 16l10 5 10-5',
- connection:'M8 12h8 M7 7H5a5 5 0 0 0 0 10h2 M17 7h2a5 5 0 0 1 0 10h-2',
- leaf:'M5 19C2 9 8 2 21 3c1 13-6 19-16 16 M5 19 16 8',
- edit:'m16 3 5 5-13 13H3v-5z M13 6l5 5',refresh:'M20 7v5h-5 M4 17v-5h5 M5 7a8 8 0 0 1 13-2l2 7 M4 12l2 7a8 8 0 0 0 13-2',
- bars:'M5 20V10 M12 20V4 M19 20v-7',menu:'M4 6h16 M4 12h16 M4 18h16',
- info:'M12 11v6 M12 7h.01 M22 12A10 10 0 1 1 2 12a10 10 0 0 1 20 0',
- sun:'M12 8a4 4 0 1 0 0 8 4 4 0 0 0 0-8 M12 2v2 M12 20v2 M2 12h2 M20 12h2 M5 5l1.5 1.5 M17.5 17.5l1.5 1.5 M5 19l1.5-1.5 M17.5 6.5l1.5-1.5',
- trash:'M3 6h18 M9 6V3h6v3 M6 6l1 15h10l1-15 M10 10v7 M14 10v7',copy:'M8 8h12v12H8z M16 8V4H4v12h4',archive:'M3 3h18v5H3z M5 8v13h14V8 M9 12h6',restore:'M4 9h10a7 7 0 1 1-7 12 M4 9l5-5 M4 9l5 5',pin:'m9 3 6 0-1 6 4 4H6l4-4z M12 13v8',more:'M5 12h.01 M12 12h.01 M19 12h.01',
- moon:'M20.8 13A9 9 0 0 1 11 3.2 9 9 0 1 0 20.8 13'
+  home: 'M3 10 12 3l9 7v10a1 1 0 0 1-1 1h-5v-7H9v7H4a1 1 0 0 1-1-1z',
+  folder: 'M3 7a2 2 0 0 1 2-2h5l2 2h7a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z',
+  book: 'M3 4h6a3 3 0 0 1 3 3v14a4 4 0 0 0-4-2H3z M21 4h-6a3 3 0 0 0-3 3v14a4 4 0 0 1 4-2h5z',
+  spark: 'm12 3 2.6 6.4L21 12l-6.4 2.6L12 21l-2.6-6.4L3 12l6.4-2.6z',
+  search: 'M21 21l-5-5 M18 10a8 8 0 1 1-16 0 8 8 0 0 1 16 0',
+  plus: 'M12 5v14 M5 12h14',
+  arrow: 'M5 12h14 M13 6l6 6-6 6',
+  chevron: 'm9 5 7 7-7 7',
+  expand: 'M8 3H3v5 M16 3h5v5 M3 16v5h5 M21 16v5h-5',
+  settings:
+    'M12 8a4 4 0 1 0 0 8 4 4 0 0 0 0-8 M9 3h6l1 3 3 1 2 5-2 5-3 1-1 3H9l-1-3-3-1-2-5 2-5 3-1z',
+  help: 'M9 9a3 3 0 0 1 6 0c0 2-3 2-3 4 M12 17h.01 M22 12A10 10 0 1 1 2 12a10 10 0 0 1 20 0',
+  check: 'm5 12 4 4L19 6',
+  clock: 'M12 7v5l3 2 M22 12A10 10 0 1 1 2 12a10 10 0 0 1 20 0',
+  file: 'M14 2H5a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V9z M14 2v7h7 M7 13h10 M7 17h7',
+  shield: 'M12 3 3 7v6c0 4 5 7 9 9 4-2 9-5 9-9V7z m-4 9 3 3 5-6',
+  upload: 'M12 16V3 M7 8l5-5 5 5 M4 15v5a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1v-5',
+  download: 'M12 3v13 M7 11l5 5 5-5 M4 17v3a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1v-3',
+  play: 'm8 4 12 8-12 8z',
+  stop: 'M5 5h14v14H5z',
+  close: 'm6 6 12 12 M18 6 6 18',
+  external: 'M14 3h7v7 M10 14 11-11 M21 14v6a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1h6',
+  layers: 'm12 3 10 5-10 5L2 8z M2 12l10 5 10-5 M2 16l10 5 10-5',
+  connection: 'M8 12h8 M7 7H5a5 5 0 0 0 0 10h2 M17 7h2a5 5 0 0 1 0 10h-2',
+  leaf: 'M5 19C2 9 8 2 21 3c1 13-6 19-16 16 M5 19 16 8',
+  edit: 'm16 3 5 5-13 13H3v-5z M13 6l5 5',
+  refresh: 'M20 7v5h-5 M4 17v-5h5 M5 7a8 8 0 0 1 13-2l2 7 M4 12l2 7a8 8 0 0 0 13-2',
+  bars: 'M5 20V10 M12 20V4 M19 20v-7',
+  menu: 'M4 6h16 M4 12h16 M4 18h16',
+  info: 'M12 11v6 M12 7h.01 M22 12A10 10 0 1 1 2 12a10 10 0 0 1 20 0',
+  sun: 'M12 8a4 4 0 1 0 0 8 4 4 0 0 0 0-8 M12 2v2 M12 20v2 M2 12h2 M20 12h2 M5 5l1.5 1.5 M17.5 17.5l1.5 1.5 M5 19l1.5-1.5 M17.5 6.5l1.5-1.5',
+  trash: 'M3 6h18 M9 6V3h6v3 M6 6l1 15h10l1-15 M10 10v7 M14 10v7',
+  copy: 'M8 8h12v12H8z M16 8V4H4v12h4',
+  archive: 'M3 3h18v5H3z M5 8v13h14V8 M9 12h6',
+  restore: 'M4 9h10a7 7 0 1 1-7 12 M4 9l5-5 M4 9l5 5',
+  pin: 'm9 3 6 0-1 6 4 4H6l4-4z M12 13v8',
+  more: 'M5 12h.01 M12 12h.01 M19 12h.01',
+  moon: 'M20.8 13A9 9 0 0 1 11 3.2 9 9 0 1 0 20.8 13',
 };
-const icon = (name, size=20) => `<svg width="${size}" height="${size}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.65" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="${paths[name]||paths.file}"/></svg>`;
+const icon = (name, size = 20) =>
+  `<svg width="${size}" height="${size}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.65" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="${paths[name] || paths.file}"/></svg>`;
 const token = $('meta[name="research-token"]').content;
-let S = {view:'home',catalog:null,projects:[],settings:{},project:null,activeStage:'',tab:'work',outputTab:'preview',filter:'all',query:'',codex:null,notes:{},draft:null,busy:false};
-let pollTimer, toastTimer, uploading=false, modalOpener=null;
-const searchForms={};
+let S = {
+  view: 'home',
+  catalog: null,
+  projects: [],
+  settings: {},
+  project: null,
+  activeStage: '',
+  tab: 'work',
+  outputTab: 'preview',
+  filter: 'all',
+  query: '',
+  codex: null,
+  notes: {},
+  draft: null,
+  busy: false,
+};
+let pollTimer,
+  toastTimer,
+  uploading = false,
+  modalOpener = null;
+const searchForms = {};
 
-async function api(path, data, blob=false) {
- const r = await fetch('/api/'+path,{method:data===undefined?'GET':'POST',headers:{'X-Research-Token':token,'X-Research-Language':window.ResearchI18n?.current()||'zh-CN','Content-Type':'application/json'},body:data===undefined?undefined:JSON.stringify(data)});
- if(!r.ok){let err;try{err=await r.json()}catch{err={error:L('本地连接中断，请重新打开软件。')}}throw new Error(err.error||L('操作失败'));}
- return blob ? r.blob() : r.json().then(value=>window.ResearchI18n?.ui(value)||value);
-}
-function toast(text,bad=false){const el=$('#toast');el.textContent=text;if(bad&&typeof assistantRememberError==='function'){assistantRememberError(text);const help=document.createElement('button');help.type='button';help.className='as-toast-help';help.dataset.action='as-error';help.textContent=L('让助手帮我解决');el.appendChild(help)}el.className='show'+(bad?' bad':'');clearTimeout(toastTimer);toastTimer=setTimeout(()=>el.className='',4800);}
-const date = s => new Intl.DateTimeFormat(window.ResearchI18n?.current()||'zh-CN',{month:'short',day:'numeric',hour:'2-digit',minute:'2-digit'}).format(new Date(s));
-const flow = p => S.catalog.flows[p.flow];
-const step = p => flow(p).stages[Math.min(p.cursor,flow(p).stages.length-1)];
-const progress = p => Math.round(Math.min(p.cursor,flow(p).stages.length)/flow(p).stages.length*100);
-const button = (action,label,kind='primary',ico='',attrs='') => `<button class="btn ${kind}" data-action="${action}" ${/\btype=/.test(attrs)?'':'type="button"'} ${attrs}>${ico?icon(ico,17):''}${label}</button>`;
-function shell(content) {
- const current=S.view==='project'?'projects':S.view;
- const nav=[['home','home',L('工作台')],['pathways','connection',L('研究路径')],['projects','folder',L('研究项目')],['library','book',L('文献与材料')],['tools','layers',L('工作流模板')],['backups','archive',L('备份与恢复')]];
- return H`<aside class="sidebar"><a class="brand" data-action="nav" data-view="home"><span class="brand-tile" aria-hidden="true"><i class="brand-symbol"></i></span><span>研序<small>RESEARCH STUDIO</small></span></a>
- <div class="space-label"><span class="space-dot">研</span><div>我的研究空间<small>个人工作区 · 本地保存</small></div>${icon('chevron',14)}</div>
- <nav>${nav.map(([v,i,n])=>`<button class="nav-item ${current===v?'active':''}" data-action="nav" data-view="${v}">${icon(i)}<span>${n}</span>${v==='projects'?`<b>${activeProjects().length}</b>`:''}</button>`).join('')}</nav>
- <div class="side-heading">最近的项目 <button class="icon-btn" data-action="create" title="新建项目">${icon('plus',16)}</button></div>
- <div class="recent-list">${activeProjects().slice(0,4).map(p=>`<button class="recent-item" data-action="open" data-id="${p.id}"><span class="tiny-square ${flow(p).color}">${icon('file',13)}</span><span>${e(p.title)}</span></button>`).join('')||H`<p class="side-empty">你的下一个想法，从这里开始</p>`}</div>
- <div class="sidebar-bottom"><div class="local-note">${icon('shield',18)}<div>你的研究，由你掌控<small>每一步成果都需要你确认</small></div></div>
- <button class="nav-item ${current==='settings'?'active':''}" data-action="nav" data-view="settings">${icon('settings')}模型与连接</button><button class="nav-item ${current==='help'?'active':''}" data-action="nav" data-view="help">${icon('help')}使用指南</button>
- ${button('guide-start',L('分步功能引导'),'text','help')}<div class="profile"><div class="avatar">研</div><div>研究者<small>Researcher</small></div><span class="version">v${e(S.catalog.version)}</span></div></div></aside>
- <div class="app-body"><header class="topbar"><div class="breadcrumb">我的研究空间 <span>/</span> ${e({home:L('工作台'),projects:L('研究项目'),library:L('文献与材料'),tools:L('工作流模板'),settings:L('模型与连接'),help:L('使用指南'),backups:L('备份与恢复'),pathways:S.pathwayRoute?S.catalog.routes[S.pathwayRoute].name:L('研究路径'),project:S.project?.title}[S.view]||L('工作台'))}</div><div class="top-actions">${typeof languagePicker==='function'?languagePicker():''}<button class="connection-pill" data-action="update-open"><span id="update-badge">软件更新</span></button><span class="local-status"><i></i>本地工作区</span><button class="appearance-toggle icon-btn" data-action="toggle-theme" aria-label="${e(L(window.ResearchAppearance?.current()==='dark'?'切换为浅色主题':'切换为深色主题'))}" aria-pressed="${window.ResearchAppearance?.current()==='dark'}" title="${e(L(window.ResearchAppearance?.current()==='dark'?'切换为浅色主题':'切换为深色主题'))}"><span class="theme-sun">${icon('sun',18)}</span><span class="theme-moon">${icon('moon',18)}</span></button><button class="connection-pill" data-action="nav" data-view="settings">${icon('connection',15)}${S.settings.mode==='codex'?L('本机 Codex'):L('API 连接')}${icon('chevron',12)}</button></div></header><main>${content}</main></div>`;
-}
-function render(){
- if(!S.catalog)return;
- let content = {home:home,projects:projects,library:library,tools:tools,settings:settings,help:help,project:projectView,pathways:pathways,backups:backupsView}[S.view]?.()||home();
- $('#app').innerHTML=shell(content);
- if(typeof assistantSync==='function')assistantSync();
- if(typeof paintUpdate==='function')paintUpdate();
- if(typeof paintProjectSelection==='function'){paintProjectSelection();protectInactiveProject();scheduleManagementPoll()}
- if(typeof paintGuideResume==='function')paintGuideResume();
- if(S.view==='project'&&S.tab==='work'&&S.outputTab==='preview')paintClaimAnchors();
-}
-function heroArt(){return `<svg class="hero-art" viewBox="0 0 390 228" aria-hidden="true"><g fill="none" stroke="#9ab8a6" stroke-width="1"><ellipse cx="219" cy="126" rx="143" ry="66" transform="rotate(-16 219 126)"/><ellipse cx="219" cy="126" rx="99" ry="91" transform="rotate(25 219 126)"/><path d="M44 178h287M77 46h244" stroke-dasharray="3 6"/></g><circle cx="85" cy="145" r="19" fill="#d4e3d9"/><circle cx="85" cy="145" r="5" fill="#5b8c74"/><circle cx="324" cy="96" r="8" fill="#aac6b2"/><circle cx="193" cy="29" r="4" fill="#84a78f"/><g transform="translate(155 45) rotate(7 63 75)"><rect x="8" y="8" width="116" height="151" rx="9" fill="#c9ddcd"/><rect width="116" height="151" rx="9" fill="#fff" stroke="#bed1c2"/><rect x="17" y="19" width="31" height="5" rx="2.5" fill="#51775f"/><path d="M17 38h79M17 47h79M17 56h52" stroke="#c9d4cd" stroke-width="3" stroke-linecap="round"/><rect x="17" y="75" width="82" height="51" rx="5" fill="#f1f5ef"/><path d="m27 112 14-14 13 6 14-21 20 10" fill="none" stroke="#659173" stroke-width="2.5"/><circle cx="68" cy="83" r="3" fill="#659173"/></g><g transform="translate(280 152)"><circle r="23" fill="#2d6551"/><path d="m-9 0 6 6 12-13" fill="none" stroke="#fff" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/></g><g transform="translate(104 49)"><rect width="37" height="37" rx="10" fill="#fff" stroke="#c8d9cd"/><path d="M10 10h17v18H10z M14 15h9M14 20h6" fill="none" stroke="#688a73" stroke-width="1.7"/></g></svg>`}
-function home(){
- if(typeof studioHome==='function')return studioHome();
- const ongoing=activeProjects().filter(p=>progress(p)<100).length,done=activeProjects().filter(p=>progress(p)===100).length,assets=activeProjects().reduce((a,p)=>a+p.asset_count,0);
- return H`<div class="page-heading"><div class="eyebrow">YOUR RESEARCH, ONE STEP AT A TIME</div><h1>让研究，有条不紊。</h1><p>从一个问题开始，让每一步思考都留下成果。</p></div>
- ${researchHome()}${routeHome()}
- <section class="stats"><div class="stat"><span class="stat-icon green">${icon('folder',21)}</span><div><span>进行中的项目</span><strong>${ongoing}<small>项研究正在推进</small></strong></div></div><div class="stat"><span class="stat-icon blue">${icon('book',21)}</span><div><span>已整理的材料</span><strong>${assets}<small>份材料保存在本机</small></strong></div></div><div class="stat"><span class="stat-icon amber">${icon('check',21)}</span><div><span>已完成的流程</span><strong>${done}<small>每一步都有迹可循</small></strong></div></div></section>
- <section class="section"><div class="section-title"><div><h2>继续你的研究</h2><p>回到上次停下来的地方。</p></div>${button('nav',L('查看全部'),'text','arrow','data-view="projects"')}</div>${activeProjects().length?`<div class="project-grid">${activeProjects().slice(0,3).map(projectCard).join('')}</div>`:emptyState('folder',L('第一个研究项目，等你开启'),L('写下你感兴趣的问题，选择适合的工作流。'),L('创建研究项目'))}</section>
- <section class="section"><div class="section-title"><div><h2>从你现在的需求开始</h2><p>可以走完全部流程，也可以只完成眼前的一步。</p></div></div><div class="template-grid">${['literature','write','review','screen'].map(templateCard).join('')}</div></section>
- <div class="bottom-caption">${icon('leaf',15)} 好的研究需要时间。清晰的流程，让思考更从容。 <span>Academic Research Skills + Scientific Agent Skills · 非官方桌面改编</span></div>`;
-}
-function projectCard(p){return managedProjectCard(p)}
-function templateCard(key){const f=S.catalog.flows[key];const names={literature:['book',L('文献研究'),L('从零梳理领域，把文献变成证据。')],write:['edit',L('论文写作'),L('先有清晰结构，再写有据可依的文字。')],review:['shield',L('审阅与返修'),L('换一个视角，发现稿件的改进空间。')],screen:['layers',L('系统综述筛选'),L('固定标准，留下可追溯的筛选记录。')],full:['spark',L('完整研究流程'),L('从研究问题出发，走向完整文稿。')]};let [i,n,d]=names[key]||['bars',f.name,f.description];return H`<button class="template-card" data-action="create" data-flow="${key}"><span class="template-icon ${f.color}">${icon(i,22)}</span><h3>${n}${icon('arrow',16)}</h3><p>${d}</p><small>${f.stages.length} 个阶段 · ${e(S.catalog.routes[f.route]?.name||L("开题与写作"))}</small></button>`}
-function emptyState(i,title,desc,label){return `<div class="empty-state"><span>${icon(i,30)}</span><h3>${title}</h3><p>${desc}</p>${label?button('create',label,'secondary','plus'):''}</div>`}
-function projects(){return projectManagerView()}
-function library(){return H`<div class="page-heading"><div class="eyebrow">YOUR MATERIALS</div><h1>文献与材料</h1><p>材料按项目整理。打开项目后，可导入文件或检索文献。</p></div><div class="panel library-list">${activeProjects().length?activeProjects().map(p=>H`<button class="library-row" data-action="open-materials" data-id="${p.id}"><span class="template-icon ${flow(p).color}">${icon('folder',23)}</span><div><h3>${e(p.title)}</h3><p>${e(flow(p).name)} · ${date(p.updated)} 更新</p></div><span>${p.asset_count} 份材料</span>${icon('chevron',18)}</button>`).join(''):emptyState('book',L('先为材料建立一个家'),L('新建研究项目后，就可以导入论文、笔记和数据库导出文件。'),L('新建项目'))}</div>`}
-function tools(){return H`<div class="page-heading"><div class="eyebrow">WORKFLOW COLLECTION</div><h1>选择适合你的起点</h1><p>不必学会调用 skill。选择目标，研序会帮你安排接下来的步骤。</p></div><div class="template-grid large">${Object.keys(S.catalog.flows).map(templateCard).join('')}</div><section class="panel flow-explainer"><h2>每一步，都把决定权留给你</h2><div class="flow-strip">${[L('研究探索'),L('结构规划'),L('论文起草'),L('证据核验'),L('审阅返修'),L('整理定稿')].map((n,i)=>`<span><b>${String(i+1).padStart(2,'0')}</b>${n}</span>${i<5?icon('arrow',17):''}`).join('')}</div><p>阶段报告生成后，可以编辑、重新运行或确认继续。修改前面的报告，会让后续成果标记为需要重跑。核验报告是辅助检查，作者确认不等于研究真实性认证。</p></section>`}
-function projectView(){const p=S.project;if(!p)return H`<p>正在读取项目…</p>`;const steps=flow(p).stages,sid=S.activeStage||step(p),s=S.catalog.stages[sid],o=p.outputs[sid],running=p.runs.find(r=>r.status==='running'),finished=p.cursor>=steps.length;
- return H`${inactiveProjectBanner(p)}<div class="project-header"><button class="back-link" data-action="nav" data-view="projects">研究项目 ${icon('chevron',12)}</button><div class="project-title-row"><div><span class="type-label ${flow(p).color}">${e(routeName(p))} · ${e(flow(p).name)}</span><h1>${e(p.title)}</h1><p>${e(p.discipline)} <span>·</span> ${e(p.citation)} <span>·</span> ${finished?L('流程已完成'):L('进度 ')+p.cursor+'/'+steps.length}</p></div><div class="header-buttons">${button('pm-duplicate',L('创建副本'),'secondary','copy',`data-id="${p.id}" ${p.runs.some(r=>r.status==='running')?'disabled':''}`)}${button('project-info',L('项目概况'),'secondary','info')}${button('export',L('导出成果'),'primary','download')}</div></div></div>
- <div class="project-tabs">${[['overview',L('继续研究')],['brief',L('研究简报')],['work',L('研究流程')],['research',L('研究工具')],['materials',L('文献与材料')],['history',L('运行记录')]].map(([k,n])=>`<button data-action="project-tab" data-tab="${k}" class="${S.tab===k?'selected':''}">${n}${k==='materials'?`<span>${p.assets.length+p.literature.length}</span>`:''}</button>`).join('')}</div>
- ${S.tab==='brief'?studyBriefView(p):S.tab==='overview'?followupView(p):S.tab==='research'?researchView(p):S.tab==='materials'?materialsView(p):S.tab==='history'?historyView(p):H`<div class="workbench"><aside class="stage-panel"><div class="stage-panel-top"><span>研究路线</span><small>${progress(p)}%</small></div><div class="progress"><i style="width:${progress(p)}%"></i></div><div class="stage-list">${steps.map((id,i)=>{const out=p.outputs[id];return `<button class="stage-item ${id===sid?'active':''} ${i>p.cursor?'locked':''}" data-action="stage" data-stage="${id}"><span class="step-number ${out?.approved&&!out?.stale?'done':''}">${out?.approved&&!out?.stale?icon('check',13):String(i+1).padStart(2,'0')}</span><div>${e(S.catalog.stages[id].title)}<small>${out?.stale?L('需要重新运行'):out?.approved?L('成果已确认'):out?L('等待确认'):i===p.cursor?L('当前阶段'):L('等待前序阶段')}</small></div>${S.catalog.stages[id].gate?icon('shield',13):''}</button>`}).join('')}</div><div class="stage-note">${icon('shield',17)}<span>成果先确认，流程再继续。</span></div></aside>
- <section class="stage-content"><div class="stage-heading"><div class="eyebrow">STEP ${String(steps.indexOf(sid)+1).padStart(2,'0')} / ${String(steps.length).padStart(2,'0')}${button('as-explain',L('解释这一步'),'text as-stage-help','help')}</div><h2>${e(s.title)}</h2><p>${e(s.subtitle)}</p></div>
- <div class="task-brief"><span class="brief-icon">${icon(s.gate?'shield':'spark',19)}</span><p>${e(s.instruction)}</p></div>
- <div class="instruction-box"><details class="stage-extra" ${s.local?'hidden':''} ${S.notes[p.id+sid]?'open':''}><summary>补充本阶段要求 <span>可选</span></summary><label for="stage-note">这一步，你有什么特别的要求？<span>可选</span></label><textarea id="stage-note" placeholder="例如：重点关注研究方法的合理性；请使用英文撰写；先指出缺失材料…">${e(S.notes[p.id+sid]||'')}</textarea></details><div class="run-bar"><span>${icon('connection',14)}${s.local?L('本机计算 · 不调用模型'):S.settings.mode==='codex'?L('本机 Codex · 套餐用量'):L('API 连接 · 独立计费')} ${s.local?'':S.settings.mode==='codex'?(S.settings.codex_model?'· '+e(S.settings.codex_model):L('· 跟随 Codex 默认模型')):'· '+e(S.settings.api_model)}</span>${running?button('stop',L('停止运行'),'secondary','stop'):button('run',o?L('重新运行此阶段'):L('开始这一步'),'primary','play')}</div></div>
- <div id="activity">${activityView(p,sid)}</div>
- <div class="output-panel"><div class="output-toolbar"><h3>${icon('file',17)}阶段成果 ${o?.stale?H`<span class="badge warn">前序已变更</span>`:o?.approved?H`<span class="badge green">已确认</span>`:o?H`<span class="badge amber">待确认</span>`:''}</h3><div><button class="small-tab ${S.outputTab==='preview'?'active':''}" data-action="output-tab" data-tab="preview">阅读</button><button class="small-tab ${S.outputTab==='edit'?'active':''}" data-action="output-tab" data-tab="edit" ${!o||running?'disabled':''}>编辑</button>${o?H`<button class="icon-btn" data-action="copy-output" title="复制报告">${icon('file',16)}</button>`:''}</div></div><div id="output-body">${outputBody(o,running)}</div>${claimLinks(p,sid)}</div>
- ${o&&!running?H`<div class="confirmation"><div>${s.gate?H`<label class="ack"><input id="gate-ack" type="checkbox">我已阅读核验报告，理解其中的未知项与覆盖限制。</label>`:H`<p>${icon('check',17)}检查报告后，确认这一步的成果再继续。</p>`}<small>确认记录操作决定，不构成研究真实性认证。</small>${!o.approved?H`<label class="ack">操作身份<select id="confirmation-actor"><option value="author">作者本人</option><option value="delegate">授权代操作</option></select></label>`:''}</div>${o.approved?'<span class="confirmed-label">'+icon('check',18)+H` 已确认</span>`:button('confirm',steps.indexOf(sid)===steps.length-1?L('确认并完成流程'):L('确认成果，继续下一步'),'primary','arrow',o.stale?'disabled':'')}</div>`:''}
- </section></div>`}`;
-}
-function outputBody(o,running){if(S.outputTab==='edit'&&o)return H`<textarea id="output-editor" class="output-editor" spellcheck="false">${e(S.draft??o.text)}</textarea><div class="editor-footer"><span class="rt-autosave" id="rt-save-status">输入后自动保存，并保留修改前版本。</span>${rtAction('citation',L('插入引用'))}${button('save-output',L('保存修改'),'primary','check')}</div>`;return o?`<article class="markdown">${markdown(citationText(S.project,o.text))}</article>`:`<div class="output-empty"><span>${icon('file',33)}</span><h3>${running?L('正在整理你的阶段成果'):L('把眼前这一步，变成看得见的成果')}</h3><p>${running?L('报告生成后会自动保存在这里。'):L('点击“开始这一步”，报告会自动保存在这里。')}</p></div>`}
-function activityView(p,sid){const r=[...p.runs].reverse().find(r=>r.stage===sid);if(!r)return '';if(r.status==='running')return H`<div class="activity-running"><span class="spinner"></span><div><strong>${e(r.progress||L('正在连接模型'))}</strong><small>此阶段在后台运行，完成后会自动保存。${sid==='review'?L('包含 5 次角色审阅和 1 次汇总。'):''}</small></div></div>${r.partial?H`<details class="partial"><summary>查看生成中的内容</summary><pre>${e(r.partial)}</pre></details>`:''}`;if(['failed','cancelled','interrupted'].includes(r.status))return H`<div class="notice ${r.status==='failed'?'error':''}">${icon('info',18)}<div><strong>${r.status==='failed'?L('这次运行未完成'):L('运行已停止')}</strong><p>${e(r.error)}</p><button class="link" data-action="as-error" data-error="${e(r.error||'')}">让助手帮我解决</button>${r.partial_saved?'<button class="link" data-action="view-partial" data-run="'+r.id+H`">查看已保留的部分输出</button>`:''}</div></div>`;return ''}
-function materialsView(p){const last=p.searches?.at(-1),form=searchForms[p.id]||{query:last?.query||'',required_terms:(last?.required_terms||[]).join(', '),journal_only:last?.journal_only??false,source:last?.source==='PubMed'?'pubmed':'crossref'};return H`<div class="materials-layout"><div><section class="panel"><div class="section-title"><div><h2>项目材料</h2><p>论文、笔记、实验结果、审稿意见或数据库导出文件。</p></div>${button('upload',L('导入材料'),'primary','upload')}</div><input id="file-input" type="file" multiple hidden accept=".pdf,.docx,.txt,.md,.csv,.ris,.nbib,.bib,.json,.tsv,.xlsx,.png,.jpg,.jpeg,.gmt,.fcs,.h5ad,.zip,.vcf"><div class="upload-zone" data-action="upload" role="button" tabindex="0">${icon('upload',28)}<strong>点击选择文件，或拖放到这里</strong><span>PDF、Word、文本、CSV / XLSX、PNG / JPG、GMT / FCS / H5AD / VCF、10x ZIP、书目 · 单份不超过 20 MB</span></div><p class="privacy-line">${icon('shield',14)}${p.flow==='scientific_data'?L('CSV/TSV 原始表格由本机工具读取；启用的文字材料与质控报告会用于所选模型。'):L('材料保存在本机。运行时，勾选的文字材料会发送给所选模型；绘图表格与原始图片在本机读取。')}</p><div class="asset-list">${p.assets.map(a=>H`<div class="asset-row"><input type="checkbox" data-asset="${a.id}" ${a.enabled?'checked':''} aria-label="将${e(a.name)}用于分析"><span class="asset-icon">${icon('file',21)}</span><div><strong>${e(a.name)}</strong><small>${(a.size/1024).toFixed(0)} KB · ${(a.chars/1000).toFixed(1)} 千字符 · ${date(a.created)}</small></div><span class="badge ${a.enabled?'green':''}">${a.enabled?L('用于分析'):L('已停用')}</span>${typeof plotAssets==='function'&&plotAssets(p).some(source=>source.id===a.id)?plotButton('from-material',L('用于绘图'),`data-id="${a.id}"`,'secondary pl-material-button'):''}</div>`).join('')}</div></section>
- <section class="panel literature-panel"><div class="section-title"><div><h2>文献检索</h2><p>从 PubMed 或 Crossref 获取书目信息；新结果默认待筛选，勾选后才用于分析。</p></div><span class="badge">PubMed / Crossref</span></div><form id="search-literature"><label class="field">检索来源<select name="source"><option value="crossref" ${form.source!=="pubmed"?"selected":""}>Crossref 书目</option><option value="pubmed" ${form.source==="pubmed"?"selected":""}>PubMed 生物医学文献</option></select></label><div class="literature-search"><div class="literature-query">${icon('search',19)}<input name="query" aria-label="研究主题或论文标题" value="${e(form.query)}" placeholder="输入研究主题或论文标题，建议使用英文" required maxlength="300"></div>${button('noop',L('检索文献'),'primary','search','type="submit"')}</div><label class="field">标题或摘要至少包含一个限定词<input name="required_terms" value="${e(form.required_terms)}" placeholder="例如 retrieval augmented generation；多个词用逗号分隔"></label><label class="ack"><input name="journal_only" type="checkbox" ${form.journal_only?'checked':''}>只保留期刊文章，排除补充期及补充材料</label><p class="field-help">自动建议主题中的标识词，可自行修改。计算机课题可保留会议论文等类型。Crossref 优先用限定词检索候选；PubMed 使用完整查询式，再匹配标题或摘要。最多检查 50 条，可能漏掉仅在全文提及的研究。</p></form>
- ${last?H`<details class="search-audit"><summary>${e(last.source)} 最近检索：${last.candidates??last.returned} 条候选 · 保留 ${last.returned} 条 · 新增 ${last.added??last.returned} 条 · 排除 ${last.rejected?.length||0} 条</summary><p>${e(last.query)} · 实际候选检索：${e(last.candidate_query||last.query)} · 限定词：${e(last.required_terms?.join(', ')||L('不限'))} · ${last.journal_only?L('期刊文章'):L('所有类型')}</p>${(last.rejected||[]).map(x=>`<p>${e(x.title)} — ${e(x.reason)}</p>`).join('')}</details>`:''}
- ${p.literature.length?H`<div class="literature-selection"><span>用于分析 ${p.literature.filter(l=>l.enabled!==false).length} / ${p.literature.length} 条</span>${button('disable-literature',L('全部停用'),'text')}</div>`:''}
- <div class="literature-list">${p.literature.map(l=>H`<div class="literature-entry"><div><label class="ack"><input type="checkbox" data-literature="${e(l.id)}" ${l.enabled!==false?'checked':''} aria-label="将文献 ${e(l.title)} 用于分析">${l.enabled!==false?L('用于分析'):L('待筛选')}</label><span class="year">${e(l.year||L('年份未知'))}</span><span class="badge amber">仅元数据${l.abstract?L('及摘要'):''}</span></div><h3>${e(l.title)}</h3><p>${e(l.authors.slice(0,4).join(', '))}${l.authors.length>4?L(' 等'):''}</p><small>${e(l.journal)}</small>${l.abstract?H`<details><summary>查看摘要</summary><p>${e(l.abstract)}</p></details>`:''}${l.pmid?`<button class="doi-link" data-action="external" data-url="https://pubmed.ncbi.nlm.nih.gov/${e(l.pmid)}/">PMID: ${e(l.pmid)} ${icon('external',12)}</button>`:''}${l.doi?`<button class="doi-link" data-action="external" data-url="https://doi.org/${e(encodeURI(l.doi))}">DOI: ${e(l.doi)} ${icon('external',12)}</button>`:''}</div>`).join('')||H`<p class="list-empty">尚无匹配记录。可调整限定词、改用论文标题，或导入数据库导出文件。</p>`}</div></section></div>
- <aside class="material-guide panel"><span class="template-icon green">${icon('book',24)}</span><h3>让 AI 有据可依</h3><p>先准备相关材料，能让报告更具体，也能减少无依据的推断。</p><h4>可以放进来</h4><ul><li>已经读过的论文全文</li><li>你的研究计划和读书笔记</li><li>实际实验结果与已知局限</li><li>原始审稿意见与回复草稿</li></ul><div class="guide-divider"></div><p>扫描版 PDF 需要先做 OCR。图像、公式和复杂排版可能无法完整提取，涉及这些内容时请另附文字说明。</p></aside></div>`}
-function historyView(p){return H`<div class="history-grid"><section class="panel"><h2>实际运行记录</h2><p class="muted">记录开始时间、连接方式与执行状态。</p>${[...p.runs].reverse().map(r=>H`<div class="history-row"><span class="history-dot ${r.status==='completed'?'green':r.status==='failed'?'red':''}"></span><div><h3>${e(S.catalog.stages[r.stage].title)}<span class="badge">${e({completed:L('已完成'),running:L('运行中'),failed:L('失败'),cancelled:L('已停止'),interrupted:L('已中断')}[r.status])}</span></h3><p>${date(r.started)} · ${r.mode==='local'?L('本机计算'):r.mode==='codex'?L('本机 Codex'):'API'} · ${e(r.mode==='local'?L('未调用模型'):r.model||L('Codex 默认模型'))} · ${((r.context_chars||0)/1000).toFixed(1)} 千字符材料</p>${r.error?`<small>${e(r.error)}</small>`:''}</div></div>`).join('')||H`<p class="list-empty">开始第一个阶段后，运行记录会出现在这里。</p>`}</section><section class="panel"><h2>操作确认记录</h2><p class="muted">记录操作者身份与成果内容摘要；旧记录未追溯补写身份。</p>${[...p.confirmations].reverse().map(c=>`<div class="history-row"><span class="step-number done">${icon('check',14)}</span><div><h3>${e(S.catalog.stages[c.stage].title)}</h3><p>${date(c.time)} · ${e({author:L("作者本人"),delegate:L("授权代操作"),unspecified:L("未记录身份")}[c.actor]||L("旧版本未记录身份"))}</p><small class="hash">SHA-256 ${e(c.sha256.slice(0,16))}…</small></div></div>`).join('')||H`<p class="list-empty">你确认阶段成果后，会在这里留下一条记录。</p>`}</section></div>`}
-function settings(){const s=S.settings;return H`<div class="page-heading"><div class="eyebrow">MODEL CONNECTIONS</div><h1>让熟悉的模型，加入研究</h1><p>连接本机 Codex，或配置你自己的模型接口。</p></div><div class="settings-layout"><form id="settings-form" class="panel settings-panel"><h2>选择连接方式</h2><div class="mode-options"><label class="mode-option ${s.mode==='codex'?'selected':''}"><input type="radio" name="mode" value="codex" ${s.mode==='codex'?'checked':''}><span>${icon('connection',23)}<strong>本机 Codex</strong><small>通过 ChatGPT 登录 · 使用 Codex 套餐用量</small></span><span class="radio-dot"></span></label><label class="mode-option ${s.mode==='api'?'selected':''}"><input type="radio" name="mode" value="api" ${s.mode==='api'?'checked':''}><span>${icon('layers',23)}<strong>自定义 API</strong><small>Claude、DeepSeek 等接口 · 独立计费</small></span><span class="radio-dot"></span></label></div>
- <div id="codex-fields" ${s.mode!=='codex'?'hidden':''}><div class="subsection-title"><h3>本机 Codex</h3>${button('detect-codex',L('检测连接'),'secondary','refresh','type="button"')}</div><div id="codex-status">${codexStatus()}</div><label class="field">Codex 程序路径 <span>可选，留空自动检测</span><input name="codex_path" value="${e(s.codex_path)}" placeholder="自动查找 codex.exe / codex.cmd"></label><label class="field">使用的模型<select name="codex_model"><option value="">跟随 Codex 默认模型</option>${(S.codex?.models||[]).map(m=>`<option value="${e(m.model||m.id)}" ${(m.model||m.id)===s.codex_model?'selected':''}>${e(m.displayName||m.model||m.id)}</option>`).join('')}${s.codex_model&&!(S.codex?.models||[]).some(m=>(m.model||m.id)===s.codex_model)?`<option selected>${e(s.codex_model)}</option>`:''}</select></label><p class="field-help">检测后显示该账号实际可用的模型。需要先在电脑上的 Codex 中用 ChatGPT 账号登录。</p><div class="notice">${icon('info',18)}<p>这里使用套餐包含的 Codex 用量，受账号可用额度和模型权限限制。软件不会读取、导出或转换你的登录令牌，也不会自动切到 API 计费。</p></div></div>
- <div id="api-fields" ${s.mode!=='api'?'hidden':''}><label class="field">接口协议<select name="provider"><option value="compatible" ${s.provider==='compatible'?'selected':''}>Chat Completions 兼容接口（DeepSeek 等）</option><option value="anthropic" ${s.provider==='anthropic'?'selected':''}>Anthropic Messages</option></select></label><label class="field">服务地址<input name="base_url" value="${e(s.base_url)}" placeholder="https://api.deepseek.com/v1"></label><p class="field-help">应用会补上 /chat/completions 或 /messages，也支持填写完整端点。</p><label class="field">模型名称<input name="api_model" value="${e(s.api_model)}" placeholder="填写服务商提供的模型 ID"></label><label class="field">API Key <span>${s.has_key?L('已加密保存；留空保留原密钥'):L('仅保存在当前 Windows 用户下')}</span><input type="password" name="api_key" autocomplete="new-password" placeholder="${s.has_key?L('已保存，留空保留'):L('输入你的 API Key')}"></label>${s.has_key?H`<label class="ack"><input type="checkbox" name="clear_key">清除已保存的 API Key</label>`:''}<label class="field">最大输出长度（tokens）<input type="number" name="max_tokens" min="256" max="32000" value="${s.max_tokens}"></label><div class="notice">${icon('info',18)}<p>API 由对应服务商单独计费，不使用 ChatGPT 订阅额度。密钥使用 Windows 用户级加密保存在本机。</p></div></div>
- <div class="settings-actions">${button('test-connection',L('测试连接'),'secondary','connection','type="button"')}${button('noop',L('保存设置'),'primary','check','type="submit"')}</div></form>
- <aside>${typeof languagePreferences==='function'?languagePreferences():''}${updatePanel()}<section class="panel connection-guide"><span class="template-icon green">${icon('shield',24)}</span><h3>第一次连接？</h3><ol><li><b>安装并登录 Codex</b><span>使用 ChatGPT 账号登录，确认 Codex 可以正常运行。</span></li><li><b>点击“检测连接”</b><span>研序会读取登录方式、可用模型及服务返回的额度信息。</span></li><li><b>选择模型，保存设置</b><span>回到项目，点击“开始这一步”即可。</span></li></ol><button class="link" data-action="external" data-url="https://learn.chatgpt.com/docs/auth">查看官方登录说明 ${icon('external',13)}</button></section><section class="panel storage-info"><h3>${icon('folder',18)}数据保存在本机</h3><p>项目、材料和报告都保存在：</p><code>${e(S.dataPath)}</code>${button('open-data',L('打开数据文件夹'),'secondary','folder')}</section></aside></div>`}
-function codexStatus(){if(!S.codex)return H`<div class="connection-status neutral"><span class="dot"></span>尚未检测，点击右侧按钮检查本机连接。</div>`;const c=S.codex,a=c.account;if(!a||a.type!=='chatgpt')return H`<div class="connection-status warning">${icon('info',18)}已找到 Codex，但尚未通过 ChatGPT 登录。${a?.type==='apiKey'?L('当前使用的是 API Key。'):''}</div>`;const limits=c.limits?.rateLimitsByLimitId||{};const buckets=Object.entries(limits);return H`<div class="connection-status good">${icon('check',18)}<div><strong>已连接 · ChatGPT ${e(a.planType||L('账号'))}</strong><small>${e(a.email||L('已登录的本机账号'))}</small></div><span class="badge green">可用模型 ${c.models.length}</span></div>${buckets.length?H`<div class="rate-limits">${buckets.slice(0,3).map(([k,v])=>{let b=v.primary;return b?H`<div><span>${e(v.limitName||k)} · ${b.windowDurationMins>=1440?Math.round(b.windowDurationMins/1440)+L(' 天'):b.windowDurationMins+L(' 分钟')}窗口</span><b>已用 ${Math.round(b.usedPercent)}%</b><div class="progress"><i style="width:${Math.min(100,Math.max(0,b.usedPercent))}%"></i></div></div>`:''}).join('')}<small>来自 Codex 服务的读取结果，可能随后变化。</small></div>`:''}`}
-function help(){return H`<div class="page-heading"><div class="eyebrow">A LITTLE GUIDANCE</div><h1>把精力留给研究本身</h1><p>三个简单动作，就能开始使用研序。</p></div><section class="panel guide-entry"><div><h2>第一次使用？跟着页面逐步熟悉功能</h2><p>支持跳过、保留进度，以及随时重新查看；引导不会自动创建项目或调用模型。</p></div>${button('guide-start',L('重新查看功能引导'),'primary','help')}</section><div class="help-steps">${[['01',L('新建一个项目'),L('选择研究目标，写下问题、学科和材料情况。可以从完整流程开始，也可以只做审阅或文献筛选。')],['02',L('连接模型，导入材料'),L('在“模型与连接”里选择本机 Codex 或 API，然后在项目的材料页导入论文、笔记或审稿意见。')],['03',L('运行、阅读、确认'),L('每个阶段只需点击开始。报告会自动保存；你可以修改内容，确认后进入下一步。')]].map(([n,t,d])=>`<section class="panel"><span>${n}</span><h2>${t}</h2><p>${d}</p></section>`).join('')}</div><section class="panel help-details"><h2>使用时，记住这些边界</h2><div class="faq"><h3>本机 Codex 会使用我的订阅吗？</h3><p>当 Codex 使用 ChatGPT 登录时，这个连接使用套餐中的 Codex 用量。若检测到 API Key 登录，研序会提示先切换登录方式，不会自动产生 API 调用。</p><h3>研序会自动帮我完成实验或验证数据真实吗？</h3><p>不会。它辅助研究材料整理、写作和审阅，不能证明实验确实执行、原始数据真实或分析可复现。缺少来源的信息必须由作者补齐。</p><h3>文献检索和核验有什么区别？</h3><p>PubMed 和 Crossref 检索返回书目元数据，有时包含摘要。它不能证明引用支持你的论断，也不覆盖所有数据库。请导入有权使用的全文，并核实关键引用。</p><h3>是否完全等同于原项目？</h3><p>这是参考 ARS 方法和角色提示词制作的桌面改编。保留分阶段推进、作者确认、角色审阅和材料留痕；没有移植原生 Claude Code hooks、全部命令、跨模型校准、全部机器校验与完整 PRISMA 自动化。不要把模型报告当作原项目所有硬门禁均已通过。</p><h3>如何画图和插入 Word？</h3><p>项目的“研究工具 → 图表与绘图”中，选择 CSV / XLSX 或原始图片，按提示选图型与字段；没有实验数据也可先画技术路线。预览、改色、字体、复现和导出都在本机完成。只有明确点击 AI 按钮才调用模型，并先展示修改方案。保存后可复制正文插图标记，粘贴到报告中定位 Word 插图；配方包包含原始来源和可编辑配置。已有结果可重绘；从原始数据计算时切换“数据分析 → 出图”，按方法核对研究条件后明确运行。整篇图表在“整篇论文图表”管理。</p><h3>如何备份？</h3><p>项目右上角可导出报告与项目 ZIP；侧栏“备份与恢复”支持自动或手动整库备份、预览导入，并创建独立恢复副本。完整本机数据位于设置页显示的数据文件夹。不要把数据文件夹里的加密密钥当作可跨电脑迁移的登录方式。</p></div></section><section class="panel attribution"><h2>关于研序</h2><p>研序 Research Studio v${e(S.catalog.version)} · 非官方、非商业桌面改编。</p><p>路径 A 方法与角色提示来源于 Imbad0202 / Academic Research Skills，遵循 CC BY-NC 4.0。路径 B 使用 K-Dense / Scientific Agent Skills 固定版本，根许可 MIT，各技能另有声明。上游提交：<code>${e(S.catalog.source_commit.slice(0,12))}</code>。修改包括桌面界面、本机状态存储、模型适配与简化流程编排。</p><button class="link" data-action="external" data-url="https://github.com/Imbad0202/academic-research-skills">查看原项目 ${icon('external',14)}</button></section>`}
-
-function inline(text){
- const parts=String(text).split(/(`[^`]+`|\[[^\]]+\]\(https?:\/\/[^\s)]+\))/g);
- return parts.map(part=>{if(part.startsWith('`')&&part.endsWith('`'))return '<code>'+e(part.slice(1,-1))+'</code>';
- const link=part.match(/^\[([^\]]+)\]\((https?:\/\/[^\s)]+)\)$/);if(link)return `<a href="${e(link[2])}" target="_blank" rel="noopener noreferrer">${inline(link[1])}</a>`;
- return e(part).replace(/\*\*([^*]+)\*\*/g,'<strong>$1</strong>').replace(/(^|[^*])\*([^*\n]+)\*(?!\*)/g,'$1<em>$2</em>');}).join('');
-}
-function markdown(text){let lines=String(text||'').split('\n'),out=[],list=false,code=false,buffer=[],table=[];function close(){if(list){out.push('</ul>');list=false}}function flushTable(){if(!table.length)return;let rows=table.filter(r=>!r.every(c=>/^[:\- ]+$/.test(c||'-')));out.push('<div class="table-wrap"><table>'+rows.map((r,i)=>'<tr>'+r.map(c=>`<${i?'td':'th'}>${inline(c)}</${i?'td':'th'}>`).join('')+'</tr>').join('')+'</table></div>');table=[]}for(let line of lines){if(line.startsWith('```')){close();flushTable();if(code){out.push('<pre><code>'+e(buffer.join('\n'))+'</code></pre>');buffer=[]}code=!code;continue}if(code){buffer.push(line);continue}if(line.trim().startsWith('|')&&line.trim().endsWith('|')){close();table.push(line.trim().slice(1,-1).split('|').map(c=>c.trim()));continue}flushTable();if(!line.trim()){close();continue}let h=line.match(/^(#{1,6})\s+(.+)/);if(h){close();const n=Math.min(4,h[1].length+1);out.push(`<h${n}>${inline(h[2])}</h${n}>`);continue}if(/^[-*_]{3,}$/.test(line.trim())){close();out.push('<hr>');continue}let li=line.match(/^(?:[-*]|\d+\.)\s+(.*)/);if(li){if(!list){out.push('<ul>');list=true}out.push('<li>'+inline(li[1])+'</li>');continue}close();if(line.startsWith('>'))out.push('<blockquote>'+inline(line.replace(/^>\s?/,''))+'</blockquote>');else out.push('<p>'+inline(line)+'</p>')}close();flushTable();if(code)out.push('<pre>'+e(buffer.join('\n'))+'</pre>');return out.join('')}
-
-function modal(html,wide=false){if(!$('.modal'))modalOpener=document.activeElement;$('#modal-root').innerHTML=H`<div class="modal-overlay"><section class="modal ${wide?'wide':''}" role="dialog" aria-modal="true" tabindex="-1"><button class="modal-close icon-btn" data-action="close-modal" aria-label="关闭">${icon('close',21)}</button>${html}</section></div>`;const dialog=$('.modal');dialog.setAttribute('aria-label',$('h2',dialog)?.textContent||L('研究项目'));$('#app').inert=true;if($('#assistant-root'))$('#assistant-root').inert=true;document.body.classList.add('modal-open');setTimeout(()=>{if($('.modal')!==dialog)return;($('input:not([type=radio]):not([type=hidden])',dialog)||$('button',dialog)||dialog).focus()},0)}
-function closeModal(){if(!$('.modal'))return;if(typeof cacheStudyDraft==='function')cacheStudyDraft();if(typeof cacheAssistantProposal==='function')cacheAssistantProposal();if(typeof cacheResearchDraft==='function')cacheResearchDraft();if(typeof onGuideModalClosed==='function')onGuideModalClosed();$('#modal-root').innerHTML='';$('#app').inert=false;if($('#assistant-root'))$('#assistant-root').inert=false;document.body.classList.remove('modal-open');if(modalOpener?.isConnected)modalOpener.focus();modalOpener=null}
-function createModal(selected='full'){newProjectModal(selected)}
-function infoModal(){let p=S.project;modal(H`<h2>项目概况</h2><form id="info-form"><label class="field">项目名称<input name="title" value="${e(p.title)}" required></label><label class="field">研究目标<textarea name="topic" rows="4">${e(p.topic)}</textarea></label><div class="form-columns"><label class="field">学科<input name="discipline" value="${e(p.discipline)}"></label><label class="field">引用格式<input name="citation" value="${e(p.citation)}"></label></div>${typeof outputLanguageField==='function'?outputLanguageField(p):''}<label class="field">额外要求<textarea name="requirements" rows="3">${e(p.requirements)}</textarea></label><label class="field">实验或分析来源声明<select name="experiments">${[['none',L('没有自有实验或分析')],['declared',L('有，需导入真实结果与来源')],['undecided',L('暂不确定')]].map(([v,n])=>`<option value="${v}" ${p.experiments===v?'selected':''}>${n}</option>`).join('')}</select></label><div class="modal-footer"><span>更新目标后，重跑受影响阶段。</span>${button('noop',L('保存概况'),'primary','check','type="submit"')}</div></form>`,true)}
-function exportModal(){modal(H`<span class="template-icon green">${icon('download',24)}</span><h2>把研究成果带走</h2><p class="modal-description">导出报告，或保存包含原始材料的项目备份。</p>${typeof fuExportNotice==='function'?fuExportNotice():''}<label class="field">导出范围<select id="export-scope"><option value="">全部阶段报告</option><option value="${e(S.activeStage)}">仅当前阶段</option></select></label><div class="export-options">${[['md','Markdown',L('便于继续编辑的纯文本报告')],['docx',L('Word 文档'),L('包含标题、列表和表格的 DOCX')],['json',L('项目记录 JSON'),L('保存配置、报告、确认与运行记录')],['zip',L('完整项目备份'),L('报告 + 项目记录 + 原始材料')]].map(([fmt,n,d])=>`<button data-action="download" data-format="${fmt}"><span class="asset-icon">${icon(fmt==='zip'?'folder':'file',23)}</span><span><strong>${n}</strong><small>${d}</small></span>${icon('download',17)}</button>`).join('')}</div><p class="field-help">导出文件不包含 API Key 或 Codex 登录凭据。备份可能包含研究材料，请妥善保存。</p>`)}
-
-async function openProject(id,tab='overview',updateUrl=true){clearTimeout(pollTimer);S.project=await api('project/'+id);for(let r of S.project.runs)if(r.note!==undefined)S.notes[id+r.stage]=r.note;S.view='project';S.activeStage=step(S.project);S.tab=tab;S.outputTab='preview';S.draft=null;if(updateUrl)window.history?.pushState({},'',(projectRoute(S.project)==='scientific'?'/scientific':'/ars')+'?project='+encodeURIComponent(id));render();window.scrollTo?.({top:0,behavior:'instant'});recoverOutputDraft();schedulePoll()}
-function updateActivity(html){const el=$('#activity');if(!el||el.innerHTML===html)return;const details=$('details',el),pre=$('pre',el);const opened=details?.open,scroll=pre?.scrollTop;el.innerHTML=html;if(details&&$('details',el))$('details',el).open=opened;if(pre&&$('pre',el))$('pre',el).scrollTop=scroll;}
-function schedulePoll(){
- clearTimeout(pollTimer);
- if(S.view!=='project'||!S.project?.runs.some(r=>r.status==='running'))return;
- const pid=S.project.id;
- pollTimer=setTimeout(async()=>{
-  if(S.view!=='project'||S.project?.id!==pid)return;
-  try{
-   const p=await api('project/'+pid);
-   if(S.view!=='project'||S.project?.id!==pid)return;
-   if(p.runs.some(r=>r.status==='running')){
-    S.project=p;
-    if(S.tab==='work')updateActivity(activityView(p,S.activeStage));
-   }else{
-    const projects=await api('projects');
-    if(S.view!=='project'||S.project?.id!==pid)return;
-    S.project=p;S.projects=projects;
-    render();toast(L('本次运行已结束，成果与状态已保存。'));
-   }
-  }catch(err){
-   if(S.view==='project'&&S.project?.id===pid)toast(err.message,true);
-  }finally{
-   if(S.view==='project'&&S.project?.id===pid)schedulePoll();
+async function api(path, data, blob = false) {
+  const r = await fetch('/api/' + path, {
+    method: data === undefined ? 'GET' : 'POST',
+    headers: {
+      'X-Research-Token': token,
+      'X-Research-Language': window.ResearchI18n?.current() || 'zh-CN',
+      'Content-Type': 'application/json',
+    },
+    body: data === undefined ? undefined : JSON.stringify(data),
+  });
+  if (!r.ok) {
+    let err;
+    try {
+      err = await r.json();
+    } catch {
+      err = { error: L('本地连接中断，请重新打开软件。') };
+    }
+    throw new Error(err.error || L('操作失败'));
   }
- },1800);
+  return blob ? r.blob() : r.json().then((value) => window.ResearchI18n?.ui(value) || value);
 }
-async function saveSettings(showToast=true){let form=$('#settings-form');if(!form)return;let data=Object.fromEntries(new FormData(form));data.clear_key=!!form.elements.clear_key?.checked;S.settings=await api('settings',data);S.settingsDirty=false;if(showToast){toast(L('连接设置已保存'));render()}return data}
-async function saveOutput(silent=false){
- clearTimeout(autosaveTimer);if(S.draft===null)return outputSaveChain;
- const pid=S.project.id,sid=S.activeStage,text=S.draft;
- const operation=outputSaveChain.catch(()=>{}).then(async()=>{
-  const project=await api(`project/${pid}/edit`,{stage:sid,text});
-  if(S.project?.id===pid){S.project=project;if(S.activeStage===sid&&S.draft===text){S.draft=null;try{localStorage.removeItem('yanxu-output:'+pid+':'+sid)}catch{}}}
-  if($('#rt-save-status'))$('#rt-save-status').textContent=S.draft===null?L('已自动保存 · 修改前版本已留存'):L('前次修改已保存，当前输入等待保存…');
- });outputSaveChain=operation;await operation;
- if(!silent){render();toast(L('修改已保存；后续成果需要重新核对。'))}
+function toast(text, bad = false) {
+  const el = $('#toast');
+  el.textContent = text;
+  if (bad && typeof assistantRememberError === 'function') {
+    assistantRememberError(text);
+    const help = document.createElement('button');
+    help.type = 'button';
+    help.className = 'as-toast-help';
+    help.dataset.action = 'as-error';
+    help.textContent = L('让助手帮我解决');
+    el.appendChild(help);
+  }
+  el.className = 'show' + (bad ? ' bad' : '');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => (el.className = ''), 4800);
 }
-async function doUpload(files){
- if(!files.length)return;if(uploading)return toast(L('请等待本批材料导入完成。'),true);
- uploading=true;const pid=S.project.id,failures=[];let imported=0;
- try{for(const f of files){try{
- if(f.size>20*1024*1024)throw new Error(L('超过 20 MB 上限'));
- toast(L('正在导入 ')+f.name);const bytes=new Uint8Array(await f.arrayBuffer());let binary='';for(let j=0;j<bytes.length;j+=8192)binary+=String.fromCharCode(...bytes.subarray(j,j+8192));
- const p=await api(`project/${pid}/upload`,{name:f.name,data:btoa(binary)});if(S.project?.id===pid)S.project=p;imported++;
- }catch(err){failures.push(f.name+'：'+err.message)}}
- if(imported){if(S.project?.id===pid)S.activeStage=step(S.project);S.projects=await api('projects');render()}
- const summary=imported?H`成功导入 ${imported} 份材料${failures.length?H`；失败 ${failures.length} 份`:L('；已有成果需重新确认')}`:H`未导入任何材料；失败 ${failures.length} 份`;
- toast(summary+(failures.length?'。'+failures.join('；'): '。'),!!failures.length);
- }finally{uploading=false;const input=$('#file-input');if(input)input.value=''}
+const date = (s) =>
+  new Intl.DateTimeFormat(window.ResearchI18n?.current() || 'zh-CN', {
+    month: 'short',
+    day: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
+  }).format(new Date(s));
+const flow = (p) => S.catalog.flows[p.flow];
+const step = (p) => flow(p).stages[Math.min(p.cursor, flow(p).stages.length - 1)];
+const progress = (p) =>
+  Math.round((Math.min(p.cursor, flow(p).stages.length) / flow(p).stages.length) * 100);
+const button = (action, label, kind = 'primary', ico = '', attrs = '') =>
+  `<button class="btn ${kind}" data-action="${action}" ${/\btype=/.test(attrs) ? '' : 'type="button"'} ${attrs}>${ico ? icon(ico, 17) : ''}${label}</button>`;
+function shell(content) {
+  const current = S.view === 'project' ? 'projects' : S.view;
+  const nav = [
+    ['home', 'home', L('工作台')],
+    ['pathways', 'connection', L('研究路径')],
+    ['projects', 'folder', L('研究项目')],
+    ['library', 'book', L('文献与材料')],
+    ['tools', 'layers', L('工作流模板')],
+    ['backups', 'archive', L('备份与恢复')],
+  ];
+  return H`<aside class="sidebar"><a class="brand" data-action="nav" data-view="home"><span class="brand-tile" aria-hidden="true"><i class="brand-symbol"></i></span><span>研序<small>RESEARCH STUDIO</small></span></a>
+ <div class="space-label"><span class="space-dot">研</span><div>我的研究空间<small>个人工作区 · 本地保存</small></div>${icon('chevron', 14)}</div>
+ <nav>${nav.map(([v, i, n]) => `<button class="nav-item ${current === v ? 'active' : ''}" data-action="nav" data-view="${v}">${icon(i)}<span>${n}</span>${v === 'projects' ? `<b>${activeProjects().length}</b>` : ''}</button>`).join('')}</nav>
+ <div class="side-heading">最近的项目 <button class="icon-btn" data-action="create" title="新建项目">${icon('plus', 16)}</button></div>
+ <div class="recent-list">${
+   activeProjects()
+     .slice(0, 4)
+     .map(
+       (p) =>
+         `<button class="recent-item" data-action="open" data-id="${p.id}"><span class="tiny-square ${flow(p).color}">${icon('file', 13)}</span><span>${e(p.title)}</span></button>`,
+     )
+     .join('') || H`<p class="side-empty">你的下一个想法，从这里开始</p>`
+ }</div>
+ <div class="sidebar-bottom"><div class="local-note">${icon('shield', 18)}<div>你的研究，由你掌控<small>每一步成果都需要你确认</small></div></div>
+ <button class="nav-item ${current === 'settings' ? 'active' : ''}" data-action="nav" data-view="settings">${icon('settings')}模型与连接</button><button class="nav-item ${current === 'help' ? 'active' : ''}" data-action="nav" data-view="help">${icon('help')}使用指南</button>
+ ${button('guide-start', L('分步功能引导'), 'text', 'help')}<div class="profile"><div class="avatar">研</div><div>研究者<small>Researcher</small></div><span class="version">v${e(S.catalog.version)}</span></div></div></aside>
+ <div class="app-body"><header class="topbar"><div class="breadcrumb">我的研究空间 <span>/</span> ${e({ home: L('工作台'), projects: L('研究项目'), library: L('文献与材料'), tools: L('工作流模板'), settings: L('模型与连接'), help: L('使用指南'), backups: L('备份与恢复'), pathways: S.pathwayRoute ? S.catalog.routes[S.pathwayRoute].name : L('研究路径'), project: S.project?.title }[S.view] || L('工作台'))}</div><div class="top-actions">${typeof languagePicker === 'function' ? languagePicker() : ''}<button class="connection-pill" data-action="update-open"><span id="update-badge">软件更新</span></button><span class="local-status"><i></i>本地工作区</span><button class="appearance-toggle icon-btn" data-action="toggle-theme" aria-label="${e(L(window.ResearchAppearance?.current() === 'dark' ? '切换为浅色主题' : '切换为深色主题'))}" aria-pressed="${window.ResearchAppearance?.current() === 'dark'}" title="${e(L(window.ResearchAppearance?.current() === 'dark' ? '切换为浅色主题' : '切换为深色主题'))}"><span class="theme-sun">${icon('sun', 18)}</span><span class="theme-moon">${icon('moon', 18)}</span></button><button class="connection-pill" data-action="nav" data-view="settings">${icon('connection', 15)}${S.settings.mode === 'codex' ? L('本机 Codex') : L('API 连接')}${icon('chevron', 12)}</button></div></header><main>${content}</main></div>`;
+}
+function render() {
+  if (!S.catalog) return;
+  let content =
+    {
+      home: home,
+      projects: projects,
+      library: library,
+      tools: tools,
+      settings: settings,
+      help: help,
+      project: projectView,
+      pathways: pathways,
+      backups: backupsView,
+    }[S.view]?.() || home();
+  $('#app').innerHTML = shell(content);
+  if (typeof assistantSync === 'function') assistantSync();
+  if (typeof paintUpdate === 'function') paintUpdate();
+  if (typeof paintProjectSelection === 'function') {
+    paintProjectSelection();
+    protectInactiveProject();
+    scheduleManagementPoll();
+  }
+  if (typeof paintGuideResume === 'function') paintGuideResume();
+  if (S.view === 'project' && S.tab === 'work' && S.outputTab === 'preview') paintClaimAnchors();
+}
+function heroArt() {
+  return `<svg class="hero-art" viewBox="0 0 390 228" aria-hidden="true"><g fill="none" stroke="#9ab8a6" stroke-width="1"><ellipse cx="219" cy="126" rx="143" ry="66" transform="rotate(-16 219 126)"/><ellipse cx="219" cy="126" rx="99" ry="91" transform="rotate(25 219 126)"/><path d="M44 178h287M77 46h244" stroke-dasharray="3 6"/></g><circle cx="85" cy="145" r="19" fill="#d4e3d9"/><circle cx="85" cy="145" r="5" fill="#5b8c74"/><circle cx="324" cy="96" r="8" fill="#aac6b2"/><circle cx="193" cy="29" r="4" fill="#84a78f"/><g transform="translate(155 45) rotate(7 63 75)"><rect x="8" y="8" width="116" height="151" rx="9" fill="#c9ddcd"/><rect width="116" height="151" rx="9" fill="#fff" stroke="#bed1c2"/><rect x="17" y="19" width="31" height="5" rx="2.5" fill="#51775f"/><path d="M17 38h79M17 47h79M17 56h52" stroke="#c9d4cd" stroke-width="3" stroke-linecap="round"/><rect x="17" y="75" width="82" height="51" rx="5" fill="#f1f5ef"/><path d="m27 112 14-14 13 6 14-21 20 10" fill="none" stroke="#659173" stroke-width="2.5"/><circle cx="68" cy="83" r="3" fill="#659173"/></g><g transform="translate(280 152)"><circle r="23" fill="#2d6551"/><path d="m-9 0 6 6 12-13" fill="none" stroke="#fff" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/></g><g transform="translate(104 49)"><rect width="37" height="37" rx="10" fill="#fff" stroke="#c8d9cd"/><path d="M10 10h17v18H10z M14 15h9M14 20h6" fill="none" stroke="#688a73" stroke-width="1.7"/></g></svg>`;
+}
+function home() {
+  if (typeof studioHome === 'function') return studioHome();
+  const ongoing = activeProjects().filter((p) => progress(p) < 100).length,
+    done = activeProjects().filter((p) => progress(p) === 100).length,
+    assets = activeProjects().reduce((a, p) => a + p.asset_count, 0);
+  return H`<div class="page-heading"><div class="eyebrow">YOUR RESEARCH, ONE STEP AT A TIME</div><h1>让研究，有条不紊。</h1><p>从一个问题开始，让每一步思考都留下成果。</p></div>
+ ${researchHome()}${routeHome()}
+ <section class="stats"><div class="stat"><span class="stat-icon green">${icon('folder', 21)}</span><div><span>进行中的项目</span><strong>${ongoing}<small>项研究正在推进</small></strong></div></div><div class="stat"><span class="stat-icon blue">${icon('book', 21)}</span><div><span>已整理的材料</span><strong>${assets}<small>份材料保存在本机</small></strong></div></div><div class="stat"><span class="stat-icon amber">${icon('check', 21)}</span><div><span>已完成的流程</span><strong>${done}<small>每一步都有迹可循</small></strong></div></div></section>
+ <section class="section"><div class="section-title"><div><h2>继续你的研究</h2><p>回到上次停下来的地方。</p></div>${button('nav', L('查看全部'), 'text', 'arrow', 'data-view="projects"')}</div>${activeProjects().length ? `<div class="project-grid">${activeProjects().slice(0, 3).map(projectCard).join('')}</div>` : emptyState('folder', L('第一个研究项目，等你开启'), L('写下你感兴趣的问题，选择适合的工作流。'), L('创建研究项目'))}</section>
+ <section class="section"><div class="section-title"><div><h2>从你现在的需求开始</h2><p>可以走完全部流程，也可以只完成眼前的一步。</p></div></div><div class="template-grid">${['literature', 'write', 'review', 'screen'].map(templateCard).join('')}</div></section>
+ <div class="bottom-caption">${icon('leaf', 15)} 好的研究需要时间。清晰的流程，让思考更从容。 <span>Academic Research Skills + Scientific Agent Skills · 非官方桌面改编</span></div>`;
+}
+function projectCard(p) {
+  return managedProjectCard(p);
+}
+function templateCard(key) {
+  const f = S.catalog.flows[key];
+  const names = {
+    literature: ['book', L('文献研究'), L('从零梳理领域，把文献变成证据。')],
+    write: ['edit', L('论文写作'), L('先有清晰结构，再写有据可依的文字。')],
+    review: ['shield', L('审阅与返修'), L('换一个视角，发现稿件的改进空间。')],
+    screen: ['layers', L('系统综述筛选'), L('固定标准，留下可追溯的筛选记录。')],
+    full: ['spark', L('完整研究流程'), L('从研究问题出发，走向完整文稿。')],
+  };
+  let [i, n, d] = names[key] || ['bars', f.name, f.description];
+  return H`<button class="template-card" data-action="create" data-flow="${key}"><span class="template-icon ${f.color}">${icon(i, 22)}</span><h3>${n}${icon('arrow', 16)}</h3><p>${d}</p><small>${f.stages.length} 个阶段 · ${e(S.catalog.routes[f.route]?.name || L('开题与写作'))}</small></button>`;
+}
+function emptyState(i, title, desc, label) {
+  return `<div class="empty-state"><span>${icon(i, 30)}</span><h3>${title}</h3><p>${desc}</p>${label ? button('create', label, 'secondary', 'plus') : ''}</div>`;
+}
+function projects() {
+  return projectManagerView();
+}
+function library() {
+  return H`<div class="page-heading"><div class="eyebrow">YOUR MATERIALS</div><h1>文献与材料</h1><p>材料按项目整理。打开项目后，可导入文件或检索文献。</p></div><div class="panel library-list">${
+    activeProjects().length
+      ? activeProjects()
+          .map(
+            (p) =>
+              H`<button class="library-row" data-action="open-materials" data-id="${p.id}"><span class="template-icon ${flow(p).color}">${icon('folder', 23)}</span><div><h3>${e(p.title)}</h3><p>${e(flow(p).name)} · ${date(p.updated)} 更新</p></div><span>${p.asset_count} 份材料</span>${icon('chevron', 18)}</button>`,
+          )
+          .join('')
+      : emptyState(
+          'book',
+          L('先为材料建立一个家'),
+          L('新建研究项目后，就可以导入论文、笔记和数据库导出文件。'),
+          L('新建项目'),
+        )
+  }</div>`;
+}
+function tools() {
+  return H`<div class="page-heading"><div class="eyebrow">WORKFLOW COLLECTION</div><h1>选择适合你的起点</h1><p>不必学会调用 skill。选择目标，研序会帮你安排接下来的步骤。</p></div><div class="template-grid large">${Object.keys(S.catalog.flows).map(templateCard).join('')}</div><section class="panel flow-explainer"><h2>每一步，都把决定权留给你</h2><div class="flow-strip">${[L('研究探索'), L('结构规划'), L('论文起草'), L('证据核验'), L('审阅返修'), L('整理定稿')].map((n, i) => `<span><b>${String(i + 1).padStart(2, '0')}</b>${n}</span>${i < 5 ? icon('arrow', 17) : ''}`).join('')}</div><p>阶段报告生成后，可以编辑、重新运行或确认继续。修改前面的报告，会让后续成果标记为需要重跑。核验报告是辅助检查，作者确认不等于研究真实性认证。</p></section>`;
+}
+function projectView() {
+  const p = S.project;
+  if (!p) return H`<p>正在读取项目…</p>`;
+  const steps = flow(p).stages,
+    sid = S.activeStage || step(p),
+    s = S.catalog.stages[sid],
+    o = p.outputs[sid],
+    running = p.runs.find((r) => r.status === 'running'),
+    finished = p.cursor >= steps.length;
+  return H`${inactiveProjectBanner(p)}<div class="project-header"><button class="back-link" data-action="nav" data-view="projects">研究项目 ${icon('chevron', 12)}</button><div class="project-title-row"><div><span class="type-label ${flow(p).color}">${e(routeName(p))} · ${e(flow(p).name)}</span><h1>${e(p.title)}</h1><p>${e(p.discipline)} <span>·</span> ${e(p.citation)} <span>·</span> ${finished ? L('流程已完成') : L('进度 ') + p.cursor + '/' + steps.length}</p></div><div class="header-buttons">${button('pm-duplicate', L('创建副本'), 'secondary', 'copy', `data-id="${p.id}" ${p.runs.some((r) => r.status === 'running') ? 'disabled' : ''}`)}${button('project-info', L('项目概况'), 'secondary', 'info')}${button('export', L('导出成果'), 'primary', 'download')}</div></div></div>
+ <div class="project-tabs">${[
+   ['overview', L('继续研究')],
+   ['brief', L('研究简报')],
+   ['work', L('研究流程')],
+   ['research', L('研究工具')],
+   ['materials', L('文献与材料')],
+   ['history', L('运行记录')],
+ ]
+   .map(
+     ([k, n]) =>
+       `<button data-action="project-tab" data-tab="${k}" class="${S.tab === k ? 'selected' : ''}">${n}${k === 'materials' ? `<span>${p.assets.length + p.literature.length}</span>` : ''}</button>`,
+   )
+   .join('')}</div>
+ ${
+   S.tab === 'brief'
+     ? studyBriefView(p)
+     : S.tab === 'overview'
+       ? followupView(p)
+       : S.tab === 'research'
+         ? researchView(p)
+         : S.tab === 'materials'
+           ? materialsView(p)
+           : S.tab === 'history'
+             ? historyView(p)
+             : H`<div class="workbench"><aside class="stage-panel"><div class="stage-panel-top"><span>研究路线</span><small>${progress(p)}%</small></div><div class="progress"><i style="width:${progress(p)}%"></i></div><div class="stage-list">${steps
+                 .map((id, i) => {
+                   const out = p.outputs[id];
+                   return `<button class="stage-item ${id === sid ? 'active' : ''} ${i > p.cursor ? 'locked' : ''}" data-action="stage" data-stage="${id}"><span class="step-number ${out?.approved && !out?.stale ? 'done' : ''}">${out?.approved && !out?.stale ? icon('check', 13) : String(i + 1).padStart(2, '0')}</span><div>${e(S.catalog.stages[id].title)}<small>${out?.stale ? L('需要重新运行') : out?.approved ? L('成果已确认') : out ? L('等待确认') : i === p.cursor ? L('当前阶段') : L('等待前序阶段')}</small></div>${S.catalog.stages[id].gate ? icon('shield', 13) : ''}</button>`;
+                 })
+                 .join(
+                   '',
+                 )}</div><div class="stage-note">${icon('shield', 17)}<span>成果先确认，流程再继续。</span></div></aside>
+ <section class="stage-content"><div class="stage-heading"><div class="eyebrow">STEP ${String(steps.indexOf(sid) + 1).padStart(2, '0')} / ${String(steps.length).padStart(2, '0')}${button('as-explain', L('解释这一步'), 'text as-stage-help', 'help')}</div><h2>${e(s.title)}</h2><p>${e(s.subtitle)}</p></div>
+ <div class="task-brief"><span class="brief-icon">${icon(s.gate ? 'shield' : 'spark', 19)}</span><p>${e(s.instruction)}</p></div>
+ <div class="instruction-box"><details class="stage-extra" ${s.local ? 'hidden' : ''} ${S.notes[p.id + sid] ? 'open' : ''}><summary>补充本阶段要求 <span>可选</span></summary><label for="stage-note">这一步，你有什么特别的要求？<span>可选</span></label><textarea id="stage-note" placeholder="例如：重点关注研究方法的合理性；请使用英文撰写；先指出缺失材料…">${e(S.notes[p.id + sid] || '')}</textarea></details><div class="run-bar"><span>${icon('connection', 14)}${s.local ? L('本机计算 · 不调用模型') : S.settings.mode === 'codex' ? L('本机 Codex · 套餐用量') : L('API 连接 · 独立计费')} ${s.local ? '' : S.settings.mode === 'codex' ? (S.settings.codex_model ? '· ' + e(S.settings.codex_model) : L('· 跟随 Codex 默认模型')) : '· ' + e(S.settings.api_model)}</span>${running ? button('stop', L('停止运行'), 'secondary', 'stop') : button('run', o ? L('重新运行此阶段') : L('开始这一步'), 'primary', 'play')}</div></div>
+ <div id="activity">${activityView(p, sid)}</div>
+ <div class="output-panel"><div class="output-toolbar"><h3>${icon('file', 17)}阶段成果 ${o?.stale ? H`<span class="badge warn">前序已变更</span>` : o?.approved ? H`<span class="badge green">已确认</span>` : o ? H`<span class="badge amber">待确认</span>` : ''}</h3><div><button class="small-tab ${S.outputTab === 'preview' ? 'active' : ''}" data-action="output-tab" data-tab="preview">阅读</button><button class="small-tab ${S.outputTab === 'edit' ? 'active' : ''}" data-action="output-tab" data-tab="edit" ${!o || running ? 'disabled' : ''}>编辑</button>${o ? H`<button class="icon-btn" data-action="copy-output" title="复制报告">${icon('file', 16)}</button>` : ''}</div></div><div id="output-body">${outputBody(o, running)}</div>${claimLinks(p, sid)}</div>
+ ${o && !running ? H`<div class="confirmation"><div>${s.gate ? H`<label class="ack"><input id="gate-ack" type="checkbox">我已阅读核验报告，理解其中的未知项与覆盖限制。</label>` : H`<p>${icon('check', 17)}检查报告后，确认这一步的成果再继续。</p>`}<small>确认记录操作决定，不构成研究真实性认证。</small>${!o.approved ? H`<label class="ack">操作身份<select id="confirmation-actor"><option value="author">作者本人</option><option value="delegate">授权代操作</option></select></label>` : ''}</div>${o.approved ? '<span class="confirmed-label">' + icon('check', 18) + H` 已确认</span>` : button('confirm', steps.indexOf(sid) === steps.length - 1 ? L('确认并完成流程') : L('确认成果，继续下一步'), 'primary', 'arrow', o.stale ? 'disabled' : '')}</div>` : ''}
+ </section></div>`
+ }`;
+}
+function outputBody(o, running) {
+  if (S.outputTab === 'edit' && o)
+    return H`<textarea id="output-editor" class="output-editor" spellcheck="false">${e(S.draft ?? o.text)}</textarea><div class="editor-footer"><span class="rt-autosave" id="rt-save-status">输入后自动保存，并保留修改前版本。</span>${rtAction('citation', L('插入引用'))}${button('save-output', L('保存修改'), 'primary', 'check')}</div>`;
+  return o
+    ? `<article class="markdown">${markdown(citationText(S.project, o.text))}</article>`
+    : `<div class="output-empty"><span>${icon('file', 33)}</span><h3>${running ? L('正在整理你的阶段成果') : L('把眼前这一步，变成看得见的成果')}</h3><p>${running ? L('报告生成后会自动保存在这里。') : L('点击“开始这一步”，报告会自动保存在这里。')}</p></div>`;
+}
+function activityView(p, sid) {
+  const r = [...p.runs].reverse().find((r) => r.stage === sid);
+  if (!r) return '';
+  if (r.status === 'running')
+    return H`<div class="activity-running"><span class="spinner"></span><div><strong>${e(r.progress || L('正在连接模型'))}</strong><small>此阶段在后台运行，完成后会自动保存。${sid === 'review' ? L('包含 5 次角色审阅和 1 次汇总。') : ''}</small></div></div>${r.partial ? H`<details class="partial"><summary>查看生成中的内容</summary><pre>${e(r.partial)}</pre></details>` : ''}`;
+  if (['failed', 'cancelled', 'interrupted'].includes(r.status))
+    return H`<div class="notice ${r.status === 'failed' ? 'error' : ''}">${icon('info', 18)}<div><strong>${r.status === 'failed' ? L('这次运行未完成') : L('运行已停止')}</strong><p>${e(r.error)}</p><button class="link" data-action="as-error" data-error="${e(r.error || '')}">让助手帮我解决</button>${r.partial_saved ? '<button class="link" data-action="view-partial" data-run="' + r.id + H`">查看已保留的部分输出</button>` : ''}</div></div>`;
+  return '';
+}
+function materialsView(p) {
+  const last = p.searches?.at(-1),
+    form = searchForms[p.id] || {
+      query: last?.query || '',
+      required_terms: (last?.required_terms || []).join(', '),
+      journal_only: last?.journal_only ?? false,
+      source: last?.source === 'PubMed' ? 'pubmed' : 'crossref',
+    };
+  return H`<div class="materials-layout"><div><section class="panel"><div class="section-title"><div><h2>项目材料</h2><p>论文、笔记、实验结果、审稿意见或数据库导出文件。</p></div>${button('upload', L('导入材料'), 'primary', 'upload')}</div><input id="file-input" type="file" multiple hidden accept=".pdf,.docx,.txt,.md,.csv,.ris,.nbib,.bib,.json,.tsv,.xlsx,.png,.jpg,.jpeg,.gmt,.fcs,.h5ad,.zip,.vcf"><div class="upload-zone" data-action="upload" role="button" tabindex="0">${icon('upload', 28)}<strong>点击选择文件，或拖放到这里</strong><span>PDF、Word、文本、CSV / XLSX、PNG / JPG、GMT / FCS / H5AD / VCF、10x ZIP、书目 · 单份不超过 20 MB</span></div><p class="privacy-line">${icon('shield', 14)}${p.flow === 'scientific_data' ? L('CSV/TSV 原始表格由本机工具读取；启用的文字材料与质控报告会用于所选模型。') : L('材料保存在本机。运行时，勾选的文字材料会发送给所选模型；绘图表格与原始图片在本机读取。')}</p><div class="asset-list">${p.assets.map((a) => H`<div class="asset-row"><input type="checkbox" data-asset="${a.id}" ${a.enabled ? 'checked' : ''} aria-label="将${e(a.name)}用于分析"><span class="asset-icon">${icon('file', 21)}</span><div><strong>${e(a.name)}</strong><small>${(a.size / 1024).toFixed(0)} KB · ${(a.chars / 1000).toFixed(1)} 千字符 · ${date(a.created)}</small></div><span class="badge ${a.enabled ? 'green' : ''}">${a.enabled ? L('用于分析') : L('已停用')}</span>${typeof plotAssets === 'function' && plotAssets(p).some((source) => source.id === a.id) ? plotButton('from-material', L('用于绘图'), `data-id="${a.id}"`, 'secondary pl-material-button') : ''}</div>`).join('')}</div></section>
+ <section class="panel literature-panel"><div class="section-title"><div><h2>文献检索</h2><p>从 PubMed 或 Crossref 获取书目信息；新结果默认待筛选，勾选后才用于分析。</p></div><span class="badge">PubMed / Crossref</span></div><form id="search-literature"><label class="field">检索来源<select name="source"><option value="crossref" ${form.source !== 'pubmed' ? 'selected' : ''}>Crossref 书目</option><option value="pubmed" ${form.source === 'pubmed' ? 'selected' : ''}>PubMed 生物医学文献</option></select></label><div class="literature-search"><div class="literature-query">${icon('search', 19)}<input name="query" aria-label="研究主题或论文标题" value="${e(form.query)}" placeholder="输入研究主题或论文标题，建议使用英文" required maxlength="300"></div>${button('noop', L('检索文献'), 'primary', 'search', 'type="submit"')}</div><label class="field">标题或摘要至少包含一个限定词<input name="required_terms" value="${e(form.required_terms)}" placeholder="例如 retrieval augmented generation；多个词用逗号分隔"></label><label class="ack"><input name="journal_only" type="checkbox" ${form.journal_only ? 'checked' : ''}>只保留期刊文章，排除补充期及补充材料</label><p class="field-help">自动建议主题中的标识词，可自行修改。计算机课题可保留会议论文等类型。Crossref 优先用限定词检索候选；PubMed 使用完整查询式，再匹配标题或摘要。最多检查 50 条，可能漏掉仅在全文提及的研究。</p></form>
+ ${last ? H`<details class="search-audit"><summary>${e(last.source)} 最近检索：${last.candidates ?? last.returned} 条候选 · 保留 ${last.returned} 条 · 新增 ${last.added ?? last.returned} 条 · 排除 ${last.rejected?.length || 0} 条</summary><p>${e(last.query)} · 实际候选检索：${e(last.candidate_query || last.query)} · 限定词：${e(last.required_terms?.join(', ') || L('不限'))} · ${last.journal_only ? L('期刊文章') : L('所有类型')}</p>${(last.rejected || []).map((x) => `<p>${e(x.title)} — ${e(x.reason)}</p>`).join('')}</details>` : ''}
+ ${p.literature.length ? H`<div class="literature-selection"><span>用于分析 ${p.literature.filter((l) => l.enabled !== false).length} / ${p.literature.length} 条</span>${button('disable-literature', L('全部停用'), 'text')}</div>` : ''}
+ <div class="literature-list">${p.literature.map((l) => H`<div class="literature-entry"><div><label class="ack"><input type="checkbox" data-literature="${e(l.id)}" ${l.enabled !== false ? 'checked' : ''} aria-label="将文献 ${e(l.title)} 用于分析">${l.enabled !== false ? L('用于分析') : L('待筛选')}</label><span class="year">${e(l.year || L('年份未知'))}</span><span class="badge amber">仅元数据${l.abstract ? L('及摘要') : ''}</span></div><h3>${e(l.title)}</h3><p>${e(l.authors.slice(0, 4).join(', '))}${l.authors.length > 4 ? L(' 等') : ''}</p><small>${e(l.journal)}</small>${l.abstract ? H`<details><summary>查看摘要</summary><p>${e(l.abstract)}</p></details>` : ''}${l.pmid ? `<button class="doi-link" data-action="external" data-url="https://pubmed.ncbi.nlm.nih.gov/${e(l.pmid)}/">PMID: ${e(l.pmid)} ${icon('external', 12)}</button>` : ''}${l.doi ? `<button class="doi-link" data-action="external" data-url="https://doi.org/${e(encodeURI(l.doi))}">DOI: ${e(l.doi)} ${icon('external', 12)}</button>` : ''}</div>`).join('') || H`<p class="list-empty">尚无匹配记录。可调整限定词、改用论文标题，或导入数据库导出文件。</p>`}</div></section></div>
+ <aside class="material-guide panel"><span class="template-icon green">${icon('book', 24)}</span><h3>让 AI 有据可依</h3><p>先准备相关材料，能让报告更具体，也能减少无依据的推断。</p><h4>可以放进来</h4><ul><li>已经读过的论文全文</li><li>你的研究计划和读书笔记</li><li>实际实验结果与已知局限</li><li>原始审稿意见与回复草稿</li></ul><div class="guide-divider"></div><p>扫描版 PDF 需要先做 OCR。图像、公式和复杂排版可能无法完整提取，涉及这些内容时请另附文字说明。</p></aside></div>`;
+}
+function historyView(p) {
+  return H`<div class="history-grid"><section class="panel"><h2>实际运行记录</h2><p class="muted">记录开始时间、连接方式与执行状态。</p>${
+    [...p.runs]
+      .reverse()
+      .map(
+        (r) =>
+          H`<div class="history-row"><span class="history-dot ${r.status === 'completed' ? 'green' : r.status === 'failed' ? 'red' : ''}"></span><div><h3>${e(S.catalog.stages[r.stage].title)}<span class="badge">${e({ completed: L('已完成'), running: L('运行中'), failed: L('失败'), cancelled: L('已停止'), interrupted: L('已中断') }[r.status])}</span></h3><p>${date(r.started)} · ${r.mode === 'local' ? L('本机计算') : r.mode === 'codex' ? L('本机 Codex') : 'API'} · ${e(r.mode === 'local' ? L('未调用模型') : r.model || L('Codex 默认模型'))} · ${((r.context_chars || 0) / 1000).toFixed(1)} 千字符材料</p>${r.error ? `<small>${e(r.error)}</small>` : ''}</div></div>`,
+      )
+      .join('') || H`<p class="list-empty">开始第一个阶段后，运行记录会出现在这里。</p>`
+  }</section><section class="panel"><h2>操作确认记录</h2><p class="muted">记录操作者身份与成果内容摘要；旧记录未追溯补写身份。</p>${
+    [...p.confirmations]
+      .reverse()
+      .map(
+        (c) =>
+          `<div class="history-row"><span class="step-number done">${icon('check', 14)}</span><div><h3>${e(S.catalog.stages[c.stage].title)}</h3><p>${date(c.time)} · ${e({ author: L('作者本人'), delegate: L('授权代操作'), unspecified: L('未记录身份') }[c.actor] || L('旧版本未记录身份'))}</p><small class="hash">SHA-256 ${e(c.sha256.slice(0, 16))}…</small></div></div>`,
+      )
+      .join('') || H`<p class="list-empty">你确认阶段成果后，会在这里留下一条记录。</p>`
+  }</section></div>`;
+}
+function settings() {
+  const s = S.settings;
+  return H`<div class="page-heading"><div class="eyebrow">MODEL CONNECTIONS</div><h1>让熟悉的模型，加入研究</h1><p>连接本机 Codex，或配置你自己的模型接口。</p></div><div class="settings-layout"><form id="settings-form" class="panel settings-panel"><h2>选择连接方式</h2><div class="mode-options"><label class="mode-option ${s.mode === 'codex' ? 'selected' : ''}"><input type="radio" name="mode" value="codex" ${s.mode === 'codex' ? 'checked' : ''}><span>${icon('connection', 23)}<strong>本机 Codex</strong><small>通过 ChatGPT 登录 · 使用 Codex 套餐用量</small></span><span class="radio-dot"></span></label><label class="mode-option ${s.mode === 'api' ? 'selected' : ''}"><input type="radio" name="mode" value="api" ${s.mode === 'api' ? 'checked' : ''}><span>${icon('layers', 23)}<strong>自定义 API</strong><small>Claude、DeepSeek 等接口 · 独立计费</small></span><span class="radio-dot"></span></label></div>
+ <div id="codex-fields" ${s.mode !== 'codex' ? 'hidden' : ''}><div class="subsection-title"><h3>本机 Codex</h3>${button('detect-codex', L('检测连接'), 'secondary', 'refresh', 'type="button"')}</div><div id="codex-status">${codexStatus()}</div><label class="field">Codex 程序路径 <span>可选，留空自动检测</span><input name="codex_path" value="${e(s.codex_path)}" placeholder="自动查找 codex.exe / codex.cmd"></label><label class="field">使用的模型<select name="codex_model"><option value="">跟随 Codex 默认模型</option>${(S.codex?.models || []).map((m) => `<option value="${e(m.model || m.id)}" ${(m.model || m.id) === s.codex_model ? 'selected' : ''}>${e(m.displayName || m.model || m.id)}</option>`).join('')}${s.codex_model && !(S.codex?.models || []).some((m) => (m.model || m.id) === s.codex_model) ? `<option selected>${e(s.codex_model)}</option>` : ''}</select></label><p class="field-help">检测后显示该账号实际可用的模型。需要先在电脑上的 Codex 中用 ChatGPT 账号登录。</p><div class="notice">${icon('info', 18)}<p>这里使用套餐包含的 Codex 用量，受账号可用额度和模型权限限制。软件不会读取、导出或转换你的登录令牌，也不会自动切到 API 计费。</p></div></div>
+ <div id="api-fields" ${s.mode !== 'api' ? 'hidden' : ''}><label class="field">接口协议<select name="provider"><option value="compatible" ${s.provider === 'compatible' ? 'selected' : ''}>Chat Completions 兼容接口（DeepSeek 等）</option><option value="anthropic" ${s.provider === 'anthropic' ? 'selected' : ''}>Anthropic Messages</option></select></label><label class="field">服务地址<input name="base_url" value="${e(s.base_url)}" placeholder="https://api.deepseek.com/v1"></label><p class="field-help">应用会补上 /chat/completions 或 /messages，也支持填写完整端点。</p><label class="field">模型名称<input name="api_model" value="${e(s.api_model)}" placeholder="填写服务商提供的模型 ID"></label><label class="field">API Key <span>${s.has_key ? L('已加密保存；留空保留原密钥') : L('仅保存在当前 Windows 用户下')}</span><input type="password" name="api_key" autocomplete="new-password" placeholder="${s.has_key ? L('已保存，留空保留') : L('输入你的 API Key')}"></label>${s.has_key ? H`<label class="ack"><input type="checkbox" name="clear_key">清除已保存的 API Key</label>` : ''}<label class="field">最大输出长度（tokens）<input type="number" name="max_tokens" min="256" max="32000" value="${s.max_tokens}"></label><div class="notice">${icon('info', 18)}<p>API 由对应服务商单独计费，不使用 ChatGPT 订阅额度。密钥使用 Windows 用户级加密保存在本机。</p></div></div>
+ <div class="settings-actions">${button('test-connection', L('测试连接'), 'secondary', 'connection', 'type="button"')}${button('noop', L('保存设置'), 'primary', 'check', 'type="submit"')}</div></form>
+ <aside>${typeof languagePreferences === 'function' ? languagePreferences() : ''}${updatePanel()}<section class="panel connection-guide"><span class="template-icon green">${icon('shield', 24)}</span><h3>第一次连接？</h3><ol><li><b>安装并登录 Codex</b><span>使用 ChatGPT 账号登录，确认 Codex 可以正常运行。</span></li><li><b>点击“检测连接”</b><span>研序会读取登录方式、可用模型及服务返回的额度信息。</span></li><li><b>选择模型，保存设置</b><span>回到项目，点击“开始这一步”即可。</span></li></ol><button class="link" data-action="external" data-url="https://learn.chatgpt.com/docs/auth">查看官方登录说明 ${icon('external', 13)}</button></section><section class="panel storage-info"><h3>${icon('folder', 18)}数据保存在本机</h3><p>项目、材料和报告都保存在：</p><code>${e(S.dataPath)}</code>${button('open-data', L('打开数据文件夹'), 'secondary', 'folder')}</section></aside></div>`;
+}
+function codexStatus() {
+  if (!S.codex)
+    return H`<div class="connection-status neutral"><span class="dot"></span>尚未检测，点击右侧按钮检查本机连接。</div>`;
+  const c = S.codex,
+    a = c.account;
+  if (!a || a.type !== 'chatgpt')
+    return H`<div class="connection-status warning">${icon('info', 18)}已找到 Codex，但尚未通过 ChatGPT 登录。${a?.type === 'apiKey' ? L('当前使用的是 API Key。') : ''}</div>`;
+  const limits = c.limits?.rateLimitsByLimitId || {};
+  const buckets = Object.entries(limits);
+  return H`<div class="connection-status good">${icon('check', 18)}<div><strong>已连接 · ChatGPT ${e(a.planType || L('账号'))}</strong><small>${e(a.email || L('已登录的本机账号'))}</small></div><span class="badge green">可用模型 ${c.models.length}</span></div>${
+    buckets.length
+      ? H`<div class="rate-limits">${buckets
+          .slice(0, 3)
+          .map(([k, v]) => {
+            let b = v.primary;
+            return b
+              ? H`<div><span>${e(v.limitName || k)} · ${b.windowDurationMins >= 1440 ? Math.round(b.windowDurationMins / 1440) + L(' 天') : b.windowDurationMins + L(' 分钟')}窗口</span><b>已用 ${Math.round(b.usedPercent)}%</b><div class="progress"><i style="width:${Math.min(100, Math.max(0, b.usedPercent))}%"></i></div></div>`
+              : '';
+          })
+          .join('')}<small>来自 Codex 服务的读取结果，可能随后变化。</small></div>`
+      : ''
+  }`;
+}
+function help() {
+  return H`<div class="page-heading"><div class="eyebrow">A LITTLE GUIDANCE</div><h1>把精力留给研究本身</h1><p>三个简单动作，就能开始使用研序。</p></div><section class="panel guide-entry"><div><h2>第一次使用？跟着页面逐步熟悉功能</h2><p>支持跳过、保留进度，以及随时重新查看；引导不会自动创建项目或调用模型。</p></div>${button('guide-start', L('重新查看功能引导'), 'primary', 'help')}</section><div class="help-steps">${[
+    [
+      '01',
+      L('新建一个项目'),
+      L('选择研究目标，写下问题、学科和材料情况。可以从完整流程开始，也可以只做审阅或文献筛选。'),
+    ],
+    [
+      '02',
+      L('连接模型，导入材料'),
+      L('在“模型与连接”里选择本机 Codex 或 API，然后在项目的材料页导入论文、笔记或审稿意见。'),
+    ],
+    [
+      '03',
+      L('运行、阅读、确认'),
+      L('每个阶段只需点击开始。报告会自动保存；你可以修改内容，确认后进入下一步。'),
+    ],
+  ]
+    .map(
+      ([n, t, d]) => `<section class="panel"><span>${n}</span><h2>${t}</h2><p>${d}</p></section>`,
+    )
+    .join(
+      '',
+    )}</div><section class="panel help-details"><h2>使用时，记住这些边界</h2><div class="faq"><h3>本机 Codex 会使用我的订阅吗？</h3><p>当 Codex 使用 ChatGPT 登录时，这个连接使用套餐中的 Codex 用量。若检测到 API Key 登录，研序会提示先切换登录方式，不会自动产生 API 调用。</p><h3>研序会自动帮我完成实验或验证数据真实吗？</h3><p>不会。它辅助研究材料整理、写作和审阅，不能证明实验确实执行、原始数据真实或分析可复现。缺少来源的信息必须由作者补齐。</p><h3>文献检索和核验有什么区别？</h3><p>PubMed 和 Crossref 检索返回书目元数据，有时包含摘要。它不能证明引用支持你的论断，也不覆盖所有数据库。请导入有权使用的全文，并核实关键引用。</p><h3>是否完全等同于原项目？</h3><p>这是参考 ARS 方法和角色提示词制作的桌面改编。保留分阶段推进、作者确认、角色审阅和材料留痕；没有移植原生 Claude Code hooks、全部命令、跨模型校准、全部机器校验与完整 PRISMA 自动化。不要把模型报告当作原项目所有硬门禁均已通过。</p><h3>如何画图和插入 Word？</h3><p>项目的“研究工具 → 图表与绘图”中，选择 CSV / XLSX 或原始图片，按提示选图型与字段；没有实验数据也可先画技术路线。预览、改色、字体、复现和导出都在本机完成。只有明确点击 AI 按钮才调用模型，并先展示修改方案。保存后可复制正文插图标记，粘贴到报告中定位 Word 插图；配方包包含原始来源和可编辑配置。已有结果可重绘；从原始数据计算时切换“数据分析 → 出图”，按方法核对研究条件后明确运行。整篇图表在“整篇论文图表”管理。</p><h3>如何备份？</h3><p>项目右上角可导出报告与项目 ZIP；侧栏“备份与恢复”支持自动或手动整库备份、预览导入，并创建独立恢复副本。完整本机数据位于设置页显示的数据文件夹。不要把数据文件夹里的加密密钥当作可跨电脑迁移的登录方式。</p></div></section><section class="panel attribution"><h2>关于研序</h2><p>研序 Research Studio v${e(S.catalog.version)} · 非官方、非商业桌面改编。</p><p>路径 A 方法与角色提示来源于 Imbad0202 / Academic Research Skills，遵循 CC BY-NC 4.0。路径 B 使用 K-Dense / Scientific Agent Skills 固定版本，根许可 MIT，各技能另有声明。上游提交：<code>${e(S.catalog.source_commit.slice(0, 12))}</code>。修改包括桌面界面、本机状态存储、模型适配与简化流程编排。</p><button class="link" data-action="external" data-url="https://github.com/Imbad0202/academic-research-skills">查看原项目 ${icon('external', 14)}</button></section>`;
 }
 
-document.addEventListener('click',async event=>{
- let el=event.target.closest('[data-action]');if(!el||el.disabled)return;let a=el.dataset.action;
- if(a==='noop')return;
- event.preventDefault();
- try{
- if(a.startsWith('as-'))await assistantAction(a,el);
- else if(a==='nav'){if(S.draft!==null)await saveOutput(true);S.view=el.dataset.view;S.pathwayRoute=null;window.history?.pushState({},'','/');S.query='';S.filter='all';clearTimeout(pollTimer);S.projects=await api('projects');render()}
- else if(a.startsWith('fu-'))await followupAction(a,el);
- else if(a.startsWith('rt-'))await researchAction(a,el);
- else if(a.startsWith('pl-'))await plottingAction(a,el);
- else if(a.startsWith('an-'))await analysisAction(a,el);
- else if(a.startsWith('pf-'))await paperAction(a,el);
- else if(a.startsWith('studio-'))await studioAction(a,el);
- else if(a.startsWith('pm-'))await projectManagementAction(a,el);
- else if(a.startsWith('guide-'))await guideAction(a,el);
- else if(a.startsWith('update-'))await updateAction(a);
- else if(a==='create')createModal(el.dataset.flow||'full');
- else if(['path','recommend-route','apply-route','skill-detail','use-skill'].includes(a))await pathwayAction(a,el);
- else if(a==='close-modal')closeModal();
- else if(a==='open')await openProject(el.dataset.id);
- else if(a==='open-materials')await openProject(el.dataset.id,'materials');
- else if(a==='filter'){S.filter=el.dataset.filter;render()}
- else if(a==='project-tab'){if(S.draft!==null)await saveOutput(true);S.tab=el.dataset.tab;render()}
- else if(a==='stage'){let stages=flow(S.project).stages;if(stages.indexOf(el.dataset.stage)>S.project.cursor)return toast(L('请先完成并确认前面的阶段。'));if(S.draft!==null)await saveOutput(true);S.activeStage=el.dataset.stage;S.outputTab='preview';render()}
- else if(a==='output-tab'){if(S.draft!==null)await saveOutput(true);S.outputTab=el.dataset.tab;render()}
- else if(a==='run'){await showRunPreview()}
- else if(a==='stop'){await api(`project/${S.project.id}/stop`,{});toast(L('正在停止；已发出的 API 请求可能仍产生用量。'))}
- else if(a==='confirm'){el.disabled=true;const actor=$('#confirmation-actor')?.value||'unspecified';await saveOutput(true);S.project=await api(`project/${S.project.id}/confirm`,{stage:S.activeStage,actor,acknowledge:!!$('#gate-ack')?.checked});S.activeStage=step(S.project);S.outputTab='preview';S.projects=await api('projects');if(progress(S.project)===100)S.tab='overview';render();if(S.tab==='work')$('.stage-content')?.scrollIntoView?.({block:'start',behavior:'instant'});else window.scrollTo?.({top:0,behavior:'instant'});toast(progress(S.project)===100?L('研究流程已完成，可以导出成果。'):L('已确认，继续下一步。'))}
- else if(a==='disable-literature'){S.project=await api(`project/${S.project.id}/literature-toggle`,{all:true,enabled:false});S.activeStage=step(S.project);S.projects=await api('projects');render();toast(L('检索记录已停用；输入变更后，已有成果需重新确认。'))}
- else if(a==='save-output')await saveOutput();
- else if(a==='copy-output'){await navigator.clipboard.writeText(S.project.outputs[S.activeStage]?.text||'');toast(L('报告已复制'))}
- else if(a==='upload')$('#file-input').click();
- else if(a==='project-info')infoModal();
- else if(a==='export')exportModal();
- else if(a==='view-partial'){let r=S.project.runs.find(r=>r.id===el.dataset.run);modal(H`<h2>保留的部分输出</h2><article class="markdown">`+markdown(r.partial_saved)+'</article>',true)}
- else if(a==='download'){let fmt=el.dataset.format,sid=$('#export-scope').value;if(window.pywebview?.api){let r=await window.pywebview.api.save_export(S.project.id,fmt,sid);if(r.saved)toast(L('已保存到 ')+r.path)}else{let blob=await api(`project/${S.project.id}/export`,{format:fmt,stage:sid},true);let url=URL.createObjectURL(blob),link=document.createElement('a');link.href=url;link.download=S.project.title.replace(/[<>:"/\\|?*]/g,'_')+'.'+fmt;link.click();setTimeout(()=>URL.revokeObjectURL(url),10000);toast(L('导出已准备好'))}}
- else if(a==='detect-codex'){el.disabled=true;el.textContent=L('检测中…');await saveSettings(false);S.codex=await api('codex/inspect',{});render();toast(S.codex.account?.type==='chatgpt'?L('已连接本机 ChatGPT 登录的 Codex'):L('已找到 Codex，请检查登录方式。'))}
- else if(a==='test-connection'){el.disabled=true;await saveSettings(false);toast(L('正在测试连接…'));let r=await api('connection/test',{});if(S.settings.mode==='codex'){S.codex=r;toast(r.account?.type==='chatgpt'?L('连接正常，使用 Codex 套餐用量。'):L('检测成功，但需要使用 ChatGPT 登录。'))}else toast(L('API 连接正常：')+r.message);render()}
- else if(a==='open-data'){if(window.pywebview?.api)await window.pywebview.api.open_data_folder();else toast(L('数据文件夹：')+S.dataPath)}
- else if(a==='external'){if(window.pywebview?.api)await window.pywebview.api.open_link(el.dataset.url);else window.open(el.dataset.url,'_blank','noopener,noreferrer')}
- }catch(err){toast(err.message||String(err),true);if(el.isConnected)el.disabled=false;if(a==='detect-codex')el.innerHTML=icon('refresh',17)+L('检测连接')}
+function inline(text) {
+  const parts = String(text).split(/(`[^`]+`|\[[^\]]+\]\(https?:\/\/[^\s)]+\))/g);
+  return parts
+    .map((part) => {
+      if (part.startsWith('`') && part.endsWith('`'))
+        return '<code>' + e(part.slice(1, -1)) + '</code>';
+      const link = part.match(/^\[([^\]]+)\]\((https?:\/\/[^\s)]+)\)$/);
+      if (link)
+        return `<a href="${e(link[2])}" target="_blank" rel="noopener noreferrer">${inline(link[1])}</a>`;
+      return e(part)
+        .replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>')
+        .replace(/(^|[^*])\*([^*\n]+)\*(?!\*)/g, '$1<em>$2</em>');
+    })
+    .join('');
+}
+function markdown(text) {
+  let lines = String(text || '').split('\n'),
+    out = [],
+    list = false,
+    code = false,
+    buffer = [],
+    table = [];
+  function close() {
+    if (list) {
+      out.push('</ul>');
+      list = false;
+    }
+  }
+  function flushTable() {
+    if (!table.length) return;
+    let rows = table.filter((r) => !r.every((c) => /^[:\- ]+$/.test(c || '-')));
+    out.push(
+      '<div class="table-wrap"><table>' +
+        rows
+          .map(
+            (r, i) =>
+              '<tr>' +
+              r.map((c) => `<${i ? 'td' : 'th'}>${inline(c)}</${i ? 'td' : 'th'}>`).join('') +
+              '</tr>',
+          )
+          .join('') +
+        '</table></div>',
+    );
+    table = [];
+  }
+  for (let line of lines) {
+    if (line.startsWith('```')) {
+      close();
+      flushTable();
+      if (code) {
+        out.push('<pre><code>' + e(buffer.join('\n')) + '</code></pre>');
+        buffer = [];
+      }
+      code = !code;
+      continue;
+    }
+    if (code) {
+      buffer.push(line);
+      continue;
+    }
+    if (line.trim().startsWith('|') && line.trim().endsWith('|')) {
+      close();
+      table.push(
+        line
+          .trim()
+          .slice(1, -1)
+          .split('|')
+          .map((c) => c.trim()),
+      );
+      continue;
+    }
+    flushTable();
+    if (!line.trim()) {
+      close();
+      continue;
+    }
+    let h = line.match(/^(#{1,6})\s+(.+)/);
+    if (h) {
+      close();
+      const n = Math.min(4, h[1].length + 1);
+      out.push(`<h${n}>${inline(h[2])}</h${n}>`);
+      continue;
+    }
+    if (/^[-*_]{3,}$/.test(line.trim())) {
+      close();
+      out.push('<hr>');
+      continue;
+    }
+    let li = line.match(/^(?:[-*]|\d+\.)\s+(.*)/);
+    if (li) {
+      if (!list) {
+        out.push('<ul>');
+        list = true;
+      }
+      out.push('<li>' + inline(li[1]) + '</li>');
+      continue;
+    }
+    close();
+    if (line.startsWith('>'))
+      out.push('<blockquote>' + inline(line.replace(/^>\s?/, '')) + '</blockquote>');
+    else out.push('<p>' + inline(line) + '</p>');
+  }
+  close();
+  flushTable();
+  if (code) out.push('<pre>' + e(buffer.join('\n')) + '</pre>');
+  return out.join('');
+}
+
+function modal(html, wide = false) {
+  if (!$('.modal')) modalOpener = document.activeElement;
+  $('#modal-root').innerHTML =
+    H`<div class="modal-overlay"><section class="modal ${wide ? 'wide' : ''}" role="dialog" aria-modal="true" tabindex="-1"><button class="modal-close icon-btn" data-action="close-modal" aria-label="关闭">${icon('close', 21)}</button>${html}</section></div>`;
+  const dialog = $('.modal');
+  dialog.setAttribute('aria-label', $('h2', dialog)?.textContent || L('研究项目'));
+  $('#app').inert = true;
+  if ($('#assistant-root')) $('#assistant-root').inert = true;
+  document.body.classList.add('modal-open');
+  setTimeout(() => {
+    if ($('.modal') !== dialog) return;
+    (
+      $('input:not([type=radio]):not([type=hidden])', dialog) ||
+      $('button', dialog) ||
+      dialog
+    ).focus();
+  }, 0);
+}
+function closeModal() {
+  if (!$('.modal')) return;
+  if (typeof cacheStudyDraft === 'function') cacheStudyDraft();
+  if (typeof cacheAssistantProposal === 'function') cacheAssistantProposal();
+  if (typeof cacheResearchDraft === 'function') cacheResearchDraft();
+  if (typeof onGuideModalClosed === 'function') onGuideModalClosed();
+  $('#modal-root').innerHTML = '';
+  $('#app').inert = false;
+  if ($('#assistant-root')) $('#assistant-root').inert = false;
+  document.body.classList.remove('modal-open');
+  if (modalOpener?.isConnected) modalOpener.focus();
+  modalOpener = null;
+}
+function createModal(selected = 'full') {
+  newProjectModal(selected);
+}
+function infoModal() {
+  let p = S.project;
+  modal(
+    H`<h2>项目概况</h2><form id="info-form"><label class="field">项目名称<input name="title" value="${e(p.title)}" required></label><label class="field">研究目标<textarea name="topic" rows="4">${e(p.topic)}</textarea></label><div class="form-columns"><label class="field">学科<input name="discipline" value="${e(p.discipline)}"></label><label class="field">引用格式<input name="citation" value="${e(p.citation)}"></label></div>${typeof outputLanguageField === 'function' ? outputLanguageField(p) : ''}<label class="field">额外要求<textarea name="requirements" rows="3">${e(p.requirements)}</textarea></label><label class="field">实验或分析来源声明<select name="experiments">${[
+      ['none', L('没有自有实验或分析')],
+      ['declared', L('有，需导入真实结果与来源')],
+      ['undecided', L('暂不确定')],
+    ]
+      .map(
+        ([v, n]) => `<option value="${v}" ${p.experiments === v ? 'selected' : ''}>${n}</option>`,
+      )
+      .join(
+        '',
+      )}</select></label><div class="modal-footer"><span>更新目标后，重跑受影响阶段。</span>${button('noop', L('保存概况'), 'primary', 'check', 'type="submit"')}</div></form>`,
+    true,
+  );
+}
+function exportModal() {
+  modal(
+    H`<span class="template-icon green">${icon('download', 24)}</span><h2>把研究成果带走</h2><p class="modal-description">导出报告，或保存包含原始材料的项目备份。</p>${typeof fuExportNotice === 'function' ? fuExportNotice() : ''}<label class="field">导出范围<select id="export-scope"><option value="">全部阶段报告</option><option value="${e(S.activeStage)}">仅当前阶段</option></select></label><div class="export-options">${[
+      ['md', 'Markdown', L('便于继续编辑的纯文本报告')],
+      ['docx', L('Word 文档'), L('包含标题、列表和表格的 DOCX')],
+      ['json', L('项目记录 JSON'), L('保存配置、报告、确认与运行记录')],
+      ['zip', L('完整项目备份'), L('报告 + 项目记录 + 原始材料')],
+    ]
+      .map(
+        ([fmt, n, d]) =>
+          `<button data-action="download" data-format="${fmt}"><span class="asset-icon">${icon(fmt === 'zip' ? 'folder' : 'file', 23)}</span><span><strong>${n}</strong><small>${d}</small></span>${icon('download', 17)}</button>`,
+      )
+      .join(
+        '',
+      )}</div><p class="field-help">导出文件不包含 API Key 或 Codex 登录凭据。备份可能包含研究材料，请妥善保存。</p>`,
+  );
+}
+
+async function openProject(id, tab = 'overview', updateUrl = true) {
+  clearTimeout(pollTimer);
+  S.project = await api('project/' + id);
+  for (let r of S.project.runs) if (r.note !== undefined) S.notes[id + r.stage] = r.note;
+  S.view = 'project';
+  S.activeStage = step(S.project);
+  S.tab = tab;
+  S.outputTab = 'preview';
+  S.draft = null;
+  if (updateUrl)
+    window.history?.pushState(
+      {},
+      '',
+      (projectRoute(S.project) === 'scientific' ? '/scientific' : '/ars') +
+        '?project=' +
+        encodeURIComponent(id),
+    );
+  render();
+  window.scrollTo?.({ top: 0, behavior: 'instant' });
+  recoverOutputDraft();
+  schedulePoll();
+}
+function updateActivity(html) {
+  const el = $('#activity');
+  if (!el || el.innerHTML === html) return;
+  const details = $('details', el),
+    pre = $('pre', el);
+  const opened = details?.open,
+    scroll = pre?.scrollTop;
+  el.innerHTML = html;
+  if (details && $('details', el)) $('details', el).open = opened;
+  if (pre && $('pre', el)) $('pre', el).scrollTop = scroll;
+}
+function schedulePoll() {
+  clearTimeout(pollTimer);
+  if (S.view !== 'project' || !S.project?.runs.some((r) => r.status === 'running')) return;
+  const pid = S.project.id;
+  pollTimer = setTimeout(async () => {
+    if (S.view !== 'project' || S.project?.id !== pid) return;
+    try {
+      const p = await api('project/' + pid);
+      if (S.view !== 'project' || S.project?.id !== pid) return;
+      if (p.runs.some((r) => r.status === 'running')) {
+        S.project = p;
+        if (S.tab === 'work') updateActivity(activityView(p, S.activeStage));
+      } else {
+        const projects = await api('projects');
+        if (S.view !== 'project' || S.project?.id !== pid) return;
+        S.project = p;
+        S.projects = projects;
+        render();
+        toast(L('本次运行已结束，成果与状态已保存。'));
+      }
+    } catch (err) {
+      if (S.view === 'project' && S.project?.id === pid) toast(err.message, true);
+    } finally {
+      if (S.view === 'project' && S.project?.id === pid) schedulePoll();
+    }
+  }, 1800);
+}
+async function saveSettings(showToast = true) {
+  let form = $('#settings-form');
+  if (!form) return;
+  let data = Object.fromEntries(new FormData(form));
+  data.clear_key = !!form.elements.clear_key?.checked;
+  S.settings = await api('settings', data);
+  S.settingsDirty = false;
+  if (showToast) {
+    toast(L('连接设置已保存'));
+    render();
+  }
+  return data;
+}
+async function saveOutput(silent = false) {
+  clearTimeout(autosaveTimer);
+  if (S.draft === null) return outputSaveChain;
+  const pid = S.project.id,
+    sid = S.activeStage,
+    text = S.draft;
+  const operation = outputSaveChain
+    .catch(() => {})
+    .then(async () => {
+      const project = await api(`project/${pid}/edit`, { stage: sid, text });
+      if (S.project?.id === pid) {
+        S.project = project;
+        if (S.activeStage === sid && S.draft === text) {
+          S.draft = null;
+          try {
+            localStorage.removeItem('yanxu-output:' + pid + ':' + sid);
+          } catch {}
+        }
+      }
+      if ($('#rt-save-status'))
+        $('#rt-save-status').textContent =
+          S.draft === null
+            ? L('已自动保存 · 修改前版本已留存')
+            : L('前次修改已保存，当前输入等待保存…');
+    });
+  outputSaveChain = operation;
+  await operation;
+  if (!silent) {
+    render();
+    toast(L('修改已保存；后续成果需要重新核对。'));
+  }
+}
+async function doUpload(files) {
+  if (!files.length) return;
+  if (uploading) return toast(L('请等待本批材料导入完成。'), true);
+  uploading = true;
+  const pid = S.project.id,
+    failures = [];
+  let imported = 0;
+  try {
+    for (const f of files) {
+      try {
+        if (f.size > 20 * 1024 * 1024) throw new Error(L('超过 20 MB 上限'));
+        toast(L('正在导入 ') + f.name);
+        const bytes = new Uint8Array(await f.arrayBuffer());
+        let binary = '';
+        for (let j = 0; j < bytes.length; j += 8192)
+          binary += String.fromCharCode(...bytes.subarray(j, j + 8192));
+        const p = await api(`project/${pid}/upload`, { name: f.name, data: btoa(binary) });
+        if (S.project?.id === pid) S.project = p;
+        imported++;
+      } catch (err) {
+        failures.push(f.name + '：' + err.message);
+      }
+    }
+    if (imported) {
+      if (S.project?.id === pid) S.activeStage = step(S.project);
+      S.projects = await api('projects');
+      render();
+    }
+    const summary = imported
+      ? H`成功导入 ${imported} 份材料${failures.length ? H`；失败 ${failures.length} 份` : L('；已有成果需重新确认')}`
+      : H`未导入任何材料；失败 ${failures.length} 份`;
+    toast(summary + (failures.length ? '。' + failures.join('；') : '。'), !!failures.length);
+  } finally {
+    uploading = false;
+    const input = $('#file-input');
+    if (input) input.value = '';
+  }
+}
+
+document.addEventListener('click', async (event) => {
+  let el = event.target.closest('[data-action]');
+  if (!el || el.disabled) return;
+  let a = el.dataset.action;
+  if (a === 'noop') return;
+  event.preventDefault();
+  try {
+    if (a.startsWith('as-')) await assistantAction(a, el);
+    else if (a === 'nav') {
+      if (S.draft !== null) await saveOutput(true);
+      S.view = el.dataset.view;
+      S.pathwayRoute = null;
+      window.history?.pushState({}, '', '/');
+      S.query = '';
+      S.filter = 'all';
+      clearTimeout(pollTimer);
+      S.projects = await api('projects');
+      render();
+    } else if (a.startsWith('fu-')) await followupAction(a, el);
+    else if (a.startsWith('rt-')) await researchAction(a, el);
+    else if (a.startsWith('pl-')) await plottingAction(a, el);
+    else if (a.startsWith('an-')) await analysisAction(a, el);
+    else if (a.startsWith('pf-')) await paperAction(a, el);
+    else if (a.startsWith('studio-')) await studioAction(a, el);
+    else if (a.startsWith('pm-')) await projectManagementAction(a, el);
+    else if (a.startsWith('guide-')) await guideAction(a, el);
+    else if (a.startsWith('update-')) await updateAction(a);
+    else if (a === 'create') createModal(el.dataset.flow || 'full');
+    else if (['path', 'recommend-route', 'apply-route', 'skill-detail', 'use-skill'].includes(a))
+      await pathwayAction(a, el);
+    else if (a === 'close-modal') closeModal();
+    else if (a === 'open') await openProject(el.dataset.id);
+    else if (a === 'open-materials') await openProject(el.dataset.id, 'materials');
+    else if (a === 'filter') {
+      S.filter = el.dataset.filter;
+      render();
+    } else if (a === 'project-tab') {
+      if (S.draft !== null) await saveOutput(true);
+      S.tab = el.dataset.tab;
+      render();
+    } else if (a === 'stage') {
+      let stages = flow(S.project).stages;
+      if (stages.indexOf(el.dataset.stage) > S.project.cursor)
+        return toast(L('请先完成并确认前面的阶段。'));
+      if (S.draft !== null) await saveOutput(true);
+      S.activeStage = el.dataset.stage;
+      S.outputTab = 'preview';
+      render();
+    } else if (a === 'output-tab') {
+      if (S.draft !== null) await saveOutput(true);
+      S.outputTab = el.dataset.tab;
+      render();
+    } else if (a === 'run') {
+      await showRunPreview();
+    } else if (a === 'stop') {
+      await api(`project/${S.project.id}/stop`, {});
+      toast(L('正在停止；已发出的 API 请求可能仍产生用量。'));
+    } else if (a === 'confirm') {
+      el.disabled = true;
+      const actor = $('#confirmation-actor')?.value || 'unspecified';
+      await saveOutput(true);
+      S.project = await api(`project/${S.project.id}/confirm`, {
+        stage: S.activeStage,
+        actor,
+        acknowledge: !!$('#gate-ack')?.checked,
+      });
+      S.activeStage = step(S.project);
+      S.outputTab = 'preview';
+      S.projects = await api('projects');
+      if (progress(S.project) === 100) S.tab = 'overview';
+      render();
+      if (S.tab === 'work')
+        $('.stage-content')?.scrollIntoView?.({ block: 'start', behavior: 'instant' });
+      else window.scrollTo?.({ top: 0, behavior: 'instant' });
+      toast(
+        progress(S.project) === 100
+          ? L('研究流程已完成，可以导出成果。')
+          : L('已确认，继续下一步。'),
+      );
+    } else if (a === 'disable-literature') {
+      S.project = await api(`project/${S.project.id}/literature-toggle`, {
+        all: true,
+        enabled: false,
+      });
+      S.activeStage = step(S.project);
+      S.projects = await api('projects');
+      render();
+      toast(L('检索记录已停用；输入变更后，已有成果需重新确认。'));
+    } else if (a === 'save-output') await saveOutput();
+    else if (a === 'copy-output') {
+      await navigator.clipboard.writeText(S.project.outputs[S.activeStage]?.text || '');
+      toast(L('报告已复制'));
+    } else if (a === 'upload') $('#file-input').click();
+    else if (a === 'project-info') infoModal();
+    else if (a === 'export') exportModal();
+    else if (a === 'view-partial') {
+      let r = S.project.runs.find((r) => r.id === el.dataset.run);
+      modal(
+        H`<h2>保留的部分输出</h2><article class="markdown">` +
+          markdown(r.partial_saved) +
+          '</article>',
+        true,
+      );
+    } else if (a === 'download') {
+      let fmt = el.dataset.format,
+        sid = $('#export-scope').value;
+      if (window.pywebview?.api) {
+        let r = await window.pywebview.api.save_export(S.project.id, fmt, sid);
+        if (r.saved) toast(L('已保存到 ') + r.path);
+      } else {
+        let blob = await api(`project/${S.project.id}/export`, { format: fmt, stage: sid }, true);
+        let url = URL.createObjectURL(blob),
+          link = document.createElement('a');
+        link.href = url;
+        link.download = S.project.title.replace(/[<>:"/\\|?*]/g, '_') + '.' + fmt;
+        link.click();
+        setTimeout(() => URL.revokeObjectURL(url), 10000);
+        toast(L('导出已准备好'));
+      }
+    } else if (a === 'detect-codex') {
+      el.disabled = true;
+      el.textContent = L('检测中…');
+      await saveSettings(false);
+      S.codex = await api('codex/inspect', {});
+      render();
+      toast(
+        S.codex.account?.type === 'chatgpt'
+          ? L('已连接本机 ChatGPT 登录的 Codex')
+          : L('已找到 Codex，请检查登录方式。'),
+      );
+    } else if (a === 'test-connection') {
+      el.disabled = true;
+      await saveSettings(false);
+      toast(L('正在测试连接…'));
+      let r = await api('connection/test', {});
+      if (S.settings.mode === 'codex') {
+        S.codex = r;
+        toast(
+          r.account?.type === 'chatgpt'
+            ? L('连接正常，使用 Codex 套餐用量。')
+            : L('检测成功，但需要使用 ChatGPT 登录。'),
+        );
+      } else toast(L('API 连接正常：') + r.message);
+      render();
+    } else if (a === 'open-data') {
+      if (window.pywebview?.api) await window.pywebview.api.open_data_folder();
+      else toast(L('数据文件夹：') + S.dataPath);
+    } else if (a === 'external') {
+      if (window.pywebview?.api) await window.pywebview.api.open_link(el.dataset.url);
+      else window.open(el.dataset.url, '_blank', 'noopener,noreferrer');
+    }
+  } catch (err) {
+    toast(err.message || String(err), true);
+    if (el.isConnected) el.disabled = false;
+    if (a === 'detect-codex') el.innerHTML = icon('refresh', 17) + L('检测连接');
+  }
 });
-document.addEventListener('submit',async ev=>{ev.preventDefault();let f=ev.target,btn=$('button[type="submit"]',f);if(btn)btn.disabled=true;try{let data=Object.fromEntries(new FormData(f));if(f.id==='create-form'){if(data.route_choice==='automatic'){const r=await api('recommend',recommendationInput(f));data={...data,route:r.route,flow:r.flow,route_choice:'recommended',selected_skill:''}}let p=await api('project',data);const assistantTarget=f.dataset.assistantTarget;closeModal();S.projects=await api('projects');if(assistantTarget&&typeof assistantNavigate==='function')await assistantNavigate(assistantTarget,p.id);else await openProject(p.id);if(typeof assistantCatalogRefresh==='function')assistantCatalogRefresh();toast(L('项目已创建，推荐与下一步已整理在“继续研究”。'))}
- else if(f.id==='studio-brief-form')await studioSave(f,ev.submitter?.value==='confirm');
- else if(f.id==='fu-memory-form')await fuMemorySubmit(f);
- else if(f.id==='as-proposal-form')await assistantProposalSubmit();
- else if(f.id.startsWith('rt-'))await researchSubmit(f);
- else if(f.id.startsWith('pm-'))await submitProjectManagement(f);
- else if(f.id==='settings-form')await saveSettings();
- else if(f.id==='info-form'){S.project=await api(`project/${S.project.id}/info`,data);S.activeStage=step(S.project);S.projects=await api('projects');closeModal();render();toast(L('项目概况已更新。'))}
- else if(f.id==='search-literature'){data.journal_only=f.elements.journal_only.checked;searchForms[S.project.id]=data;toast(L('正在检索 ')+(data.source==='pubmed'?'PubMed':'Crossref')+'…');const searchPid=S.project.id;let r=await api(`project/${searchPid}/search`,data);if(S.view!=='project'||S.project?.id!==searchPid||S.tab!=='materials'){toast(L('检索已完成并保存在原项目。'));return}S.project=r.project;render();toast(H`检索保留 ${r.entries.length} 条，新增 ${r.added} 条待筛记录，排除 ${r.rejected.length} 条。${r.entries.length?L('请勾选相关文献用于分析。'):L('可调整限定词后重试。')}`)}
- }catch(err){toast(err.message,true)}finally{if(btn?.isConnected)btn.disabled=false}});
-document.addEventListener('input',ev=>{let t=ev.target;if(t.id==='stage-note')S.notes[S.project.id+S.activeStage]=t.value;if(t.id==='output-editor'){S.draft=t.value;queueAutosave()}if(t.closest('#settings-form'))S.settingsDirty=true;if(t.id==='project-search'){S.query=t.value;refreshProjectResults()}});
-document.addEventListener('change',async ev=>{let t=ev.target;try{if(t.id==='file-input')await doUpload([...t.files]);if(t.dataset.asset){S.project=await api(`project/${S.project.id}/toggle`,{id:t.dataset.asset,enabled:t.checked});render()}if(t.name==='flow')document.querySelectorAll('.flow-choice').forEach(l=>l.classList.toggle('selected',$('input',l).checked));if(t.name==='mode'){let apiMode=t.value==='api';$('#api-fields').hidden=!apiMode;$('#codex-fields').hidden=apiMode;document.querySelectorAll('.mode-option').forEach(l=>l.classList.toggle('selected',$('input',l).checked))}if(t.name==='provider'&&S.settings.base_url==='https://api.deepseek.com/v1'&&t.value==='anthropic')$('#settings-form').elements.base_url.value='https://api.anthropic.com/v1'}catch(err){toast(err.message,true)}});
-document.addEventListener('input',ev=>{const t=ev.target,f=t.closest('#search-literature');if(!f)return;const old=searchForms[S.project.id]||{};if(t.name==='required_terms')old.manual=true;if(t.name==='query'&&!old.manual)f.elements.required_terms.value=[...new Set(t.value.match(/\b(?=[A-Z0-9]*\d)[A-Z][A-Z0-9]{3,}\b/g)||[])].slice(0,8).join(', ');searchForms[S.project.id]={query:f.elements.query.value,required_terms:f.elements.required_terms.value,journal_only:f.elements.journal_only.checked,source:f.elements.source.value,manual:old.manual}});
-document.addEventListener('change',async ev=>{const t=ev.target;if(!t.dataset.literature)return;t.disabled=true;try{S.project=await api(`project/${S.project.id}/literature-toggle`,{id:t.dataset.literature,enabled:t.checked});S.activeStage=step(S.project);S.projects=await api('projects');render();toast(L('文献选择已保存；输入变更后，已有成果需重新确认。'))}catch(err){t.checked=!t.checked;t.disabled=false;toast(err.message,true)}});
-document.addEventListener('keydown',ev=>{const dialog=$('.modal');if(ev.key==='Escape')closeModal();if(ev.key==='Tab'&&dialog){const items=[...dialog.querySelectorAll('button:not(:disabled),input:not(:disabled):not([type=hidden]),select:not(:disabled),textarea:not(:disabled),a[href],[tabindex="0"]')].filter(el=>el.getClientRects().length);const first=items[0],last=items.at(-1);if(ev.shiftKey&&(document.activeElement===first||document.activeElement===dialog)){ev.preventDefault();last?.focus()}else if(!ev.shiftKey&&(document.activeElement===last||document.activeElement===dialog)){ev.preventDefault();first?.focus()}}if((ev.key==='Enter'||ev.key===' ')&&ev.target.matches('.upload-zone')){ev.preventDefault();ev.target.click()}if((ev.ctrlKey||ev.metaKey)&&ev.key==='s'){ev.preventDefault();if(S.draft!==null)saveOutput().catch(err=>toast(err.message,true))}});
-document.addEventListener('dragover',ev=>{if(ev.target.closest('.upload-zone')){ev.preventDefault();ev.target.closest('.upload-zone').classList.add('dragging')}});
-document.addEventListener('dragleave',ev=>ev.target.closest('.upload-zone')?.classList.remove('dragging'));
-document.addEventListener('drop',ev=>{if(ev.target.closest('.upload-zone')){ev.preventDefault();doUpload([...ev.dataTransfer.files]).catch(err=>toast(err.message,true))}});
-async function init(){try{let b=await api('bootstrap');if(window.ResearchI18n&&b.language)window.ResearchI18n.apply(b.language.ui_language);Object.assign(S,{catalog:b.catalog,projects:b.projects,settings:b.settings,dataPath:b.data_path});render();refreshUpdates();await syncPathLocation();const ready=()=>window.pywebview?.api?.report_ready().catch(()=>{});if(window.pywebview?.api?.report_ready)ready();else window.addEventListener('pywebviewready',ready,{once:true});initOnboarding(b.onboarding).catch(err=>toast(err.message,true))}catch(err){$('#app').innerHTML=H`<div class="boot"><h2>暂时无法打开工作区</h2><p>`+e(err.message)+'</p></div>'}}
+document.addEventListener('submit', async (ev) => {
+  ev.preventDefault();
+  let f = ev.target,
+    btn = $('button[type="submit"]', f);
+  if (btn) btn.disabled = true;
+  try {
+    let data = Object.fromEntries(new FormData(f));
+    if (f.id === 'create-form') {
+      if (data.route_choice === 'automatic') {
+        const r = await api('recommend', recommendationInput(f));
+        data = {
+          ...data,
+          route: r.route,
+          flow: r.flow,
+          route_choice: 'recommended',
+          selected_skill: '',
+        };
+      }
+      let p = await api('project', data);
+      const assistantTarget = f.dataset.assistantTarget;
+      closeModal();
+      S.projects = await api('projects');
+      if (assistantTarget && typeof assistantNavigate === 'function')
+        await assistantNavigate(assistantTarget, p.id);
+      else await openProject(p.id);
+      if (typeof assistantCatalogRefresh === 'function') assistantCatalogRefresh();
+      toast(L('项目已创建，推荐与下一步已整理在“继续研究”。'));
+    } else if (f.id === 'studio-brief-form') await studioSave(f, ev.submitter?.value === 'confirm');
+    else if (f.id === 'fu-memory-form') await fuMemorySubmit(f);
+    else if (f.id === 'as-proposal-form') await assistantProposalSubmit();
+    else if (f.id.startsWith('rt-')) await researchSubmit(f);
+    else if (f.id.startsWith('pm-')) await submitProjectManagement(f);
+    else if (f.id === 'settings-form') await saveSettings();
+    else if (f.id === 'info-form') {
+      S.project = await api(`project/${S.project.id}/info`, data);
+      S.activeStage = step(S.project);
+      S.projects = await api('projects');
+      closeModal();
+      render();
+      toast(L('项目概况已更新。'));
+    } else if (f.id === 'search-literature') {
+      data.journal_only = f.elements.journal_only.checked;
+      searchForms[S.project.id] = data;
+      toast(L('正在检索 ') + (data.source === 'pubmed' ? 'PubMed' : 'Crossref') + '…');
+      const searchPid = S.project.id;
+      let r = await api(`project/${searchPid}/search`, data);
+      if (S.view !== 'project' || S.project?.id !== searchPid || S.tab !== 'materials') {
+        toast(L('检索已完成并保存在原项目。'));
+        return;
+      }
+      S.project = r.project;
+      render();
+      toast(
+        H`检索保留 ${r.entries.length} 条，新增 ${r.added} 条待筛记录，排除 ${r.rejected.length} 条。${r.entries.length ? L('请勾选相关文献用于分析。') : L('可调整限定词后重试。')}`,
+      );
+    }
+  } catch (err) {
+    toast(err.message, true);
+  } finally {
+    if (btn?.isConnected) btn.disabled = false;
+  }
+});
+document.addEventListener('input', (ev) => {
+  let t = ev.target;
+  if (t.id === 'stage-note') S.notes[S.project.id + S.activeStage] = t.value;
+  if (t.id === 'output-editor') {
+    S.draft = t.value;
+    queueAutosave();
+  }
+  if (t.closest('#settings-form')) S.settingsDirty = true;
+  if (t.id === 'project-search') {
+    S.query = t.value;
+    refreshProjectResults();
+  }
+});
+document.addEventListener('change', async (ev) => {
+  let t = ev.target;
+  try {
+    if (t.id === 'file-input') await doUpload([...t.files]);
+    if (t.dataset.asset) {
+      S.project = await api(`project/${S.project.id}/toggle`, {
+        id: t.dataset.asset,
+        enabled: t.checked,
+      });
+      render();
+    }
+    if (t.name === 'flow')
+      document
+        .querySelectorAll('.flow-choice')
+        .forEach((l) => l.classList.toggle('selected', $('input', l).checked));
+    if (t.name === 'mode') {
+      let apiMode = t.value === 'api';
+      $('#api-fields').hidden = !apiMode;
+      $('#codex-fields').hidden = apiMode;
+      document
+        .querySelectorAll('.mode-option')
+        .forEach((l) => l.classList.toggle('selected', $('input', l).checked));
+    }
+    if (
+      t.name === 'provider' &&
+      S.settings.base_url === 'https://api.deepseek.com/v1' &&
+      t.value === 'anthropic'
+    )
+      $('#settings-form').elements.base_url.value = 'https://api.anthropic.com/v1';
+  } catch (err) {
+    toast(err.message, true);
+  }
+});
+document.addEventListener('input', (ev) => {
+  const t = ev.target,
+    f = t.closest('#search-literature');
+  if (!f) return;
+  const old = searchForms[S.project.id] || {};
+  if (t.name === 'required_terms') old.manual = true;
+  if (t.name === 'query' && !old.manual)
+    f.elements.required_terms.value = [
+      ...new Set(t.value.match(/\b(?=[A-Z0-9]*\d)[A-Z][A-Z0-9]{3,}\b/g) || []),
+    ]
+      .slice(0, 8)
+      .join(', ');
+  searchForms[S.project.id] = {
+    query: f.elements.query.value,
+    required_terms: f.elements.required_terms.value,
+    journal_only: f.elements.journal_only.checked,
+    source: f.elements.source.value,
+    manual: old.manual,
+  };
+});
+document.addEventListener('change', async (ev) => {
+  const t = ev.target;
+  if (!t.dataset.literature) return;
+  t.disabled = true;
+  try {
+    S.project = await api(`project/${S.project.id}/literature-toggle`, {
+      id: t.dataset.literature,
+      enabled: t.checked,
+    });
+    S.activeStage = step(S.project);
+    S.projects = await api('projects');
+    render();
+    toast(L('文献选择已保存；输入变更后，已有成果需重新确认。'));
+  } catch (err) {
+    t.checked = !t.checked;
+    t.disabled = false;
+    toast(err.message, true);
+  }
+});
+document.addEventListener('keydown', (ev) => {
+  const dialog = $('.modal');
+  if (ev.key === 'Escape') closeModal();
+  if (ev.key === 'Tab' && dialog) {
+    const items = [
+      ...dialog.querySelectorAll(
+        'button:not(:disabled),input:not(:disabled):not([type=hidden]),select:not(:disabled),textarea:not(:disabled),a[href],[tabindex="0"]',
+      ),
+    ].filter((el) => el.getClientRects().length);
+    const first = items[0],
+      last = items.at(-1);
+    if (ev.shiftKey && (document.activeElement === first || document.activeElement === dialog)) {
+      ev.preventDefault();
+      last?.focus();
+    } else if (
+      !ev.shiftKey &&
+      (document.activeElement === last || document.activeElement === dialog)
+    ) {
+      ev.preventDefault();
+      first?.focus();
+    }
+  }
+  if ((ev.key === 'Enter' || ev.key === ' ') && ev.target.matches('.upload-zone')) {
+    ev.preventDefault();
+    ev.target.click();
+  }
+  if ((ev.ctrlKey || ev.metaKey) && ev.key === 's') {
+    ev.preventDefault();
+    if (S.draft !== null) saveOutput().catch((err) => toast(err.message, true));
+  }
+});
+document.addEventListener('dragover', (ev) => {
+  if (ev.target.closest('.upload-zone')) {
+    ev.preventDefault();
+    ev.target.closest('.upload-zone').classList.add('dragging');
+  }
+});
+document.addEventListener('dragleave', (ev) =>
+  ev.target.closest('.upload-zone')?.classList.remove('dragging'),
+);
+document.addEventListener('drop', (ev) => {
+  if (ev.target.closest('.upload-zone')) {
+    ev.preventDefault();
+    doUpload([...ev.dataTransfer.files]).catch((err) => toast(err.message, true));
+  }
+});
+async function init() {
+  try {
+    let b = await api('bootstrap');
+    if (window.ResearchI18n && b.language) window.ResearchI18n.apply(b.language.ui_language);
+    Object.assign(S, {
+      catalog: b.catalog,
+      projects: b.projects,
+      settings: b.settings,
+      dataPath: b.data_path,
+    });
+    render();
+    refreshUpdates();
+    await syncPathLocation();
+    const ready = () => window.pywebview?.api?.report_ready().catch(() => {});
+    if (window.pywebview?.api?.report_ready) ready();
+    else window.addEventListener('pywebviewready', ready, { once: true });
+    initOnboarding(b.onboarding).catch((err) => toast(err.message, true));
+  } catch (err) {
+    $('#app').innerHTML =
+      H`<div class="boot"><h2>暂时无法打开工作区</h2><p>` + e(err.message) + '</p></div>';
+  }
+}
 init();
