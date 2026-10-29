@@ -320,6 +320,18 @@ py -3.13 -m venv .venv
 .\.venv\Scripts\python.exe main.py
 ```
 
+开发检查另需 Node.js 22.13+；前端工具版本固定在 `package-lock.json`，Python 开发工具单独放在 `requirements-dev.txt`：
+
+```powershell
+npm ci
+.\.venv\Scripts\python.exe -m pip install -r requirements-dev.txt
+npm run format:check
+npm run lint
+.\.venv\Scripts\python.exe -m ruff check app main.py analysis_worker_entry.py
+```
+
+`npm run format` 格式化前端 JS、CSS、HTML 和工具配置。ESLint 使用推荐规则，按入口页加载的普通 script 识别共享全局声明；顶层共享声明不作未使用检查，函数内局部变量仍检查。Ruff 对后端和启动入口启用 `E9`、`F`（语法及 Pyflakes）规则，包含未定义名称、未使用导入和变量检查；不改变现有 Python 排版。push/PR 和发布工作流都执行上述三项检查。
+
 `python -m unittest discover -s tests -v` 运行测试。`python tools/build_windows.py` 用 PyInstaller 构建 Windows 单文件可执行程序和分享压缩包。构建脚本需要 Pillow 生成图标；已备好的图标保存在 resources/。
 
 `node tests/test_frontend.cjs` 验证上传汇总、Markdown 安全显示和生成内容展开状态。API 集成测试只向本机模拟服务发送虚拟密钥。Word 的 LibreOffice 渲染用于开发验收，软件导出 Word 本身不依赖 LibreOffice。

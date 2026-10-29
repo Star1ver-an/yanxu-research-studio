@@ -1,5 +1,4 @@
 """Cell QC/embedding and sample-aware descriptive single-cell/spatial summaries."""
-import math
 from collections import Counter, defaultdict
 
 from .analysis_special import (checkpoint, dependency, field, figure, input_file, method,
@@ -253,7 +252,6 @@ def _spatial(config, sources):
 
 
 def _variants(config, sources):
-    import numpy as np
     rows = read_table(config, sources)['rows']; cols = config['columns']; p = config['parameters']
     if p['view'] == 'oncoplot':
         needed = ['sample', 'gene']

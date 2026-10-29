@@ -1,7 +1,6 @@
 """One computation per process. The application writes the manifest, not a model."""
 import hashlib
 import json
-import os
 from pathlib import Path
 import sys
 import traceback

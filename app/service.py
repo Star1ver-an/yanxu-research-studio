@@ -6,14 +6,13 @@ import json
 from pathlib import Path
 import re
 import threading
-import time
 from urllib.parse import quote
 from urllib.request import Request, urlopen
 import uuid
 import zipfile
 
 from .storage import Store, now, extract_file
-from .workflows import STAGES,FLOWS,BASE_INSTRUCTION,SCIENTIFIC_INSTRUCTION,role_context,VERSION,SOURCE_COMMIT
+from .workflows import STAGES,FLOWS,BASE_INSTRUCTION,SCIENTIFIC_INSTRUCTION,role_context,SOURCE_COMMIT
 from .providers import CodexClient,ProviderError,Cancelled,api_complete
 from .literature import required_terms,identifier_terms,filter_entries
 from .project_management import ProjectManagement,lifecycle,project_title

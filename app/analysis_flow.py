@@ -1,7 +1,6 @@
 """Explicit parent-gate cytometry analysis. Never infer biological gates."""
 import io
 import json
-import math
 from pathlib import Path
 import re
 

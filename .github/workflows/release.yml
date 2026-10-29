@@ -32,11 +32,16 @@ jobs:
       - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
         with:
           node-version: '22'
+          cache: npm
       - name: Check tag matches application version
         shell: pwsh
         run: |
           python -c "import os; from app.workflows import VERSION; assert os.environ['RELEASE_TAG']=='v'+VERSION, 'Tag/version mismatch'"
-      - run: python -m pip install -r requirements.txt
+      - run: npm ci
+      - run: python -m pip install -r requirements.txt -r requirements-dev.txt
+      - run: npm run format:check
+      - run: npm run lint
+      - run: python -m ruff check app main.py analysis_worker_entry.py
       - run: python -m unittest discover -s tests -v
       - run: node tests/test_frontend.cjs
       - run: node tests/test_polling.cjs

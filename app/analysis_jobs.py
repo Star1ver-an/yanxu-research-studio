@@ -118,8 +118,6 @@ class AnalysisJobs:
             return self._plot_sources(p,list(dict.fromkeys(config['inputs'].values())))
 
     def analysis_preview(self,pid,data):
-        from .plot_data import inspect_source
-        from .analysis_special import inspect_special, SPECIAL_SUFFIXES
         config = analysis.validate(data.get('config'))
         sources = self._analysis_sources(pid,config)
         self._analysis_require(config,sources)
@@ -127,7 +125,6 @@ class AnalysisJobs:
         if not method['available']: raise ValueError('此方法缺少分析组件：'+', '.join(method['missing_dependencies'])+'。请先安装或检查分析环境。')
         summaries=[]
         for source in sources:
-            suffix=Path(source['name']).suffix.lower()
             info = self._analysis_inspect_source(source)
             # Only structure crosses UI boundary; no event rows, coordinates or pixels.
             summaries.append({k:v for k,v in info.items() if k not in {'preview','rows','data'}} | {'id':source['id'],'name':source['name']})

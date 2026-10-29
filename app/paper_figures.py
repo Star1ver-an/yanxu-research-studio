@@ -1,5 +1,4 @@
 """Whole-paper figure planning, atomic batch edits and local delivery jobs."""
-import base64
 import copy
 import hashlib
 import io
@@ -222,7 +221,6 @@ class PaperFigures:
         return render_composition(spec, sources, render_child, fmt, cancel)
 
     def paper_compose(self, pid, data):
-        import math
         from .plot_engine import validate_spec
         ids = data.get('figure_ids')
         if not isinstance(ids, list) or not 1 <= len(ids) <= 6 or len(set(ids)) != len(ids): raise ValueError('请选择 1–6 张不同的单图。')

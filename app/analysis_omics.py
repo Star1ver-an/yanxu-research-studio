@@ -326,7 +326,6 @@ def compute(config, sources, cancel=None, progress=None):
 
 
 def draw(result, config, style, title=''):
-    import numpy as np
     fig, axes = figure(style, title); ax = axes[0, 0]; colors = palette(style)
     ident = result['method']
     if ident == 'expression_pca':

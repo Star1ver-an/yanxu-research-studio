@@ -1,0 +1,6 @@
+target-version = "py312"
+extend-exclude = ["resources", "upstream", "qa-runs", "research-runs", ".qa-runtime", ".test-data"]
+
+[lint]
+# Start with syntax/Pyflakes checks; retain the existing backend layout.
+select = ["E9", "F"]

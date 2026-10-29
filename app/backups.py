@@ -1,12 +1,9 @@
 """Portable project-only backups. Restores are validated, independent copies."""
-import base64
-import copy
 import hashlib
 import io
 import json
 from pathlib import Path, PurePosixPath
 import re
-import shutil
 import threading
 import uuid
 import unicodedata

@@ -102,7 +102,6 @@ async function assistantProposalSubmit() {
   const r = AS.review;
   if (!r) return;
   cacheAssistantProposal();
-  const key = r.pid + ':' + r.message;
   const draft =
     r.kind === 'report'
       ? structuredClone(r.draft)

@@ -202,7 +202,6 @@ class Plotting:
         return row
 
     def plot_save(self,pid,data):
-        from .plot_engine import validate_spec
         identity=data.get('id')
         if identity and not re.fullmatch('[0-9a-f]{32}',str(identity)): raise ValueError('绘图标识无效。')
         with self.lock:

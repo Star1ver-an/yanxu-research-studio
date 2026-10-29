@@ -5,11 +5,10 @@ import importlib.util
 import json
 import os
 from pathlib import Path, PurePosixPath
-import shutil
 import subprocess
 import sys
 import threading
-from urllib.request import Request, urlopen
+from urllib.request import urlopen
 import zipfile
 
 MODULES = ['numpy','pandas','scipy','sklearn','statsmodels','lifelines','flowio',

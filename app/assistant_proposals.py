@@ -155,7 +155,6 @@ class AssistantProposals:
                     'meaning':'预览未写入任何研究内容；确认后将原子保存全部选定条目。'}
 
     def proposal_apply(self, data):
-        from .assistant import fingerprint
         with self.service.lock:
             p,session,message,proposal=self._proposal(data)
             self.service.assert_idle(p)
