@@ -39,6 +39,7 @@ jobs:
       - run: python -m pip install -r requirements.txt
       - run: python -m unittest discover -s tests -v
       - run: node tests/test_frontend.cjs
+      - run: node tests/test_polling.cjs
       - run: node tests/test_appearance.cjs
       - run: node tests/test_updates.cjs
       - run: node tests/test_management.cjs

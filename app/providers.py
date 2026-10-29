@@ -8,7 +8,7 @@ import shutil
 import subprocess
 import threading
 import time
-from urllib.request import Request, urlopen
+from urllib.request import HTTPRedirectHandler, Request, build_opener
 from urllib.error import HTTPError, URLError
 from urllib.parse import urlparse
 
@@ -17,6 +17,13 @@ class ProviderError(RuntimeError):
 
 class Cancelled(ProviderError):
     pass
+
+
+class NoAPIRedirect(HTTPRedirectHandler):
+    def redirect_request(self, req, fp, code, msg, headers, newurl):
+        # Credentials belong only to the configured endpoint, including on 301/302/303.
+        fp.close()
+        raise ProviderError('模型服务返回重定向，为保护 API Key 已停止请求。请检查服务地址。')
 
 
 class ReplyCollector:
@@ -283,7 +290,7 @@ def api_complete(settings, key, system, prompt, progress, cancelled):
         raise Cancelled('任务已停止。')
     request=Request(endpoint,json.dumps(body).encode('utf-8'),headers,method='POST')
     try:
-        with urlopen(request, timeout=240) as response:
+        with build_opener(NoAPIRedirect()).open(request, timeout=240) as response:
             raw=response.read(16*1024*1024)
             data=json.loads(raw)
     except HTTPError as e:

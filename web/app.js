@@ -128,7 +128,31 @@ function exportModal(){modal(H`<span class="template-icon green">${icon('downloa
 
 async function openProject(id,tab='overview',updateUrl=true){clearTimeout(pollTimer);S.project=await api('project/'+id);for(let r of S.project.runs)if(r.note!==undefined)S.notes[id+r.stage]=r.note;S.view='project';S.activeStage=step(S.project);S.tab=tab;S.outputTab='preview';S.draft=null;if(updateUrl)window.history?.pushState({},'',(projectRoute(S.project)==='scientific'?'/scientific':'/ars')+'?project='+encodeURIComponent(id));render();window.scrollTo?.({top:0,behavior:'instant'});recoverOutputDraft();schedulePoll()}
 function updateActivity(html){const el=$('#activity');if(!el||el.innerHTML===html)return;const details=$('details',el),pre=$('pre',el);const opened=details?.open,scroll=pre?.scrollTop;el.innerHTML=html;if(details&&$('details',el))$('details',el).open=opened;if(pre&&$('pre',el))$('pre',el).scrollTop=scroll;}
-function schedulePoll(){clearTimeout(pollTimer);if(S.view==='project'&&S.project?.runs.some(r=>r.status==='running'))pollTimer=setTimeout(async()=>{try{const pid=S.project.id;let p=await api('project/'+pid);if(S.view!=='project'||S.project?.id!==pid)return;let running=p.runs.find(r=>r.status==='running');S.project=p;if(running){if(S.tab==='work')updateActivity(activityView(p,S.activeStage))}else{S.projects=await api('projects');render();toast(L('本次运行已结束，成果与状态已保存。'))}schedulePoll()}catch(err){toast(err.message,true)}},1800)}
+function schedulePoll(){
+ clearTimeout(pollTimer);
+ if(S.view!=='project'||!S.project?.runs.some(r=>r.status==='running'))return;
+ const pid=S.project.id;
+ pollTimer=setTimeout(async()=>{
+  if(S.view!=='project'||S.project?.id!==pid)return;
+  try{
+   const p=await api('project/'+pid);
+   if(S.view!=='project'||S.project?.id!==pid)return;
+   if(p.runs.some(r=>r.status==='running')){
+    S.project=p;
+    if(S.tab==='work')updateActivity(activityView(p,S.activeStage));
+   }else{
+    const projects=await api('projects');
+    if(S.view!=='project'||S.project?.id!==pid)return;
+    S.project=p;S.projects=projects;
+    render();toast(L('本次运行已结束，成果与状态已保存。'));
+   }
+  }catch(err){
+   if(S.view==='project'&&S.project?.id===pid)toast(err.message,true);
+  }finally{
+   if(S.view==='project'&&S.project?.id===pid)schedulePoll();
+  }
+ },1800);
+}
 async function saveSettings(showToast=true){let form=$('#settings-form');if(!form)return;let data=Object.fromEntries(new FormData(form));data.clear_key=!!form.elements.clear_key?.checked;S.settings=await api('settings',data);S.settingsDirty=false;if(showToast){toast(L('连接设置已保存'));render()}return data}
 async function saveOutput(silent=false){
  clearTimeout(autosaveTimer);if(S.draft===null)return outputSaveChain;

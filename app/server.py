@@ -43,6 +43,10 @@ class Handler(BaseHTTPRequestHandler):
         if not isinstance(body,bytes):
             body=json.dumps(body,ensure_ascii=False).encode('utf-8')
         self.send_response(status)
+        if status>=400:
+            # A rejected request may still have an unread body. Never parse it as another request.
+            self.close_connection=True
+            self.send_header('Connection','close')
         self.send_header('Content-Type',mime)
         self.send_header('Content-Length',str(len(body)))
         self.send_header('Cache-Control','no-store')
@@ -121,6 +125,8 @@ class Handler(BaseHTTPRequestHandler):
         if not self.authorized():
             return self.reply({'error':'本地连接校验失败。'},403)
         try:
+            if self.headers.get('Transfer-Encoding') is not None or len(self.headers.get_all('Content-Length',[]))>1:
+                raise ValueError('请求格式无效。')
             length=int(self.headers.get('Content-Length',0))
             path=urlparse(self.path).path
             if path=='/api/backups/import':

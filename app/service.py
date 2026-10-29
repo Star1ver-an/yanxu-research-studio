@@ -59,8 +59,8 @@ class Service(ProjectManagement,ResearchTools,Plotting,AnalysisJobs,PaperFigures
             a.pop('text',None)
             a.pop('file',None)
         for r in p['runs']:
-            if r['id'] in self.jobs:
-                j=self.jobs[r['id']]
+            j=self.jobs.get(r['id'])
+            if j is not None:
                 r['progress']=j.get('progress','正在准备')
                 r['partial']=j.get('partial','')
         return p
@@ -435,8 +435,9 @@ class Service(ProjectManagement,ResearchTools,Plotting,AnalysisJobs,PaperFigures
     def stop(self,pid):
         p=self.store.get(pid)
         for r in p['runs']:
-            if r['status']=='running' and r['id'] in self.jobs:
-                self.jobs[r['id']]['cancel'].set()
+            j=self.jobs.get(r['id'])
+            if r['status']=='running' and j is not None:
+                j['cancel'].set()
         return {'ok':True}
 
     def inspect_codex(self):
