@@ -28,6 +28,11 @@ const run=code=>vm.runInContext(code,ctx);
  // Both DOM and state can change between preview and submitting the question.
  run(`AS.scope='a'.repeat(32);AS.drafts[AS.scope]='新问题';AS.preview={text:'旧问题'};calls=[];api=async()=>{calls.push(1)}`);
  await run('assistantSend()');assert.equal(run('calls.length'),0);
- const css=fs.readFileSync(path.join(__dirname,'../web/assistant.css'),'utf8');assert.ok(!css.includes('.assistant-open .app-body{display:none}'));assert.ok(css.includes('width:min(420px'));assert.ok(css.includes('height:min(580px'));assert.ok(css.includes('.as-launcher{position:fixed'));assert.ok(css.includes('overscroll-behavior:contain'));
+ const css=fs.readFileSync(path.join(__dirname,'../web/assistant.css'),'utf8');
+ assert.doesNotMatch(css,/\.assistant-open\s+\.app-body\s*\{\s*display\s*:\s*none\s*[;}]/);
+ assert.match(css,/width\s*:\s*min\(\s*420px\b/);
+ assert.match(css,/height\s*:\s*min\(\s*580px\b/);
+ assert.match(css,/\.as-launcher\s*\{\s*position\s*:\s*fixed\b/);
+ assert.match(css,/overscroll-behavior\s*:\s*contain\b/);
  console.log('Assistant frontend checks passed: scope isolation, opt-in context, escaped replies, navigation whitelist, preview, failure recovery and delayed response isolation.');
 })().catch(e=>{console.error(e);process.exitCode=1});
